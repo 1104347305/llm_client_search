@@ -87,6 +87,16 @@ async def search_customers(
         total = data.get("total", 0)
         customers = data.get("list", [])
 
+        from app.db.request_logger import get_request_logger
+        await get_request_logger().log(
+            agent_id=agent_id,
+            query=query,
+            request_payload=request.model_dump(),
+            response_data=data,
+            matched_level=parsed.matched_level,
+            confidence=parsed.confidence,
+        )
+
         # 从查询条件中提取展示用字段名：
         # - 顶层字段（policies.xxx → policies）用于嵌套对象
         # - 平铺字段直接使用原始字段名（age、mobile_phone 等）

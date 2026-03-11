@@ -13,6 +13,7 @@ from app.models.schemas import (
 from app.services.search_service import SearchService
 from app.core.field_registry import get_field_registry
 from app.core.query_router import QueryRouter
+from app.db.request_logger import get_request_logger
 
 router = APIRouter()
 search_service = SearchService()
@@ -158,9 +159,25 @@ async def natural_language_search(request: NaturalLanguageSearchRequest):
     try:
         logger.info(f"Received natural language search request: {request.query}")
         response = await search_service.natural_language_search(request)
+        await get_request_logger().log(
+            agent_id=request.agent_id,
+            query=request.query,
+            request_payload=request.model_dump(),
+            response_data=response.data,
+            matched_level=response.matched_level,
+            confidence=response.confidence,
+        )
         return response
     except Exception as e:
         logger.error(f"Natural language search error: {e}")
+        await get_request_logger().log(
+            agent_id=request.agent_id,
+            query=request.query,
+            request_payload=request.model_dump(),
+            response_data={},
+            matched_level=0,
+            confidence=0.0,
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -178,7 +195,23 @@ async def structured_search(request: SearchRequest):
     try:
         logger.info(f"Received structured search request with {len(request.conditions)} conditions")
         response = await search_service.structured_search(request)
+        await get_request_logger().log(
+            agent_id=request.header.agent_id,
+            query="",
+            request_payload=request.model_dump(),
+            response_data=response.data,
+            matched_level=response.matched_level,
+            confidence=response.confidence,
+        )
         return response
     except Exception as e:
         logger.error(f"Structured search error: {e}")
+        await get_request_logger().log(
+            agent_id=request.header.agent_id,
+            query="",
+            request_payload=request.model_dump(),
+            response_data={},
+            matched_level=0,
+            confidence=0.0,
+        )
         raise HTTPException(status_code=500, detail=str(e))
