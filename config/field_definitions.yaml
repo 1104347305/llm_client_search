@@ -1,0 +1,1877 @@
+# ============================================================
+# RAG 知识库 - 字段查询意图定义
+# ============================================================
+# 结构说明：
+#   id            : 唯一标识
+#   retrieval_text: 用于向量检索的自然语言表达（覆盖用户的各种说法）
+#   field         : 目标字段名
+#   operator      : 操作符 MATCH/GTE/LTE/RANGE/CONTAINS/NOT_CONTAINS/EXISTS/NOT_EXISTS/NESTED_MATCH
+#   value_type    :
+#     extract     - 从查询文本直接提取（产品名、姓名、地址等开放域）
+#     enum        - 从枚举列表中选取（枚举值在 enum 字段中）
+#     numeric     - 数值提取，需按 unit 换算
+#     date        - 日期提取，需按 format 格式化
+#     static      - 固定值（在 value 字段中）
+#     infer       - 需要 LLM 根据 enum 推断（口语→标准值）
+#     exists      - 无需值，仅判断字段是否存在
+#   enum          : 枚举值列表（value_type=enum/infer 时使用）
+#   unit          : 数值换算规则
+#   format        : 日期格式
+#   examples      : 示例查询及输出（用于 few-shot）
+#   notes         : 补充说明
+# ============================================================
+
+intents:
+
+  # ==================== 姓名 ====================
+
+  - id: name_exact
+    retrieval_text: >
+      叫 名字是 姓名 名叫 叫做 名字叫 全名 客户叫
+    field: name
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "叫张三的客户"
+        output: {field: name, operator: MATCH, value: "张三"}
+      - query: "名字是李四的客户"
+        output: {field: name, operator: MATCH, value: "李四"}
+
+  - id: name_surname
+    retrieval_text: >
+      姓 姓氏 百家姓 姓什么 姓张 姓李 姓王 姓陈
+    field: name
+    operator: MATCH
+    value_type: extract
+    notes: '姓氏查询只取姓，如"姓张" → value="张"'
+    examples:
+      - query: "姓张的客户"
+        output: {field: name, operator: MATCH, value: "张"}
+      - query: "姓李的客户"
+        output: {field: name, operator: MATCH, value: "李"}
+
+  - id: name_contains
+    retrieval_text: >
+      名字带 名字含 名字包含 名字里有 名字中有
+    field: name
+    operator: MATCH
+    value_type: extract
+    notes: '提取关键字，如"名字带伟" → value="伟"'
+    examples:
+      - query: "名字带伟的客户"
+        output: {field: name, operator: MATCH, value: "伟"}
+
+  # ==================== 手机号 ====================
+
+  - id: mobile_phone
+    retrieval_text: >
+      手机号 手机 电话 联系方式 号码 手机尾号 手机开头 11位手机号 直接输入手机号 1234567890
+    field: mobile_phone
+    operator: MATCH
+    value_type: extract
+    notes: "手机号字段名必须是 mobile_phone，禁止使用 phone"
+    examples:
+      - query: "手机号138开头的客户"
+        output: {field: mobile_phone, operator: MATCH, value: "138"}
+      - query: "手机尾号8888的客户"
+        output: {field: mobile_phone, operator: MATCH, value: "8888"}
+      - query: "15817760299"
+        output: {field: mobile_phone, operator: MATCH, value: "15817760299"}
+
+  # ==================== 性别 ====================
+
+  - id: gender
+    retrieval_text: >
+      性别 男 女 男性 女性 男客户 女客户 男的 女的 先生 女士
+    field: gender
+    operator: MATCH
+    value_type: enum
+    enum: ["男", "女", "未知"]
+    examples:
+      - query: "男性客户"
+        output: {field: gender, operator: MATCH, value: "男"}
+      - query: "女客户"
+        output: {field: gender, operator: MATCH, value: "女"}
+
+  # ==================== 年龄 ====================
+
+  - id: age_gte
+    retrieval_text: >
+      年龄 岁以上 岁及以上 多少岁以上 年纪大 老年 中老年
+      40岁以上 50岁以上 60岁以上 年龄大于 年龄超过
+    field: age
+    operator: GTE
+    value_type: numeric
+    unit: "岁，直接取数字，无需换算"
+    examples:
+      - query: "45岁以上的客户"
+        output: {field: age, operator: GTE, value: 45}
+      - query: "60岁及以上的客户"
+        output: {field: age, operator: GTE, value: 60}
+
+  - id: age_lte
+    retrieval_text: >
+      岁以下 岁及以下 年龄小于 年龄不超过 年轻 年轻客户 未满
+    field: age
+    operator: LTE
+    value_type: numeric
+    unit: "岁，直接取数字"
+    examples:
+      - query: "35岁以下的客户"
+        output: {field: age, operator: LTE, value: 35}
+
+  - id: age_range
+    retrieval_text: >
+      年龄范围 到岁之间 岁到岁 年龄区间 多少岁到多少岁
+      30到40岁 中年 青年 老年 年龄段 x岁
+    field: age
+    operator: RANGE
+    value_type: numeric
+    unit: "岁，直接取数字"
+    notes: "语义年龄：青年18-35，中年36-55，老年56-100，未成年0-18；精确年龄（如'35岁'）用 RANGE {min:x,max:x}，禁止对数值字段使用 MATCH"
+    examples:
+      - query: "30到40岁的客户"
+        output: {field: age, operator: RANGE, value: {min: 30, max: 40}}
+      - query: "中年客户"
+        output: {field: age, operator: RANGE, value: {min: 36, max: 55}}
+      - query: "35岁的客户"
+        output: {field: age, operator: RANGE, value: {min: 35, max: 35}}
+
+  # ==================== 学历 ====================
+
+  - id: education_exact
+    retrieval_text: >
+      学历 毕业 学历是 学历为 什么学历 教育程度 文化程度
+      大专 本科 硕士 博士 研究生 高中 中专
+    field: education
+    operator: MATCH
+    value_type: enum
+    enum: ["高中", "中专", "大学专科", "大学本科", "硕士研究生", "博士研究生", "博士后"]
+    notes: "口语映射：大专→大学专科，本科→大学本科，硕士→硕士研究生，博士→博士研究生"
+    examples:
+      - query: "本科学历的客户"
+        output: {field: education, operator: MATCH, value: "大学本科"}
+      - query: "大专学历客户"
+        output: {field: education, operator: MATCH, value: "大学专科"}
+
+  - id: education_gte
+    retrieval_text: >
+      学历以上 学历及以上 本科以上 研究生以上 高学历
+    field: education
+    operator: CONTAINS
+    value_type: enum
+    enum: ["高中", "中专", "大学专科", "大学本科", "硕士研究生", "博士研究生", "博士后"]
+    notes: "以上查询：列出该学历及更高的所有值，用OR逻辑"
+    examples:
+      - query: "本科以上学历的客户"
+        output:
+          query_logic: OR
+          conditions:
+            - {field: education, operator: MATCH, value: "大学本科"}
+            - {field: education, operator: MATCH, value: "硕士研究生"}
+            - {field: education, operator: MATCH, value: "博士研究生"}
+            - {field: education, operator: MATCH, value: "博士后"}
+
+  # ==================== 婚姻状况 ====================
+
+  - id: marital_status
+    retrieval_text: >
+      婚姻 结婚 已婚 未婚 离婚 离异 丧偶 单身 有配偶
+      婚姻状况 结婚了 没结婚 结婚没有
+    field: marital_status
+    operator: MATCH
+    value_type: enum
+    enum: ["未婚", "已婚", "离婚", "丧偶", "未知"]
+    notes: "口语映射：结婚/新婚/刚结婚→已婚，单身/没结婚→未婚，离异→离婚"
+    examples:
+      - query: "已婚客户"
+        output: {field: marital_status, operator: MATCH, value: "已婚"}
+      - query: "离异客户"
+        output: {field: marital_status, operator: MATCH, value: "离婚"}
+
+  # ==================== 出生日期 ====================
+
+  - id: client_birth
+    retrieval_text: >
+      出生 出生年份 出生年月 几几年出生 生于 出生日期
+      属什么 生肖 星座
+    field: client_birth
+    operator: RANGE
+    value_type: date
+    format: "YYYYMMDD，年份范围：如1980年→{min:19800101, max:19801231}"
+    examples:
+      - query: "1980年出生的客户"
+        output: {field: client_birth, operator: RANGE, value: {min: 19800101, max: 19801231}}
+
+  - id: client_birthday
+    retrieval_text: >
+      生日 过生日 生日快到 即将过生日 本月生日 下月生日
+      生日在 几月几日生日
+    field: client_birth_month_and_day
+    operator: MATCH
+    value_type: date
+    format: "MM-DD，需工具获取当前日期计算"
+    notes: "时间相关查询需调用工具获取当前日期"
+    examples:
+      - query: "本月过生日的客户"
+        output: {field: client_birth_month_and_day, operator: RANGE, value: {min: "当前月-01", max: "当前月-31"}}
+
+  # ==================== 客户号 ====================
+
+  - id: customer_id
+    retrieval_text: >
+      客户号 客户编号 客户ID 客户代码
+    field: customer_id
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "客户号C123456的客户"
+        output: {field: customer_id, operator: MATCH, value: "C123456"}
+
+  # ==================== 客户添加日 ====================
+
+  - id: customer_added_date
+    retrieval_text: >
+      添加日期 添加时间 成为客户 加入时间 客户添加 录入时间
+      什么时候添加 添加的客户 新加入
+    field: customer_added_date
+    operator: RANGE
+    value_type: date
+    format: "YYYYMMDD"
+    examples:
+      - query: "2024年添加的客户"
+        output: {field: customer_added_date, operator: RANGE, value: {min: 20240101, max: 20241231}}
+
+  # ==================== 客户价值 ====================
+
+  - id: customer_value_exact
+    retrieval_text: >
+      客户价值 A类客户 B类客户 C类客户 D类客户
+      A1 A2 A3 A4 高价值客户 优质客户 价值等级
+    field: customer_value
+    operator: MATCH
+    value_type: enum
+    enum: ["A1类客户", "A2类客户", "A3类客户", "A4类客户", "B类客户", "C类客户", "D类客户"]
+    notes: "高价值→A1类客户，排序：D类客户<C类客户<B类客户<A4类客户<A3类客户<A2类客户<A1类客户"
+    examples:
+      - query: "A1类客户"
+        output: {field: customer_value, operator: MATCH, value: "A1类客户"}
+      - query: "高价值客户"
+        output: {field: customer_value, operator: MATCH, value: "A1类客户"}
+
+  - id: customer_value_gte
+    retrieval_text: >
+      客户价值以上 A类以上 B类以上 高价值及以上
+    field: customer_value
+    operator: CONTAINS
+    value_type: enum
+    enum: ["A1类客户", "A2类客户", "A3类客户", "A4类客户", "B类客户", "C类客户", "D类客户"]
+    notes: "价值从高到低：A1>A2>A3>A4>B>C>D，以上查询列出该级别及更高"
+    examples:
+      - query: "B类以上客户"
+        output:
+          query_logic: OR
+          conditions:
+            - {field: customer_value, operator: MATCH, value: "A1类客户"}
+            - {field: customer_value, operator: MATCH, value: "A2类客户"}
+            - {field: customer_value, operator: MATCH, value: "A3类客户"}
+            - {field: customer_value, operator: MATCH, value: "A4类客户"}
+            - {field: customer_value, operator: MATCH, value: "B类客户"}
+
+  # ==================== 客户温度 ====================
+
+  - id: customer_temperature_exact
+    retrieval_text: >
+      客户温度 高温客户 中温客户 低温客户 冷却客户
+      温度 活跃度 客户活跃 意向度
+    field: customer_temperature
+    operator: MATCH
+    value_type: enum
+    enum: ["高温", "中温", "低温", "冷却"]
+    notes: "根据客户活跃度分类，温度从低到高：冷却<低温<中温<高温"
+    examples:
+      - query: "高温客户"
+        output: {field: customer_temperature, operator: MATCH, value: "高温"}
+
+  - id: customer_temperature_gte
+    retrieval_text: >
+      温度以上 中温以上 低温以上 高温及以上 中温及以上
+    field: customer_temperature
+    operator: CONTAINS
+    value_type: enum
+    enum: ["高温", "中温", "低温", "冷却"]
+    notes: "根据客户活跃度分类，温度从低到高：冷却<低温<中温<高温"
+    examples:
+      - query: "中温及以上客户"
+        output:
+          query_logic: OR
+          conditions:
+            - {field: customer_temperature, operator: MATCH, value: "中温"}
+            - {field: customer_temperature, operator: MATCH, value: "高温"}
+
+  # ==================== 客群标签 ====================
+
+  - id: customer_segment_tag
+    retrieval_text: >
+      客群标签 客群 人群标签 客户画像 人群分类
+      焦圈中年 鸡娃精英 临退富裕 富裕祖辈 邻退小康
+    field: customer_segment_tag
+    operator: MATCH
+    value_type: enum
+    enum: ["焦圈中年", "鸡娃精英", "临退富裕", "富裕祖辈", "邻退小康"]
+    examples:
+      - query: "鸡娃精英客户"
+        output: {field: customer_segment_tag, operator: MATCH, value: "鸡娃精英"}
+
+  # ==================== 经营阶段 ====================
+
+  - id: operation_stage
+    retrieval_text: >
+      经营阶段 客户阶段 忠诚客户 准客户 潜在客户 新用户
+      经营状态 客户关系阶段 是否是客户
+    field: operation_stage
+    operator: MATCH
+    value_type: enum
+    enum: ["忠诚客户", "客户", "准客户", "用户", "新用户", "其他"]
+    examples:
+      - query: "准客户"
+        output: {field: operation_stage, operator: MATCH, value: "准客户"}
+      - query: "忠诚客户"
+        output: {field: operation_stage, operator: MATCH, value: "忠诚客户"}
+
+  # ==================== 寿险VIP ====================
+
+  - id: life_insurance_vip_exact
+    retrieval_text: >
+      寿险VIP 黄金会员 铂金会员 VIP等级 黄金V1 黄金V2 黄金V3
+      铂金V1 原黄金VIP 原铂金VIP 会员等级 VIP客户
+    field: life_insurance_vip
+    operator: MATCH
+    value_type: enum
+    enum: ["黄金V1", "黄金V2", "黄金V3", "铂金V1", "原黄金VIP", "原铂金VIP", "全部"]
+    notes: "口语映射：黄金→黄金V1，铂金→铂金V1；排序：黄金V1<黄金V2<黄金V3<原黄金VIP<铂金V1<原铂金VIP"
+    examples:
+      - query: "铂金V1会员"
+        output: {field: life_insurance_vip, operator: MATCH, value: "铂金V1"}
+      - query: "原黄金VIP客户"
+        output: {field: life_insurance_vip, operator: MATCH, value: "原黄金VIP"}
+
+  - id: life_insurance_vip_gte
+    retrieval_text: >
+      VIP以上 黄金以上 铂金以上 黄金V1以上 黄金V2以上
+      VIP等级以上 高VIP 高级会员
+    field: life_insurance_vip
+    operator: CONTAINS
+    value_type: enum
+    enum: ["黄金V1", "黄金V2", "黄金V3", "铂金V1", "原黄金VIP", "原铂金VIP"]
+    notes: "等级从低到高：黄金V1<黄金V2<黄金V3<铂金V1，以上查询列出该级别及更高"
+    examples:
+      - query: "铂金以上会员"
+        output:
+          query_logic: OR
+          conditions:
+            - {field: life_insurance_vip, operator: MATCH, value: "铂金V1"}
+            - {field: life_insurance_vip, operator: MATCH, value: "原铂金VIP"}
+
+  # ==================== 平安VIP ====================
+
+  - id: pingan_vip
+    retrieval_text: >
+      平安VIP 平安VIP客户 是否平安VIP
+    field: pingan_vip
+    operator: MATCH
+    value_type: enum
+    enum: ["是", "否"]
+    examples:
+      - query: "平安VIP客户"
+        output: {field: pingan_vip, operator: MATCH, value: "是"}
+
+  # ==================== 存量客户类型 ====================
+
+  - id: stock_customer_type
+    retrieval_text: >
+      存量客户 在职有效客户 孤儿单 存续单 纯存续单
+      非纯存续单 客户类型 存量类型
+    field: stock_customer_type
+    operator: MATCH
+    value_type: enum
+    enum: ["在职有效客户", "纯存续单客户", "非纯存续单客户"]
+    notes: "孤儿单/存续单→纯存续单客户"
+    examples:
+      - query: "孤儿单客户"
+        output: {field: stock_customer_type, operator: MATCH, value: "纯存续单客户"}
+      - query: "在职有效客户"
+        output: {field: stock_customer_type, operator: MATCH, value: "在职有效客户"}
+
+  # ==================== 准客来源 ====================
+
+  - id: prospect_source
+    retrieval_text: >
+      准客来源 准客 综拓准客 O2O准客 意健险准客
+      来源渠道 准客渠道 客户来源
+    field: prospect_source
+    operator: MATCH
+    value_type: enum
+    enum: ["综拓准客", "O2O准客", "意健险准客"]
+    examples:
+      - query: "综拓准客"
+        output: {field: prospect_source, operator: MATCH, value: "综拓准客"}
+
+  # ==================== 寿险产品（持有） ====================
+
+  - id: life_insurance_product_has
+    retrieval_text: >
+      持有产品 买了 有 投保 持有保单 持有寿险 买过
+      持有哪款产品 有什么保险 买了什么险 持有某款产品
+      平安福 e生保 守护重疾 金尊分红 颐享世家 安佑福
+      天年 金越 守护百分百 盛世金越 合家欢
+    field: life_insurance_product
+    operator: CONTAINS
+    value_type: extract
+    notes: "值从查询文本中直接提取产品名"
+    examples:
+      - query: "持有平安福的客户"
+        output: {field: life_insurance_product, operator: CONTAINS, value: "平安福"}
+      - query: "有e生保的客户"
+        output: {field: life_insurance_product, operator: CONTAINS, value: "e生保"}
+
+  - id: life_insurance_product_not
+    retrieval_text: >
+      没有 未持有 没买 未买 缺少 未配置 不持有某产品
+      缺口产品 没有买某款产品
+    field: life_insurance_product
+    operator: NOT_CONTAINS
+    value_type: extract
+    examples:
+      - query: "没有平安福的客户"
+        output: {field: life_insurance_product, operator: NOT_CONTAINS, value: "平安福"}
+
+  # ==================== 持有产品类型 ====================
+
+  - id: held_product_type_has
+    retrieval_text: >
+      持有产品类型 分红险 投连险 万能险 普通险 产品类型
+      分红型 投资连结型 万能型 普通型
+    field: held_product_type
+    operator: CONTAINS
+    value_type: enum
+    enum: ["普通型", "分红型", "投资连结型", "万能型"]
+    notes: "口语：分红险→分红型，投连险→投资连结型，万能险→万能型"
+    examples:
+      - query: "持有分红险的客户"
+        output: {field: held_product_type, operator: CONTAINS, value: "分红型"}
+
+  - id: held_product_type_not
+    retrieval_text: >
+      没有分红险 未配置万能险 缺少投连险 没有普通险
+    field: held_product_type
+    operator: NOT_CONTAINS
+    value_type: enum
+    enum: ["普通型", "分红型", "投资连结型", "万能型"]
+    examples:
+      - query: "未配置分红险的客户"
+        output: {field: held_product_type, operator: NOT_CONTAINS, value: "分红型"}
+
+  # ==================== 持有产品类别（险种） ====================
+
+  - id: held_product_category_has
+    retrieval_text: >
+      险种 持有险种 医疗险 意外险 定期险 年金险 养老险
+      终身寿险 两全险 重疾 保障类型 持有哪类保险
+      医疗保险 意外伤害保险 定期寿险 两全保险 年金保险 终身寿险
+      有医疗险 有养老险 有意外险 持有寿险 两全产品
+    field: held_product_category
+    operator: CONTAINS
+    value_type: enum
+    enum: ["意外伤害保险", "医疗保险", "定期寿险", "两全保险", "年金保险", "终身寿险"]
+    notes: "口语映射：医疗险→医疗保险，意外险→意外伤害保险，年金险/养老险→年金保险，寿险→终身寿险，定期险→定期寿险"
+    examples:
+      - query: "有医疗险的客户"
+        output: {field: held_product_category, operator: CONTAINS, value: "医疗保险"}
+      - query: "持有年金险的客户"
+        output: {field: held_product_category, operator: CONTAINS, value: "年金保险"}
+
+  - id: held_product_category_not
+    retrieval_text: >
+      没有配置 未配置险种 缺口 保障缺口 没买 未购买
+      缺少医疗险 没有养老险 未配置意外险 没有终身寿险
+      保障不全 配置缺失 没有某类险种 意外伤害
+    field: held_product_category
+    operator: NOT_CONTAINS
+    value_type: enum
+    enum: ["意外伤害保险", "医疗保险", "定期寿险", "两全保险", "年金保险", "终身寿险"]
+    examples:
+      - query: "没有医疗险的客户"
+        output: {field: held_product_category, operator: NOT_CONTAINS, value: "医疗保险"}
+
+  # ==================== 寿险产品责任类型 ====================
+
+  - id: life_liability_type_has
+    retrieval_text: >
+      寿险责任 重疾保障 意外保障 医疗保障 养老保障 财富保障
+      有重疾险 有意外险 持有寿险责任 寿险 重疾 意外 医疗 财富 养老保险
+    field: life_liability_type
+    operator: CONTAINS
+    value_type: enum
+    enum: ["寿险", "重疾", "意外", "医疗", "财富", "养老"]
+    examples:
+      - query: "有重疾保障的客户"
+        output: {field: life_liability_type, operator: CONTAINS, value: "重疾"}
+      - query: "有养老责任的客户"
+        output: {field: life_liability_type, operator: CONTAINS, value: "养老"}
+
+  - id: life_liability_type_not
+    retrieval_text: >
+      未配置重疾 没有重疾保障 缺少养老 未配置医疗责任
+      重疾缺口 养老缺口 意外缺口 寿险缺口 医疗缺口 财富缺口
+    field: life_liability_type
+    operator: NOT_CONTAINS
+    value_type: enum
+    enum: ["寿险", "重疾", "意外", "医疗", "财富", "养老"]
+    examples:
+      - query: "未配置重疾险的客户"
+        output: {field: life_liability_type, operator: NOT_CONTAINS, value: "重疾"}
+
+  # ==================== 寿险产品设计类型 ====================
+
+  - id: life_design_type_has
+    retrieval_text: >
+      产品设计类型 分红 投连 万能 普通设计
+      持有分红型产品 持有万能型产品
+    field: life_design_type
+    operator: CONTAINS
+    value_type: enum
+    enum: ["分红", "投连", "万能", "普通", "其他"]
+    examples:
+      - query: "持有分红型寿险的客户"
+        output: {field: life_design_type, operator: CONTAINS, value: "分红"}
+
+  - id: life_design_type_not
+    retrieval_text: >
+      未持有分红 没有万能型 缺少投连
+    field: life_design_type
+    operator: NOT_CONTAINS
+    value_type: enum
+    enum: ["分红", "投连", "万能", "普通", "其他"]
+    examples:
+      - query: "未持有分红型产品的客户"
+        output: {field: life_design_type, operator: NOT_CONTAINS, value: "分红"}
+
+  # ==================== 产险产品 ====================
+
+  - id: property_insurance_has
+    retrieval_text: >
+      产险 车险 非车险 汽车保险 财产险 持有产险
+    field: property_insurance_product
+    operator: CONTAINS
+    value_type: enum
+    enum: ["车险", "非车险"]
+    examples:
+      - query: "有车险的客户"
+        output: {field: property_insurance_product, operator: CONTAINS, value: "车险"}
+
+  - id: property_insurance_not
+    retrieval_text: >
+      没有车险 未配置车险 无车险
+    field: property_insurance_product
+    operator: NOT_CONTAINS
+    value_type: enum
+    enum: ["车险", "非车险"]
+    examples:
+      - query: "没有车险的客户"
+        output: {field: property_insurance_product, operator: NOT_CONTAINS, value: "车险"}
+
+  # ==================== 准备购买产品分类 ====================
+
+  - id: target_purchase_category
+    retrieval_text: >
+      准备购买 打算买 计划购买 有意向购买 购买意向
+      准备买什么险 购买意向类别
+    field: target_purchase_category
+    operator: MATCH
+    value_type: enum
+    enum: ["产险", "养老险", "健康险", "寿险", "其他"]
+    examples:
+      - query: "打算购买养老险的客户"
+        output: {field: target_purchase_category, operator: MATCH, value: "养老险"}
+
+  # ==================== 持有综拓产品类别 ====================
+
+  - id: held_cross_sell_category
+    retrieval_text: >
+      综拓产品 综拓类别 e生保综拓 中高端医疗 家财险 学平险
+      车险综拓 交强险 商业险 合家欢综拓
+    field: held_cross_sell_category
+    operator: CONTAINS
+    value_type: enum
+    enum: ["车辆交强险", "车辆商业险", "e生保", "中高端医疗", "合家欢", "家财险", "学平险"]
+    examples:
+      - query: "持有综拓e生保的客户"
+        output: {field: held_cross_sell_category, operator: CONTAINS, value: "e生保"}
+
+  # ==================== 有效短险保单 ====================
+
+  - id: valid_short_term_policy_has
+    retrieval_text: >
+      意健险 综拓短险 O2O短险 短期意健险保单 意健险短险
+    field: valid_short_term_policy
+    operator: CONTAINS
+    value_type: enum
+    enum: ["综拓", "O2O", "意健险"]
+    notes: "意健险（意外险+健康险组合短险）→ 枚举值 '意健险'；综拓短险→'综拓'；O2O短险→'O2O'"
+    examples:
+      - query: "有综拓有效短险的客户"
+        output: {field: valid_short_term_policy, operator: CONTAINS, value: "综拓"}
+      - query: "购买了意健险的客户"
+        output: {field: valid_short_term_policy, operator: CONTAINS, value: "意健险"}
+      - query: "未购买意健险的客户"
+        output: {field: valid_short_term_policy, operator: NOT_CONTAINS, value: "意健险"}
+
+  # ==================== 年缴保费 ====================
+
+  - id: annual_premium_gte
+    retrieval_text: >
+      年缴保费 保费 年缴 缴费 年保费 保费以上 保费超过
+      保费大于 高保费 缴费多少 保费金额
+    field: annual_premium
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    examples:
+      - query: "年缴保费1万以上的客户"
+        output: {field: annual_premium, operator: GTE, value: 10000}
+      - query: "保费超过5万的客户"
+        output: {field: annual_premium, operator: GTE, value: 50000}
+
+  - id: annual_premium_range
+    retrieval_text: >
+      保费在 保费区间 保费范围 年缴保费在多少到多少之间
+    field: annual_premium
+    operator: RANGE
+    value_type: numeric
+    unit: "元，万=×10000"
+    examples:
+      - query: "年缴保费1万到5万的客户"
+        output: {field: annual_premium, operator: RANGE, value: {min: 10000, max: 50000}}
+
+  # ==================== 产品总保额 ====================
+
+  - id: total_coverage_gte
+    retrieval_text: >
+      保额 总保额 产品总保额 保额以上 保额超过 保额大于
+      高保额 保额多少 保障额度 保障金额
+    field: total_coverage
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000"
+    examples:
+      - query: "总保额50万以上的客户"
+        output: {field: total_coverage, operator: GTE, value: 500000}
+
+  - id: total_coverage_lte
+    retrieval_text: >
+      保额不足 保额低 保额较低 保额以下 保额小于
+    field: total_coverage
+    operator: LTE
+    value_type: numeric
+    unit: '元，万=×10000，"保额低"对应50万'
+    examples:
+      - query: "保额不足50万的客户"
+        output: {field: total_coverage, operator: LTE, value: 500000}
+
+  # ==================== 最近承保时间 ====================
+
+  - id: latest_underwriting_time
+    retrieval_text: >
+      最近承保 承保时间 最近投保 最近购买 投保时间
+      一年内承保 最近几年投保 新保客户
+    field: latest_underwriting_time
+    operator: MATCH
+    value_type: enum
+    enum: ["一年内", "1-2年", "2-3年", "3-5年", "5-10年", "10年以上"]
+    examples:
+      - query: "一年内承保的客户"
+        output: {field: latest_underwriting_time, operator: MATCH, value: "一年内"}
+      - query: "最近2年投保的客户"
+        output: {field: latest_underwriting_time, operator: MATCH, value: "1-2年"}
+
+  # ==================== 生存金相关 ====================
+
+  - id: survival_total_amount_gte
+    retrieval_text: >
+      生存金余额 生存金账户余额 生存金账户 生存金金额
+      生存金超过 生存金大于 生存金多少 生存金余额以上
+    field: policies.survival_total_amount
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000"
+    examples:
+      - query: "生存金余额超过5万的客户"
+        output: {field: policies.survival_total_amount, operator: GTE, value: 50000}
+
+  - id: survival_gold_claimed
+    retrieval_text: >
+      生存金 是否领取生存金 领取生存金 未领取生存金
+      生存金利息 生存金没领 生存金已领
+    field: is_survival_gold_claimed
+    operator: MATCH
+    value_type: enum
+    enum: ["是", "否"]
+    notes: "未领取/没领→否，已领取/领了→是"
+    examples:
+      - query: "未领取生存金的客户"
+        output: {field: is_survival_gold_claimed, operator: MATCH, value: "否"}
+      - query: "已领取生存金的客户"
+        output: {field: is_survival_gold_claimed, operator: MATCH, value: "是"}
+
+  # ==================== 缴费期满 ====================
+
+  - id: payment_matured
+    retrieval_text: >
+      缴费期满 缴费到期 缴清 已缴清 缴费期结束
+      缴费满期 已经缴完 缴费期届满
+    field: is_payment_matured
+    operator: MATCH
+    value_type: enum
+    enum: ["是", "否"]
+    examples:
+      - query: "缴费期满的客户"
+        output: {field: is_payment_matured, operator: MATCH, value: "是"}
+
+  # ==================== 年收入 ====================
+
+  - id: annual_income_gte
+    retrieval_text: >
+      年收入 年薪 收入 薪资 工资 月薪 薪酬
+      高收入 年入 收入水平 赚多少 收入多少 收入以上
+      年收入超过 年薪以上 收入大于
+    field: annual_income
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000；月薪需×12换算为年收入"
+    examples:
+      - query: "年收入20万以上的客户"
+        output: {field: annual_income, operator: GTE, value: 200000}
+      - query: "月薪1万以上"
+        output: {field: annual_income, operator: GTE, value: 120000}
+
+  - id: annual_income_range
+    retrieval_text: >
+      收入区间 收入范围 年收入在 年薪在多少到多少
+    field: annual_income
+    operator: RANGE
+    value_type: numeric
+    unit: "元，万=×10000"
+    examples:
+      - query: "年收入10万到30万的客户"
+        output: {field: annual_income, operator: RANGE, value: {min: 100000, max: 300000}}
+
+  # ==================== 家庭收入 ====================
+
+  - id: household_income_gte
+    retrieval_text: >
+      家庭收入 家庭年收入 家庭年薪 家庭总收入 全家收入
+    field: household_income
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000"
+    examples:
+      - query: "家庭年收入50万以上的客户"
+        output: {field: household_income, operator: GTE, value: 500000}
+
+  # ==================== 资产规模 ====================
+
+  - id: asset_scale
+    retrieval_text: >
+      资产 资产规模 净资产 资产状况 高净值 中产 普通
+      有钱 富裕 资产多少 有多少资产 财富水平
+    field: asset_scale
+    operator: MATCH
+    value_type: enum
+    enum: ["高净值", "中产", "普通"]
+    notes: "数值查询：GTE操作，万=×10000"
+    examples:
+      - query: "高净值客户"
+        output: {field: asset_scale, operator: MATCH, value: "高净值"}
+      - query: "资产500万以上的客户"
+        output: {field: asset_scale, operator: GTE, value: 5000000}
+
+  # ==================== 可投资产 ====================
+
+  - id: investable_assets
+    retrieval_text: >
+      可投资产 可投资金额 可投金额 投资能力 高净值可投
+    field: investable_assets
+    operator: MATCH
+    value_type: enum
+    enum: ["高净值", "普通"]
+    examples:
+      - query: "高净值可投资产客户"
+        output: {field: investable_assets, operator: MATCH, value: "高净值"}
+
+  # ==================== 房产 ====================
+
+  - id: real_estate_status
+    retrieval_text: >
+      房产 房子 有房 没房 买房 自有住房 租房 房产状况
+      有房客户 没有房子 有没有房 是否有房
+    field: real_estate_status
+    operator: MATCH
+    value_type: enum
+    enum: ["有房", "没房"]
+    notes: "自有住房/已购房→有房，租房/没房→没房"
+    examples:
+      - query: "有房客户"
+        output: {field: real_estate_status, operator: MATCH, value: "有房"}
+      - query: "租房客户"
+        output: {field: real_estate_status, operator: MATCH, value: "没房"}
+
+  # ==================== 车辆 ====================
+
+  - id: vehicle_status
+    retrieval_text: >
+      有车 没车 车辆 汽车 开车 有没有车 是否有车 车辆状况
+    field: real_vehicle_status
+    operator: MATCH
+    value_type: enum
+    enum: ["有车", "没车"]
+    examples:
+      - query: "有车的客户"
+        output: {field: real_vehicle_status, operator: MATCH, value: "有车"}
+      - query: "没有车的客户"
+        output: {field: real_vehicle_status, operator: MATCH, value: "没车"}
+
+  - id: vehicle_purchase_price
+    retrieval_text: >
+      车辆价格 购车价格 车价 车辆购置价 买车多少钱
+      豪车 高档车 百万豪车 经济型车
+    field: vehicle_purchase_price
+    operator: MATCH
+    value_type: enum
+    enum: ["10万以下", "10-20万", "20-30万", "30-50万", "50-80万", "80万以上"]
+    examples:
+      - query: "购车价格30万以上的客户"
+        output: {field: vehicle_purchase_price, operator: MATCH, value: "30-50万"}
+
+  # ==================== 联系地址 ====================
+
+  - id: contact_address
+    retrieval_text: >
+      住在 地址 城市 省份 地区 所在地 居住 家在
+      北京 上海 广州 深圳 杭州 南京 成都 武汉 苏州
+      小区 街道 社区 大道 某市 某省 某区 联系地址
+    field: contact_address
+    operator: CONTAINS
+    value_type: extract
+    notes: "直接提取地名，包含省市区或具体小区街道名"
+    examples:
+      - query: "上海的客户"
+        output: {field: contact_address, operator: CONTAINS, value: "上海"}
+      - query: "住在北京朝阳区的客户"
+        output: {field: contact_address, operator: CONTAINS, value: "北京朝阳区"}
+
+  # ==================== 职业 ====================
+
+  - id: occupation
+    retrieval_text: >
+      职业 从事 做什么工作 工作性质 行业 干什么的
+      老师 医生 护士 律师 程序员 企业家 工程师
+      公务员 个体户 会计 销售 教授 金融 自由职业
+      做生意 上班族 体制内 医疗行业 教育行业
+    field: occupation
+    operator: MATCH
+    value_type: infer
+    enum: ["老师", "医生", "护士", "律师", "程序员", "企业家", "工程师",
+           "公务员", "个体户", "会计", "销售", "教授", "金融从业者", "自由职业者"]
+    notes: "口语推断：做生意→个体户，体制内→公务员，金融→金融从业者，自由职业→自由职业者"
+    examples:
+      - query: "做生意的客户"
+        output: {field: occupation, operator: MATCH, value: "个体户"}
+      - query: "医生客户"
+        output: {field: occupation, operator: MATCH, value: "医生"}
+      - query: "体制内客户"
+        output: {field: occupation, operator: MATCH, value: "公务员"}
+
+  # ==================== 居家达标等级 ====================
+
+  - id: home_care_level_exact
+    retrieval_text: >
+      居家达标 居家等级 居家服务等级 居家V1 居家V2 居家V3
+      V1等级 V2等级 居家潜客 V0.5
+    field: home_care_level
+    operator: MATCH
+    value_type: enum
+    enum: ["居家潜客", "V0.5", "V1", "V1优享", "V2", "V2优享", "V3", "V3优享"]
+    notes: "居家客户为除了居家潜客之外的所有等级客户（V0.5或V1或1优享或V2或V2优享或V3或V3优享），等级排序：居家潜客<V0.5<V1<V1优享<V2<V2优享<V3<V3优享"
+    examples:
+      - query: "居家V1等级客户"
+        output: {field: home_care_level, operator: MATCH, value: "V1"}
+
+  - id: home_care_level_gte
+    retrieval_text: >
+      居家等级以上 居家V1以上 居家V2以上 居家达标以上
+    field: home_care_level
+    operator: CONTAINS
+    value_type: enum
+    enum: ["居家潜客", "V0.5", "V1", "V1优享", "V2", "V2优享", "V3", "V3优享"]
+    notes: "等级从低到高：居家潜客<V0.5<V1<V1优享<V2<V2优享<V3<V3优享"
+
+  # ==================== 康养达标等级 ====================
+
+  - id: health_care_level_exact
+    retrieval_text: >
+      康养达标 康养等级 康养会员 预达标会员 逸享会员 颐享会员
+      臻享会员 逸享PLUS 康养级别 达标康养
+    field: health_care_level
+    operator: MATCH
+    value_type: enum
+    enum: ["预达标会员", "逸享会员", "逸享PLUS会员", "颐享会员", "臻享会员V1", "臻享会员V2", "臻享会员V3"]
+    notes: "康养客户为所有达标客户（除预达标会员外），口语：预达标康养→预达标会员，逸享康养→逸享会员"
+    examples:
+      - query: "预达标会员客户"
+        output: {field: health_care_level, operator: MATCH, value: "预达标会员"}
+
+  - id: health_care_level_gte
+    retrieval_text: >
+      康养等级以上 逸享以上 臻享以上 颐享以上 康养达标以上
+    field: health_care_level
+    operator: CONTAINS
+    value_type: enum
+    enum: ["预达标会员", "逸享会员", "逸享PLUS会员", "颐享会员", "臻享会员V1", "臻享会员V2", "臻享会员V3"]
+    notes: "等级从低到高：预达标会员<逸享会员<逸享PLUS会员<颐享会员<臻享会员V1<臻享会员V2<臻享会员V3"
+
+  # ==================== 安有护 ====================
+
+  - id: anyouhu_has
+    retrieval_text: >
+      安有护 有安有护 持有安有护 安有护产品 安有护国际版 安有护国内版
+      安有护客户 安有护等级
+    field: anyouhu_level
+    operator: EXISTS
+    value_type: exists
+    examples:
+      - query: "有安有护的客户"
+        output: {field: anyouhu_level, operator: EXISTS, value: null}
+
+  - id: anyouhu_level_exact
+    retrieval_text: >
+      安有护国际版 安有护国内版 安有护版本
+    field: anyouhu_level
+    operator: MATCH
+    value_type: enum
+    enum: ["国际版", "国内版"]
+    examples:
+      - query: "安有护国际版客户"
+        output: {field: anyouhu_level, operator: MATCH, value: "国际版"}
+
+  # ==================== 臻享家族 ====================
+
+  - id: zhenxiang_family_level
+    retrieval_text: >
+      臻享家族 臻享家 臻享家医 预达标臻享家 已达标臻享家
+      臻享家族等级 臻享达标
+    field: zhenxiang_family_level
+    operator: MATCH
+    value_type: enum
+    enum: ["预达标", "已达标"]
+    examples:
+      - query: "预达标臻享家族客户"
+        output: {field: zhenxiang_family_level, operator: MATCH, value: "预达标"}
+      - query: "已达标臻享家医客户"
+        output: {field: zhenxiang_family_level, operator: MATCH, value: "已达标"}
+
+  # ==================== 综拓理赔 ====================
+
+  - id: cross_sell_claim
+    retrieval_text: >
+      综拓理赔 综拓产品理赔 综拓理赔报案 综拓理赔结案
+      综拓出险 综拓保险理赔
+    field: is_cross_sell_claim
+    operator: MATCH
+    value_type: enum
+    enum: ["综拓理赔报案", "综拓理赔结案"]
+    examples:
+      - query: "有综拓产品理赔报案的客户"
+        output: {field: is_cross_sell_claim, operator: MATCH, value: "综拓理赔报案"}
+
+  # ==================== 理赔记录 ====================
+
+  - id: claim_record_has
+    retrieval_text: >
+      理赔 出险 报案 索赔 有理赔 有出险 理赔过 出险过
+      理赔记录 出险记录 有理赔记录 曾经理赔 曾经出险
+    field: policies.claim_records.case_id
+    operator: EXISTS
+    value_type: exists
+    examples:
+      - query: "有理赔记录的客户"
+        output: {field: policies.claim_records.case_id, operator: EXISTS, value: null}
+
+  - id: claim_record_not
+    retrieval_text: >
+      没有理赔 未理赔 没有出险 未出险 从未理赔 无理赔记录
+    field: policies.claim_records.case_id
+    operator: NOT_EXISTS
+    value_type: exists
+    examples:
+      - query: "从未理赔的客户"
+        output: {field: policies.claim_records.case_id, operator: NOT_EXISTS, value: null}
+
+  - id: claim_record_coverage
+    retrieval_text: >
+      某产品理赔 产品理赔 理赔过某款 e生保理赔 平安福理赔
+      某款产品出险 产品出险记录 保险理赔产品
+    field: policies.claim_records.coverage
+    operator: CONTAINS
+    value_type: extract
+    notes: "当理赔+产品名同时出现时，提取产品名作为value"
+    examples:
+      - query: "e生保理赔过的客户"
+        output: {field: policies.claim_records.coverage, operator: CONTAINS, value: "e生保"}
+      - query: "平安福理赔客户"
+        output: {field: policies.claim_records.coverage, operator: CONTAINS, value: "平安福"}
+
+  # ==================== 保单状态 ====================
+
+  - id: policy_status
+    retrieval_text: >
+      保单状态 有效保单 失效保单 退保 停效 等待续保
+      保单是否有效 缴费有效 自垫有效 展期
+      保单在保 保单续保 保单到期 保单失效 保单退保
+      生效中 有效中 保单生效 在效期内 保单有效 正在生效
+    field: policies.status
+    operator: NESTED_MATCH
+    value_type: infer
+    enum: ["缴费有效", "停效", "失效", "拒保", "犹豫期退保", "取消", "展期", "退保",
+           "减额交情", "免交", "自垫有效", "自垫失效", "自垫停效", "自垫交清",
+           "贷款超失", "贷款超停", "转换终止", "等待续保", "人为停效", "到期终止",
+           "效力终止", "死亡有效", "死亡理赔", "迁出", "终止效率", "交清", "预收"]
+    notes: "状态值较多，需要LLM从枚举列表中推断最匹配的值"
+    examples:
+      - query: "有等待续保保单的客户"
+        output: {field: policies.status, operator: NESTED_MATCH, value: "等待续保"}
+      - query: "有有效保单的客户"
+        output: {field: policies.status, operator: NESTED_MATCH, value: "缴费有效"}
+
+  # ==================== 保单到期时间 ====================
+
+  - id: policy_expiry_date
+    retrieval_text: >
+      保单到期 保单即将到期 即将到期 保单快到期 续保提醒
+      3天内到期 10天内到期 30天内到期 60天内到期 近期到期
+    field: policy_expiry_date
+    operator: MATCH
+    value_type: enum
+    enum: ["3天内", "3-10天内", "10-30天内", "30-60天内"]
+    examples:
+      - query: "保单30天内到期的客户"
+        output: {field: policy_expiry_date, operator: MATCH, value: "10-30天内"}
+
+  # ==================== 保单产品名称 ====================
+
+  - id: policy_product_name
+    retrieval_text: >
+      保单产品 保单名称 保单是什么产品 持有某款保单
+    field: policies.product_name
+    operator: CONTAINS
+    value_type: extract
+    examples:
+      - query: "持有e生保2023保单的客户"
+        output: {field: policies.product_name, operator: CONTAINS, value: "e生保"}
+
+  # ==================== 被保人/投保人/受益人 ====================
+
+  - id: insured_name
+    retrieval_text: >
+      被保人 被保人叫 被保人是 被保人姓名 被保险人
+    field: policies.insured_name
+    operator: NESTED_MATCH
+    value_type: extract
+    examples:
+      - query: "被保人叫张三的客户"
+        output: {field: policies.insured_name, operator: NESTED_MATCH, value: "张三"}
+
+  - id: applicant_name
+    retrieval_text: >
+      投保人 投保人叫 投保人是 投保人姓名
+    field: policies.applicant_name
+    operator: NESTED_MATCH
+    value_type: extract
+    examples:
+      - query: "投保人叫李四的客户"
+        output: {field: policies.applicant_name, operator: NESTED_MATCH, value: "李四"}
+
+  - id: beneficiary_name
+    retrieval_text: >
+      受益人 受益人叫 受益人是 受益人姓名 受益人名字
+    field: policies.beneficiary_name
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "受益人叫王五的客户"
+        output: {field: policies.beneficiary_name, operator: MATCH, value: "王五"}
+
+  - id: insured_age
+    retrieval_text: >
+      被保人年龄 被保人多大 被保人岁数 被保险人年龄
+    field: policies.insured_age
+    operator: RANGE
+    value_type: numeric
+    unit: "岁，直接取数字"
+    examples:
+      - query: "被保人30岁以下的客户"
+        output: {field: policies.insured_age, operator: LTE, value: 30}
+
+  - id: applicant_age
+    retrieval_text: >
+      投保人年龄 投保人多大 投保人岁数
+    field: policies.applicant_age
+    operator: RANGE
+    value_type: numeric
+    unit: "岁，直接取数字"
+
+  - id: insured_mobile
+    retrieval_text: >
+      被保人手机 被保人电话 被保人手机号
+    field: policies.insured_mobile
+    operator: NESTED_MATCH
+    value_type: extract
+
+  - id: policy_id
+    retrieval_text: >
+      保单号 保单编号 保险单号 policy号
+    field: policies.policy_id
+    operator: NESTED_MATCH
+    value_type: extract
+    examples:
+      - query: "保单号P12345的客户"
+        output: {field: policies.policy_id, operator: NESTED_MATCH, value: "P12345"}
+
+  # ==================== 保单险种类型（主险/附加险） ====================
+
+  - id: policy_coverage_type_has
+    retrieval_text: >
+      主险 附加险 主险保单 附险 附加险保单 险种类型
+    field: policies.coverage_details.type
+    operator: NESTED_MATCH
+    value_type: enum
+    enum: ["主险", "附加险"]
+    examples:
+      - query: "有主险保单的客户"
+        output: {field: policies.coverage_details.type, operator: NESTED_MATCH, value: "主险"}
+
+  - id: policy_coverage_type_not
+    retrieval_text: >
+      没有主险 未配置主险 无主险
+    field: policies.coverage_details.type
+    operator: NOT_CONTAINS
+    value_type: enum
+    enum: ["主险", "附加险"]
+
+  # ==================== 寿险投保被保人 ====================
+
+  - id: is_life_insured
+    retrieval_text: >
+      投保被保人 仅投保人 仅被保人 投被保人 是否既是投保人又是被保人
+    field: is_life_insured
+    operator: MATCH
+    value_type: enum
+    enum: ["仅投保人", "仅被保人", "投被保人"]
+    examples:
+      - query: "投被保人相同的客户"
+        output: {field: is_life_insured, operator: MATCH, value: "投被保人"}
+
+  # ==================== 家庭成员 ====================
+
+  - id: family_relationship_has
+    retrieval_text: >
+      有子女 有孩子 有配偶 有父母 家庭成员 有小孩
+      儿子女儿 有小朋友 家里有孩子 有老伴 有伴侣
+    field: family_members.relationship
+    operator: CONTAINS
+    value_type: enum
+    enum: ["配偶", "父母", "子女", "其他"]
+    notes: "孩子/小孩/儿子/女儿→子女，老伴/伴侣→配偶，爸妈/父亲/母亲→父母"
+    examples:
+      - query: "有子女的客户"
+        output: {field: family_members.relationship, operator: CONTAINS, value: "子女"}
+      - query: "有配偶的客户"
+        output: {field: family_members.relationship, operator: CONTAINS, value: "配偶"}
+
+  - id: family_relationship_not
+    retrieval_text: >
+      无子女 没有孩子 无配偶 没有老伴 无子女客户 单身无子女
+    field: family_members.relationship
+    operator: NOT_CONTAINS
+    value_type: enum
+    enum: ["配偶", "父母", "子女", "其他"]
+    examples:
+      - query: "没有子女的客户"
+        output: {field: family_members.relationship, operator: NOT_CONTAINS, value: "子女"}
+
+  - id: family_member_age
+    retrieval_text: >
+      子女年龄 孩子年龄 小孩年龄 子女多大 孩子几岁
+      幼儿园 小学 初中 高中 大学 在读 上学
+      子女在读 孩子在上 未成年子女
+    field: family_members.age
+    operator: RANGE
+    value_type: numeric
+    unit: "岁，教育阶段：幼儿园3-6，小学6-12，初中12-15，高中15-18，大学18-22"
+    examples:
+      - query: "子女在读初中的客户"
+        output: {field: family_members.age, operator: RANGE, value: {min: 12, max: 15}}
+      - query: "子女3到5岁的客户"
+        output: {field: family_members.age, operator: RANGE, value: {min: 3, max: 5}}
+
+  # ==================== 证件信息 ====================
+
+  - id: id_type
+    retrieval_text: >
+      证件类型 身份证 护照 军官证 回乡证 证件
+    field: certificates.id_type
+    operator: NESTED_MATCH
+    value_type: enum
+    enum: ["身份证", "护照", "军官证", "回乡证", "其他"]
+    examples:
+      - query: "持有护照的客户"
+        output: {field: certificates.id_type, operator: NESTED_MATCH, value: "护照"}
+
+  - id: id_number
+    retrieval_text: >
+      证件号 身份证号 证件号码 身份证号码
+    field: certificates.id_number
+    operator: NESTED_MATCH
+    value_type: extract
+    examples:
+      - query: "身份证号以320开头的客户"
+        output: {field: certificates.id_number, operator: NESTED_MATCH, value: "320"}
+
+  # ==================== 会员/服务权益 ====================
+
+  - id: member_level
+    retrieval_text: >
+      会员等级 会员级别 平安会员 黄金会员 铂金会员
+      会员 VIP会员
+    field: benefits.member_info.level
+    operator: NESTED_MATCH
+    value_type: enum
+    enum: ["全部", "原黄金VIP", "原铂金VIP", "黄金V1", "黄金V2", "黄金V3", "铂金V1"]
+
+  - id: exclusive_service
+    retrieval_text: >
+      专属服务人员 是否有专属服务 专属客服 专属顾问
+    field: benefits.member_info.exclusive_service
+    operator: NESTED_MATCH
+    value_type: enum
+    enum: ["是", "否"]
+    examples:
+      - query: "有专属服务人员的客户"
+        output: {field: benefits.member_info.exclusive_service, operator: NESTED_MATCH, value: "是"}
+
+  - id: pingan_service_stage
+    retrieval_text: >
+      服务线阶段 达标 未达标 平安服务线 是否达标
+    field: benefits.pingan_info.stage
+    operator: NESTED_MATCH
+    value_type: enum
+    enum: ["达标", "未达标"]
+
+  - id: pingan_service_level
+    retrieval_text: >
+      服务线等级 平安服务等级 服务线V1 服务线V2 服务线V3 f
+    field: benefits.pingan_info.service_level
+    operator: NESTED_MATCH
+    value_type: enum
+    enum: ["V0", "V1", "V1.5", "V2", "V3"]
+
+  # ==================== 产品类 ====================
+
+  - id: pension_insurance_product
+    retrieval_text: >
+      养老险 养老产品 养老险产品 持有养老产品 购买养老险 投保养老险 养老金
+    field: pension_insurance_product
+    operator: CONTAINS
+    value_type: extract
+    examples:
+      - query: "购买养老险的客户"
+        output: {field: pension_insurance_product, operator: CONTAINS, value: "养老"}
+
+  - id: health_insurance
+    retrieval_text: >
+      健康险 健康保险 购买健康险 持有健康险 健康险产品
+    field: health_insurance
+    operator: CONTAINS
+    value_type: extract
+    examples:
+      - query: "持有健康险的客户"
+        output: {field: health_insurance, operator: CONTAINS, value: "e生保"}
+
+  # ==================== 保单日期/状态类 ====================
+
+  - id: policy_anniversary
+    retrieval_text: >
+      保单周年日 保单周年 保单纪念日 周年日 保单生效周年 投保时间 投保日期
+      X年投保 X年X月投保 2018年投保 2020年投保 某年某月投保 具体投保年月
+    field: policy_anniversary
+    operator: RANGE
+    value_type: date_range
+    format: "YYYY-MM-DD"
+    notes: "具体年份/年月投保查询使用 RANGE；'2018年7月投保' → RANGE {min:'2018-07-01', max:'2018-07-31'}；'2018年投保' → RANGE {min:'2018-01-01', max:'2018-12-31'}"
+    examples:
+      - query: "保单周年日在2024-01-01的客户"
+        output: {field: policy_anniversary, operator: MATCH, value: "2024-01-01"}
+      - query: "2018年7月投保的客户"
+        output: {field: policy_anniversary, operator: RANGE, value: {min: "2018-07-01", max: "2018-07-31"}}
+      - query: "2020年投保的客户"
+        output: {field: policy_anniversary, operator: RANGE, value: {min: "2020-01-01", max: "2020-12-31"}}
+
+  - id: policies_effective_date
+    retrieval_text: >
+      保单生效日 生效日期 保单生效时间 何时生效 什么时候生效
+    field: policies.effective_date
+    operator: MATCH
+    value_type: date
+    format: "YYYY-MM-DD"
+    examples:
+      - query: "保单生效日为2023-06-01的客户"
+        output: {field: policies.effective_date, operator: MATCH, value: "2023-06-01"}
+
+  - id: policies_due_date
+    retrieval_text: >
+      应缴日 缴费日 缴费截止日 应缴时间 缴费日期 需要缴费 下个月缴费 本月缴费
+      下月缴费 即将缴费 快要缴费 缴费到期 应缴 缴费
+    field: policies.due_date
+    operator: RANGE
+    value_type: date_range
+    format: "YYYY-MM-DD"
+    notes: "下个月缴费 → RANGE 覆盖下月1日至月末；日期格式统一 YYYY-MM-DD"
+    examples:
+      - query: "应缴日为2024-03-01的客户"
+        output: {field: policies.due_date, operator: MATCH, value: "2024-03-01"}
+      - query: "下个月需要缴费的客户（当前2026年3月）"
+        output: {field: policies.due_date, operator: RANGE, value: {min: "2026-04-01", max: "2026-04-30"}}
+      - query: "本月需要缴费的客户（当前2026年3月）"
+        output: {field: policies.due_date, operator: RANGE, value: {min: "2026-03-01", max: "2026-03-31"}}
+
+  - id: policies_period_premium
+    retrieval_text: >
+      期交保费 期缴保费 每期保费 分期保费 保费期缴
+    field: policies.period_premium
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000"
+    examples:
+      - query: "期交保费5000元以上的客户"
+        output: {field: policies.period_premium, operator: GTE, value: 5000}
+
+  - id: policies_underwriting_conclusion
+    retrieval_text: >
+      核保结论 核保结果 次标 标体 核保通过 核保拒绝
+    field: policies.underwriting_conclusion
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "核保结论为次标的客户"
+        output: {field: policies.underwriting_conclusion, operator: MATCH, value: "次标（新契约）"}
+
+  - id: policies_free_look_expiry
+    retrieval_text: >
+      犹豫期 犹豫期内 犹豫期时间 犹豫期到期 退保犹豫期
+    field: policies.free_look_expiry
+    operator: MATCH
+    value_type: date
+    format: "YYYY-MM-DD"
+    examples:
+      - query: "犹豫期到期为2024-04-01的客户"
+        output: {field: policies.free_look_expiry, operator: MATCH, value: "2024-04-01"}
+
+  # ==================== 险种详情 ====================
+
+  - id: coverage_details_name
+    retrieval_text: >
+      险种名称 险种 保险名称 险种叫 什么险 险种是
+    field: policies.coverage_details.name
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "险种名称为平安福的客户"
+        output: {field: policies.coverage_details.name, operator: MATCH, value: "平安福"}
+
+  - id: coverage_details_alias
+    retrieval_text: >
+      险种简称 险种缩写 险种代号
+    field: policies.coverage_details.alias
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "险种简称为PAF的客户"
+        output: {field: policies.coverage_details.alias, operator: MATCH, value: "PAF"}
+
+  - id: coverage_details_insured_person
+    retrieval_text: >
+      险种被保人 被保人 保障对象
+    field: policies.coverage_details.insured_person
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "险种被保人叫张三的客户"
+        output: {field: policies.coverage_details.insured_person, operator: MATCH, value: "张三"}
+
+  # ==================== 家庭成员扩展 ====================
+
+  - id: family_members_name
+    retrieval_text: >
+      家庭成员姓名 成员名字 成员叫 家属叫 家人叫
+    field: family_members.name
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "家庭成员叫李明的客户"
+        output: {field: family_members.name, operator: MATCH, value: "李明"}
+
+  - id: family_members_birth_date
+    retrieval_text: >
+      成员生日 家庭成员出生日期 家属生日 成员出生年月
+    field: family_members.birth_date
+    operator: MATCH
+    value_type: date
+    format: "YYYY-MM-DD"
+    examples:
+      - query: "家庭成员生日为1990-05-01的客户"
+        output: {field: family_members.birth_date, operator: MATCH, value: "1990-05-01"}
+
+  - id: family_members_mobile
+    retrieval_text: >
+      成员手机号 家庭成员手机 家属电话 成员联系方式
+    field: family_members.mobile
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "家庭成员手机号为138xxxxxxxx的客户"
+        output: {field: family_members.mobile, operator: MATCH, value: "138xxxxxxxx"}
+
+  # ==================== 投被保人联系方式 ====================
+
+  - id: policies_applicant_mobile
+    retrieval_text: >
+      投保人手机号 投保人电话 投保人联系方式 投保人手机
+    field: policies.applicant_mobile
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "投保人手机号为139xxxxxxxx的客户"
+        output: {field: policies.applicant_mobile, operator: MATCH, value: "139xxxxxxxx"}
+
+  - id: policies_beneficiary_mobile
+    retrieval_text: >
+      受益人手机号 受益人电话 受益人联系方式
+    field: policies.beneficiary_mobile
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "受益人手机号为136xxxxxxxx的客户"
+        output: {field: policies.beneficiary_mobile, operator: MATCH, value: "136xxxxxxxx"}
+
+  # ==================== 生存金 ====================
+
+  - id: survival_total_amount
+    retrieval_text: >
+      生存金总金额 生存金 生存金总额 生存金总量
+    field: policies.survival_total_amount
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000"
+    examples:
+      - query: "生存金总金额1万以上的客户"
+        output: {field: policies.survival_total_amount, operator: GTE, value: 10000}
+
+  - id: survival_claimed_amount
+    retrieval_text: >
+      生存金已领 已领取生存金 生存金领取金额 已领生存金
+    field: policies.survival_claimed_amount
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000"
+    examples:
+      - query: "已领取生存金5000元以上的客户"
+        output: {field: policies.survival_claimed_amount, operator: GTE, value: 5000}
+
+  - id: survival_unclaimed_amount
+    retrieval_text: >
+      生存金未领 未领取生存金 生存金剩余 未领生存金金额
+    field: policies.survival_unclaimed_amount
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000"
+    examples:
+      - query: "未领取生存金2000元以上的客户"
+        output: {field: policies.survival_unclaimed_amount, operator: GTE, value: 2000}
+
+  - id: universal_acct_transfer
+    retrieval_text: >
+      生存金转入万能 万能账户 生存金转万能 万能账户转入
+    field: policies.universal_acct_transfer
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000"
+    examples:
+      - query: "生存金转入万能账户1万以上的客户"
+        output: {field: policies.universal_acct_transfer, operator: GTE, value: 10000}
+
+  - id: survival_interest_total
+    retrieval_text: >
+      生存金利息 生存金利息总额 生存金产生利息
+    field: policies.survival_interest_total
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000"
+    examples:
+      - query: "生存金利息总额500元以上的客户"
+        output: {field: policies.survival_interest_total, operator: GTE, value: 500}
+
+  # ==================== 理赔扩展 ====================
+
+  - id: claim_records_time
+    retrieval_text: >
+      理赔时间 出险时间 报案时间 理赔日期 何时理赔 理赔日
+    field: policies.claim_records.time
+    operator: MATCH
+    value_type: date
+    format: "YYYY-MM-DD"
+    examples:
+      - query: "2023年理赔的客户"
+        output: {field: policies.claim_records.time, operator: RANGE, value: {min: "2023-01-01", max: "2023-12-31"}}
+
+  - id: claim_records_amount
+    retrieval_text: >
+      理赔金额 赔付金额 理赔了多少 赔了多少 理赔款 出险金额
+    field: policies.claim_records.amount
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000"
+    examples:
+      - query: "理赔金额1万以上的客户"
+        output: {field: policies.claim_records.amount, operator: GTE, value: 10000}
+
+  # ==================== 会员权益 ====================
+
+  - id: member_info_validity
+    retrieval_text: >
+      会籍有效期 会员有效期 会员到期 会员期限 VIP有效期
+    field: benefits.member_info.validity
+    operator: MATCH
+    value_type: date
+    format: "YYYY-MM-DD"
+    examples:
+      - query: "会籍有效期为2024-12-31的客户"
+        output: {field: benefits.member_info.validity, operator: MATCH, value: "2024-12-31"}
+
+  - id: member_info_points
+    retrieval_text: >
+      会员积分 积分 积分数量 VIP积分 多少积分
+    field: benefits.member_info.points
+    operator: GTE
+    value_type: numeric
+    unit: "分，直接取数字"
+    examples:
+      - query: "会员积分500以上的客户"
+        output: {field: benefits.member_info.points, operator: GTE, value: 500}
+
+  - id: member_info_premium_value
+    retrieval_text: >
+      折标保费 折标 折算保费 标准保费 折标金额
+    field: benefits.member_info.premium_value
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000"
+    examples:
+      - query: "折标保费10万以上的客户"
+        output: {field: benefits.member_info.premium_value, operator: GTE, value: 100000}
+
+  - id: member_info_proxy_order_auth
+    retrieval_text: >
+      代下单授权 会员代下单 是否授权代下单 代购授权
+    field: benefits.member_info.proxy_order_auth
+    operator: MATCH
+    value_type: enum
+    enum: ["是", "否"]
+    examples:
+      - query: "已授权代下单的客户"
+        output: {field: benefits.member_info.proxy_order_auth, operator: MATCH, value: "是"}
+
+  - id: member_info_benefit_name
+    retrieval_text: >
+      会员权益 权益名称 享有哪些权益 门诊预约 线上问诊 住院照护
+    field: benefits.member_info.benefit_name
+    operator: CONTAINS
+    value_type: extract
+    examples:
+      - query: "有门诊预约权益的客户"
+        output: {field: benefits.member_info.benefit_name, operator: CONTAINS, value: "门诊预约"}
+
+  - id: member_info_benefit_intro
+    retrieval_text: >
+      会员权益简介 权益说明 权益介绍
+    field: benefits.member_info.benefit_intro
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "权益说明包含某内容的客户"
+        output: {field: benefits.member_info.benefit_intro, operator: MATCH, value: "某内容"}
+
+  - id: member_info_points_cost
+    retrieval_text: >
+      权益兑换积分 兑换所需积分 权益积分 权益积分消耗
+    field: benefits.member_info.points_cost
+    operator: LTE
+    value_type: numeric
+    unit: "分"
+    examples:
+      - query: "兑换积分100分以内的权益客户"
+        output: {field: benefits.member_info.points_cost, operator: LTE, value: 100}
+
+  - id: member_info_benefit_url
+    retrieval_text: >
+      权益详情链接 权益URL 会员权益详情
+    field: benefits.member_info.benefit_url
+    operator: EXISTS
+    value_type: exists
+    examples:
+      - query: "有权益详情链接的客户"
+        output: {field: benefits.member_info.benefit_url, operator: EXISTS, value: null}
+
+  # ==================== 服务线 ====================
+
+  - id: pingan_info_service_line
+    retrieval_text: >
+      服务线 产品服务线 居家养老服务线 哪条服务线
+    field: benefits.pingan_info.service_line
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "服务线为居家养老的客户"
+        output: {field: benefits.pingan_info.service_line, operator: MATCH, value: "居家养老"}
+
+  - id: pingan_info_period
+    retrieval_text: >
+      服务期数 服务年期 服务周期 2024年期
+    field: benefits.pingan_info.period
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "服务期数为2024年期的客户"
+        output: {field: benefits.pingan_info.period, operator: MATCH, value: "2024年期"}
+
+  - id: pingan_info_benefit_name
+    retrieval_text: >
+      服务线权益 权益名称 长寿管理 财富管理 服务权益
+    field: benefits.pingan_info.benefit_name
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "享有长寿管理权益的客户"
+        output: {field: benefits.pingan_info.benefit_name, operator: MATCH, value: "长寿管理"}
+
+  - id: pingan_info_expiry
+    retrieval_text: >
+      服务线有效期 服务权益到期 服务有效期 权益期限
+    field: benefits.pingan_info.expiry
+    operator: MATCH
+    value_type: date
+    format: "YYYY-MM-DD"
+    examples:
+      - query: "服务线权益有效期为2024-12-31的客户"
+        output: {field: benefits.pingan_info.expiry, operator: MATCH, value: "2024-12-31"}
+
+  - id: pingan_info_benefit_url
+    retrieval_text: >
+      服务线权益详情链接 服务权益URL
+    field: benefits.pingan_info.benefit_url
+    operator: EXISTS
+    value_type: exists
+    examples:
+      - query: "有服务线权益详情链接的客户"
+        output: {field: benefits.pingan_info.benefit_url, operator: EXISTS, value: null}
+
+  # ==================== 联系信息 ====================
+
+  - id: wechat_nickname
+    retrieval_text: >
+      微信昵称 微信名 微信名字 昵称叫 微信号昵称
+    field: wechat_nickname
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "微信昵称叫小明的客户"
+        output: {field: wechat_nickname, operator: MATCH, value: "小明"}
+
+  - id: email
+    retrieval_text: >
+      邮箱 电子邮件 电子邮箱 邮件地址 email
+    field: email
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "邮箱为xxx@qq.com的客户"
+        output: {field: email, operator: MATCH, value: "xxx@qq.com"}
+
+  - id: nationality
+    retrieval_text: >
+      国籍 国家 外国人 中国籍 哪国人 国籍是
+    field: nationality
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "国籍为中国的客户"
+        output: {field: nationality, operator: MATCH, value: "中国"}
+
+  - id: registered_residence
+    retrieval_text: >
+      户籍 户口 户籍地 户口所在地 户籍省份 户籍城市
+    field: registered_residence
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "户籍在广东的客户"
+        output: {field: registered_residence, operator: MATCH, value: "广东"}
+
+  - id: home_address
+    retrieval_text: >
+      家庭地址 家庭住址 住家地址 家住 居住地址 家庭住所
+    field: home_address
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "家住上海的客户"
+        output: {field: home_address, operator: MATCH, value: "上海"}
+
+  - id: height
+    retrieval_text: >
+      身高 多高 几厘米 身高多少 高矮
+    field: height
+    operator: GTE
+    value_type: numeric
+    unit: "厘米，直接取数字"
+    examples:
+      - query: "身高170以上的客户"
+        output: {field: height, operator: GTE, value: 170}
+
+  - id: weight
+    retrieval_text: >
+      体重 多重 多少斤 多少公斤 胖瘦 体重多少
+    field: weight
+    operator: GTE
+    value_type: numeric
+    unit: "公斤（kg），斤=÷2"
+    examples:
+      - query: "体重60公斤以上的客户"
+        output: {field: weight, operator: GTE, value: 60}
+
+  # ==================== 职业/工作 ====================
+
+  - id: years_in_service
+    retrieval_text: >
+      在职年数 工作年限 从业年限 工作了几年 工龄
+    field: years_in_service
+    operator: GTE
+    value_type: numeric
+    unit: "年，直接取数字"
+    examples:
+      - query: "工龄5年以上的客户"
+        output: {field: years_in_service, operator: GTE, value: 5}
+
+  - id: employer
+    retrieval_text: >
+      工作单位 公司名称 就职公司 在哪个公司 工作的公司
+    field: employer
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "在平安公司工作的客户"
+        output: {field: employer, operator: MATCH, value: "平安"}
+
+  - id: work_phone
+    retrieval_text: >
+      工作电话 办公电话 公司电话 单位电话
+    field: work_phone
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "工作电话为021xxxxxxxx的客户"
+        output: {field: work_phone, operator: MATCH, value: "021xxxxxxxx"}
+
+  - id: department
+    retrieval_text: >
+      任职部门 所在部门 工作部门 哪个部门
+    field: department
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "在销售部门工作的客户"
+        output: {field: department, operator: MATCH, value: "销售"}
+
+  - id: job_position
+    retrieval_text: >
+      公司岗位 职位 岗位 职称 职级 担任什么职位
+    field: job_position
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "职位为经理的客户"
+        output: {field: job_position, operator: MATCH, value: "经理"}
+
+  - id: company_address
+    retrieval_text: >
+      公司地址 公司在哪 工作地址 办公地址 单位地址
+    field: company_address
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "公司在北京的客户"
+        output: {field: company_address, operator: MATCH, value: "北京"}
+
+  # ==================== 车辆/资产 ====================
+
+  - id: vehicle_model
+    retrieval_text: >
+      车辆型号 车型 开什么车 车的型号 汽车型号
+    field: vehicle_model
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "开宝马的客户"
+        output: {field: vehicle_model, operator: MATCH, value: "宝马"}
+
+  - id: vehicle_plate_number
+    retrieval_text: >
+      车牌号 车辆号码 车牌 车牌号码 车辆车牌
+    field: vehicle_plate_number
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "车牌号为粤A12345的客户"
+        output: {field: vehicle_plate_number, operator: MATCH, value: "粤A12345"}
+
+  - id: real_vehicle_status
+    retrieval_text: >
+      车子情况 有没有车 有车 没车 是否有车 车辆情况
+    field: real_vehicle_status
+    operator: MATCH
+    value_type: enum
+    enum: ["有车", "没车"]
+    examples:
+      - query: "有车的客户"
+        output: {field: real_vehicle_status, operator: MATCH, value: "有车"}
+      - query: "没有车的客户"
+        output: {field: real_vehicle_status, operator: MATCH, value: "没车"}
+
+  - id: agent_id
+    retrieval_text: >
+      代理人号 代理人 业务员编号 代理人编号 业务员号
+    field: agent_id
+    operator: MATCH
+    value_type: extract
+    examples:
+      - query: "代理人号为A000001的客户"
+        output: {field: agent_id, operator: MATCH, value: "A000001"}

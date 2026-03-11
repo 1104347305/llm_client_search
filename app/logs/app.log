@@ -1,0 +1,478 @@
+2026-03-04 14:05:18 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 14:05:52 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 14:07:51 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:07:51 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:07:51 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:07:51 | INFO     | app.core.level1_rule_engine:extract:72 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 14:07:51 | INFO     | app.core.level2_template_matcher:match:82 - Level 2 matched 0 conditions, residual: True
+2026-03-04 14:07:51 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:07:51 | WARNING  | app.core.domain_classifier:classify:107 - No domain matched for query: 查找45岁以上未配置养老保险的客户, using all domains
+2026-03-04 14:07:51 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:07:51 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 95 fields for domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:07:51 | ERROR    | app.core.level4_llm_parser:_parse_with_fields:145 - No valid JSON found in LLM response: OPENAI_API_KEY not set. Please set the OPENAI_API_KEY environment variable.
+2026-03-04 14:07:51 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': []}
+2026-03-04 14:07:52 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 14:10:26 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 14:10:52 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:10:52 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:10:52 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:10:58 | INFO     | app.core.level1_rule_engine:extract:72 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 14:11:42 | INFO     | app.core.level2_template_matcher:match:82 - Level 2 matched 0 conditions, residual: True
+2026-03-04 14:12:26 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:12:26 | WARNING  | app.core.domain_classifier:classify:107 - No domain matched for query: 查找45岁以上未配置养老保险的客户, using all domains
+2026-03-04 14:12:26 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:12:26 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 95 fields for domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:12:26 | ERROR    | app.core.level4_llm_parser:_parse_with_fields:145 - No valid JSON found in LLM response: OPENAI_API_KEY not set. Please set the OPENAI_API_KEY environment variable.
+2026-03-04 14:12:26 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': []}
+2026-03-04 14:12:26 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 14:12:29 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:12:29 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:12:29 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:12:33 | INFO     | app.core.level1_rule_engine:extract:72 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 14:12:36 | INFO     | app.core.level2_template_matcher:match:82 - Level 2 matched 0 conditions, residual: True
+2026-03-04 14:12:36 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:12:36 | WARNING  | app.core.domain_classifier:classify:107 - No domain matched for query: 查找45岁以上未配置养老保险的客户, using all domains
+2026-03-04 14:12:36 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:12:36 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 95 fields for domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:12:36 | ERROR    | app.core.level4_llm_parser:_parse_with_fields:145 - No valid JSON found in LLM response: OPENAI_API_KEY not set. Please set the OPENAI_API_KEY environment variable.
+2026-03-04 14:12:36 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': []}
+2026-03-04 14:12:36 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 14:12:49 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:12:49 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:12:49 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:12:49 | INFO     | app.core.level1_rule_engine:extract:72 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 14:14:58 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 14:15:02 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:15:02 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:15:02 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:15:02 | INFO     | app.core.level1_rule_engine:extract:72 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 14:15:54 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 14:17:13 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 14:17:31 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:17:31 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:17:31 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:17:31 | INFO     | app.core.level1_rule_engine:extract:72 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 14:17:56 | INFO     | app.core.level2_template_matcher:match:108 - Level 2 matched 0 conditions, residual: True
+2026-03-04 14:17:56 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:17:56 | WARNING  | app.core.domain_classifier:classify:107 - No domain matched for query: 查找45岁以上未配置养老保险的客户, using all domains
+2026-03-04 14:17:56 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:17:56 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 95 fields for domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:17:56 | ERROR    | app.core.level4_llm_parser:_parse_with_fields:145 - No valid JSON found in LLM response: OPENAI_API_KEY not set. Please set the OPENAI_API_KEY environment variable.
+2026-03-04 14:17:56 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': []}
+2026-03-04 14:17:56 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 14:17:59 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:17:59 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:17:59 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 查找45岁以上未配置养老保险的客户
+2026-03-04 14:17:59 | INFO     | app.core.level1_rule_engine:extract:72 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 14:30:42 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 14:31:15 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 14:32:06 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 查找姓张的客户
+2026-03-04 14:32:06 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 查找姓张的客户
+2026-03-04 14:32:06 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 查找姓张的客户
+2026-03-04 14:32:06 | INFO     | app.core.level1_rule_engine:extract:72 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 14:32:37 | INFO     | app.core.level2_template_matcher:match:130 - Level 2 matched 0 conditions, residual: True
+2026-03-04 14:32:37 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 查找姓张的客户
+2026-03-04 14:32:37 | WARNING  | app.core.domain_classifier:classify:107 - No domain matched for query: 查找姓张的客户, using all domains
+2026-03-04 14:32:37 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:32:37 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 95 fields for domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:32:37 | ERROR    | app.core.level4_llm_parser:_parse_with_fields:145 - No valid JSON found in LLM response: OPENAI_API_KEY not set. Please set the OPENAI_API_KEY environment variable.
+2026-03-04 14:32:37 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': []}
+2026-03-04 14:32:37 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 14:32:47 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 查找姓张的客户
+2026-03-04 14:32:47 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 查找姓张的客户
+2026-03-04 14:32:47 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 查找姓张的客户
+2026-03-04 14:32:52 | INFO     | app.core.level1_rule_engine:extract:72 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 14:43:11 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 14:43:18 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 查找姓张的客户
+2026-03-04 14:43:18 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 查找姓张的客户
+2026-03-04 14:43:18 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 查找姓张的客户
+2026-03-04 14:43:24 | INFO     | app.core.level1_rule_engine:extract:73 - Extracted surname: 张
+2026-03-04 14:43:24 | INFO     | app.core.level1_rule_engine:extract:98 - Level 1 extracted 1 conditions, residual: True
+2026-03-04 14:43:34 | INFO     | app.core.level2_template_matcher:match:130 - Level 2 matched 0 conditions, residual: True
+2026-03-04 14:43:34 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 查找
+2026-03-04 14:43:34 | WARNING  | app.core.domain_classifier:classify:107 - No domain matched for query: 查找, using all domains
+2026-03-04 14:43:34 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:43:34 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 95 fields for domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:43:34 | ERROR    | app.core.level4_llm_parser:_parse_with_fields:145 - No valid JSON found in LLM response: OPENAI_API_KEY not set. Please set the OPENAI_API_KEY environment variable.
+2026-03-04 14:43:34 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'name', 'operator': 'MATCH', 'value': '张'}]}
+2026-03-04 14:43:34 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 14:46:27 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 查找姓张的客户
+2026-03-04 14:46:27 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 查找姓张的客户
+2026-03-04 14:46:27 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 查找姓张的客户
+2026-03-04 14:46:27 | INFO     | app.core.level1_rule_engine:extract:73 - Extracted surname: 张
+2026-03-04 14:46:27 | INFO     | app.core.level1_rule_engine:extract:98 - Level 1 extracted 1 conditions, residual: True
+2026-03-04 14:46:27 | INFO     | app.core.level2_template_matcher:match:130 - Level 2 matched 0 conditions, residual: True
+2026-03-04 14:46:27 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 查找
+2026-03-04 14:46:27 | WARNING  | app.core.domain_classifier:classify:107 - No domain matched for query: 查找, using all domains
+2026-03-04 14:46:27 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:46:27 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 95 fields for domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:46:27 | ERROR    | app.core.level4_llm_parser:_parse_with_fields:145 - No valid JSON found in LLM response: OPENAI_API_KEY not set. Please set the OPENAI_API_KEY environment variable.
+2026-03-04 14:46:27 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'name', 'operator': 'MATCH', 'value': '张'}]}
+2026-03-04 14:46:27 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 14:46:54 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 张朋
+2026-03-04 14:46:54 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 张朋
+2026-03-04 14:46:54 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 张朋
+2026-03-04 14:46:54 | INFO     | app.core.level1_rule_engine:extract:98 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 14:46:54 | INFO     | app.core.level2_template_matcher:match:130 - Level 2 matched 0 conditions, residual: True
+2026-03-04 14:46:54 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 张朋
+2026-03-04 14:46:54 | WARNING  | app.core.domain_classifier:classify:107 - No domain matched for query: 张朋, using all domains
+2026-03-04 14:46:54 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:46:54 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 95 fields for domains: ['客户基本信息', '家庭成员信息', '保单信息', '客户权益']
+2026-03-04 14:46:54 | ERROR    | app.core.level4_llm_parser:_parse_with_fields:145 - No valid JSON found in LLM response: OPENAI_API_KEY not set. Please set the OPENAI_API_KEY environment variable.
+2026-03-04 14:46:54 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': []}
+2026-03-04 14:46:54 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 15:00:52 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 15:02:03 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 张朋
+2026-03-04 15:02:03 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 张朋
+2026-03-04 15:02:03 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 张朋
+2026-03-04 15:02:03 | DEBUG    | app.core.level1_rule_engine:_extract_names_with_jieba:44 - Jieba extracted name: 张朋 (flag: nr)
+2026-03-04 15:02:03 | INFO     | app.core.level1_rule_engine:extract:125 - Extracted name via Jieba: 张朋
+2026-03-04 15:02:03 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 1 conditions, residual: False
+2026-03-04 15:02:03 | INFO     | app.core.query_router:route_with_peeling:97 - Query fully handled by Level 1
+2026-03-04 15:02:03 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'name', 'operator': 'MATCH', 'value': '张朋'}]}
+2026-03-04 15:02:03 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 15:02:14 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 张山
+2026-03-04 15:02:14 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 张山
+2026-03-04 15:02:14 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 张山
+2026-03-04 15:02:14 | DEBUG    | app.core.level1_rule_engine:_extract_names_with_jieba:44 - Jieba extracted name: 张山 (flag: nr)
+2026-03-04 15:02:14 | INFO     | app.core.level1_rule_engine:extract:125 - Extracted name via Jieba: 张山
+2026-03-04 15:02:14 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 1 conditions, residual: False
+2026-03-04 15:02:14 | INFO     | app.core.query_router:route_with_peeling:97 - Query fully handled by Level 1
+2026-03-04 15:02:14 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'name', 'operator': 'MATCH', 'value': '张山'}]}
+2026-03-04 15:02:14 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 15:02:19 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 张山
+2026-03-04 15:02:19 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 张山
+2026-03-04 15:02:19 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 张山
+2026-03-04 15:02:19 | DEBUG    | app.core.level1_rule_engine:_extract_names_with_jieba:44 - Jieba extracted name: 张山 (flag: nr)
+2026-03-04 15:02:19 | INFO     | app.core.level1_rule_engine:extract:125 - Extracted name via Jieba: 张山
+2026-03-04 15:02:19 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 1 conditions, residual: False
+2026-03-04 15:02:19 | INFO     | app.core.query_router:route_with_peeling:97 - Query fully handled by Level 1
+2026-03-04 15:02:19 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'name', 'operator': 'MATCH', 'value': '张山'}]}
+2026-03-04 15:02:19 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 15:05:03 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 15:11:22 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 138
+2026-03-04 15:11:22 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 138
+2026-03-04 15:11:22 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 138
+2026-03-04 15:11:22 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 15:11:22 | INFO     | app.core.level2_template_matcher:match:130 - Level 2 matched 0 conditions, residual: True
+2026-03-04 15:11:22 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 138
+2026-03-04 15:11:26 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息']
+2026-03-04 15:11:26 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 39 fields for domains: ['客户基本信息']
+2026-03-04 15:11:37 | INFO     | app.core.level4_llm_parser:_parse_with_fields:141 - LLM parsed 1 conditions
+2026-03-04 15:11:37 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'mobile_phone', 'operator': 'CONTAINS', 'value': '138'}]}
+2026-03-04 15:11:37 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 15:13:12 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 11010119871
+2026-03-04 15:13:12 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 11010119871
+2026-03-04 15:13:12 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 11010119871
+2026-03-04 15:13:12 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 15:13:12 | INFO     | app.core.level2_template_matcher:match:130 - Level 2 matched 0 conditions, residual: True
+2026-03-04 15:13:12 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 11010119871
+2026-03-04 15:13:19 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息']
+2026-03-04 15:13:19 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 39 fields for domains: ['客户基本信息']
+2026-03-04 15:13:27 | INFO     | app.core.level4_llm_parser:_parse_with_fields:141 - LLM parsed 1 conditions
+2026-03-04 15:13:27 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'customer_id', 'operator': 'MATCH', 'value': '11010119871'}]}
+2026-03-04 15:13:27 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 15:14:01 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 查找二十多岁刚结婚没买保险的客户
+2026-03-04 15:14:01 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 查找二十多岁刚结婚没买保险的客户
+2026-03-04 15:14:01 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 查找二十多岁刚结婚没买保险的客户
+2026-03-04 15:14:01 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 15:14:01 | INFO     | app.core.level2_template_matcher:match:130 - Level 2 matched 0 conditions, residual: True
+2026-03-04 15:14:01 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 查找二十多岁刚结婚没买保险的客户
+2026-03-04 15:14:06 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息']
+2026-03-04 15:14:06 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 39 fields for domains: ['客户基本信息']
+2026-03-04 15:15:32 | INFO     | app.core.level4_llm_parser:_parse_with_fields:141 - LLM parsed 3 conditions
+2026-03-04 15:15:32 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'age', 'operator': 'RANGE', 'value': {'min': 20, 'max': 29}}, {'field': 'marital_status', 'operator': 'MATCH', 'value': '已婚'}, {'field': 'customer_segment_tag', 'operator': 'NOT_CONTAINS', 'value': '保险'}]}
+2026-03-04 15:15:32 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 15:46:21 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 15:47:45 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 15:48:39 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 15:48:49 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 查找二十多岁刚结婚没买保险的客户
+2026-03-04 15:48:49 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 查找二十多岁刚结婚没买保险的客户
+2026-03-04 15:48:49 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 查找二十多岁刚结婚没买保险的客户
+2026-03-04 15:48:49 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 15:48:49 | INFO     | app.core.level2_template_matcher:match:130 - Level 2 matched 0 conditions, residual: True
+2026-03-04 15:48:49 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 查找二十多岁刚结婚没买保险的客户
+2026-03-04 15:48:53 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息']
+2026-03-04 15:48:53 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 39 fields for domains: ['客户基本信息']
+2026-03-04 15:50:30 | INFO     | app.core.level4_llm_parser:_parse_with_fields:141 - LLM parsed 2 conditions
+2026-03-04 15:50:30 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'age', 'operator': 'RANGE', 'value': {'min': 20, 'max': 29}}, {'field': 'marital_status', 'operator': 'MATCH', 'value': '已婚'}]}
+2026-03-04 15:50:30 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 16:59:39 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 17:03:18 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 17:03:42 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 17:03:49 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 45岁以上未配置养老险的客户
+2026-03-04 17:03:49 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 45岁以上未配置养老险的客户
+2026-03-04 17:03:49 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 45岁以上未配置养老险的客户
+2026-03-04 17:03:49 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 17:03:49 | INFO     | app.core.level2_template_matcher:match:167 - Level 2 matched 3 conditions, residual: True
+2026-03-04 17:03:49 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 未配置的客户
+2026-03-04 17:03:55 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息']
+2026-03-04 17:03:55 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 39 fields for domains: ['客户基本信息']
+2026-03-04 17:04:40 | INFO     | app.core.level4_llm_parser:_parse_with_fields:141 - LLM parsed 1 conditions
+2026-03-04 17:04:40 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'age', 'operator': 'GTE', 'value': 45}, {'field': 'age', 'operator': 'MATCH', 'value': 45}, {'field': 'held_product_category', 'operator': 'MATCH', 'value': '养老险'}, {'field': 'operation_stage', 'operator': 'MATCH', 'value': '未配置'}]}
+2026-03-04 17:04:40 | ERROR    | app.services.search_api_client:search:48 - Search API HTTP error: Client error '400 Bad Request' for url 'http://localhost:8001/api/v1/search/customer'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+2026-03-04 17:04:40 | ERROR    | app.services.search_service:natural_language_search:68 - Natural language search failed: Client error '400 Bad Request' for url 'http://localhost:8001/api/v1/search/customer'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
+2026-03-04 17:15:34 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 17:15:57 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 45岁以上未配置养老险的客户
+2026-03-04 17:15:57 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 45岁以上未配置养老险的客户
+2026-03-04 17:15:57 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 45岁以上未配置养老险的客户
+2026-03-04 17:15:57 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 17:15:57 | INFO     | app.core.level2_template_matcher:match:176 - Level 2 matched 2 conditions, residual: True
+2026-03-04 17:15:57 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 未配置的客户
+2026-03-04 17:16:04 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息']
+2026-03-04 17:16:04 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 39 fields for domains: ['客户基本信息']
+2026-03-04 17:17:43 | INFO     | app.core.level4_llm_parser:_parse_with_fields:141 - LLM parsed 1 conditions
+2026-03-04 17:17:43 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'age', 'operator': 'GTE', 'value': 45}, {'field': 'held_product_category', 'operator': 'NOT_CONTAINS', 'value': '年金保险'}, {'field': 'customer_segment_tag', 'operator': 'MATCH', 'value': '未配置'}]}
+2026-03-04 17:17:43 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-04 20:57:05 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 20:58:03 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-04 20:58:07 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 45岁以上未配置养老险的客户
+2026-03-04 20:58:07 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 45岁以上未配置养老险的客户
+2026-03-04 20:58:07 | INFO     | app.core.query_router:route_with_peeling:87 - Routing query with peeling: 45岁以上未配置养老险的客户
+2026-03-04 20:58:07 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-04 20:58:07 | INFO     | app.core.level2_template_matcher:match:176 - Level 2 matched 2 conditions, residual: True
+2026-03-04 20:58:07 | INFO     | app.core.query_router:route_with_peeling:132 - Using LLM to parse remaining text: 未配置的客户
+2026-03-04 20:58:10 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息']
+2026-03-04 20:58:10 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 39 fields for domains: ['客户基本信息']
+2026-03-04 21:00:56 | INFO     | app.core.level4_llm_parser:_parse_with_fields:141 - LLM parsed 1 conditions
+2026-03-04 21:00:56 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'age', 'operator': 'GTE', 'value': 45}, {'field': 'held_product_category', 'operator': 'NOT_CONTAINS', 'value': '年金保险'}, {'field': 'operation_stage', 'operator': 'NOT_CONTAINS', 'value': '配置'}]}
+2026-03-04 21:00:56 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 13:37:20 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-05 16:21:28 | INFO     | __main__:<module>:64 - Starting server on 0.0.0.0:8000
+2026-03-05 16:21:35 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 35岁有小朋友还没配置重疾险的客户
+2026-03-05 16:21:35 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 35岁有小朋友还没配置重疾险的客户
+2026-03-05 16:21:35 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 35岁有小朋友还没配置重疾险的客户
+2026-03-05 16:21:35 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:21:35 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:21:35 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年龄-精确' matched: 35岁
+2026-03-05 16:21:35 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '险种-持有' matched: 重疾险
+2026-03-05 16:21:35 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '险种-未配置' matched: 没配置重疾险
+2026-03-05 16:21:35 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '子女-有' matched: 有小朋友
+2026-03-05 16:21:35 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '寿险产品责任类型' matched: 重疾险
+2026-03-05 16:21:35 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 险种-未配置 at [8:14]
+2026-03-05 16:21:35 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 子女-有 at [3:7]
+2026-03-05 16:21:35 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:309 - Skipped overlapping: 险种-持有
+2026-03-05 16:21:35 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 年龄-精确 at [0:3]
+2026-03-05 16:21:35 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:309 - Skipped overlapping: 寿险产品责任类型
+2026-03-05 16:21:35 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 3 conditions
+2026-03-05 16:21:35 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 3 conditions
+2026-03-05 16:21:35 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'age', 'operator': 'RANGE', 'value': {'min': 35, 'max': 35}}, {'field': 'family_members.relationship', 'operator': 'CONTAINS', 'value': '子女'}, {'field': 'life_liability_type', 'operator': 'NOT_CONTAINS', 'value': '重疾'}]}
+2026-03-05 16:21:35 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:28:53 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 18-40岁客户
+2026-03-05 16:28:53 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 18-40岁客户
+2026-03-05 16:28:53 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 18-40岁客户
+2026-03-05 16:28:53 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:28:53 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:28:53 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年龄-精确' matched: 40岁
+2026-03-05 16:28:53 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年龄-范围' matched: 18-40岁
+2026-03-05 16:28:53 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 年龄-范围 at [0:6]
+2026-03-05 16:28:53 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:309 - Skipped overlapping: 年龄-精确
+2026-03-05 16:28:53 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 1 conditions
+2026-03-05 16:28:53 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 1 conditions
+2026-03-05 16:28:53 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'age', 'operator': 'RANGE', 'value': {'min': 18, 'max': 40}}]}
+2026-03-05 16:28:54 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:29:11 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 50岁以上
+2026-03-05 16:29:11 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 50岁以上
+2026-03-05 16:29:11 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 50岁以上
+2026-03-05 16:29:11 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:29:11 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:29:11 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年龄-精确' matched: 50岁
+2026-03-05 16:29:11 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年龄-以上' matched: 50岁以上
+2026-03-05 16:29:11 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 年龄-以上 at [0:5]
+2026-03-05 16:29:11 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:309 - Skipped overlapping: 年龄-精确
+2026-03-05 16:29:11 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 1 conditions
+2026-03-05 16:29:11 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 1 conditions
+2026-03-05 16:29:11 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'age', 'operator': 'GTE', 'value': 50}]}
+2026-03-05 16:29:11 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:29:26 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 45岁以上未配置养老险的客户
+2026-03-05 16:29:26 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 45岁以上未配置养老险的客户
+2026-03-05 16:29:26 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 45岁以上未配置养老险的客户
+2026-03-05 16:29:26 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:29:26 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:29:26 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年龄-精确' matched: 45岁
+2026-03-05 16:29:26 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年龄-以上' matched: 45岁以上
+2026-03-05 16:29:26 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '险种-持有' matched: 养老险
+2026-03-05 16:29:26 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '险种-未配置' matched: 未配置养老险
+2026-03-05 16:29:26 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '寿险产品责任类型' matched: 养老险
+2026-03-05 16:29:26 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 险种-未配置 at [5:11]
+2026-03-05 16:29:26 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:309 - Skipped overlapping: 险种-持有
+2026-03-05 16:29:26 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 年龄-以上 at [0:5]
+2026-03-05 16:29:26 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:309 - Skipped overlapping: 年龄-精确
+2026-03-05 16:29:26 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:309 - Skipped overlapping: 寿险产品责任类型
+2026-03-05 16:29:26 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 2 conditions
+2026-03-05 16:29:26 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 2 conditions
+2026-03-05 16:29:26 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'age', 'operator': 'GTE', 'value': 45}, {'field': 'life_liability_type', 'operator': 'NOT_CONTAINS', 'value': '养老'}]}
+2026-03-05 16:29:27 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:29:43 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 35岁有小朋友还没配置重疾险的客户
+2026-03-05 16:29:43 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 35岁有小朋友还没配置重疾险的客户
+2026-03-05 16:29:43 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 35岁有小朋友还没配置重疾险的客户
+2026-03-05 16:29:43 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:29:43 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:29:43 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年龄-精确' matched: 35岁
+2026-03-05 16:29:43 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '险种-持有' matched: 重疾险
+2026-03-05 16:29:43 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '险种-未配置' matched: 没配置重疾险
+2026-03-05 16:29:43 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '子女-有' matched: 有小朋友
+2026-03-05 16:29:43 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '寿险产品责任类型' matched: 重疾险
+2026-03-05 16:29:43 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 险种-未配置 at [8:14]
+2026-03-05 16:29:43 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 子女-有 at [3:7]
+2026-03-05 16:29:43 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:309 - Skipped overlapping: 险种-持有
+2026-03-05 16:29:43 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 年龄-精确 at [0:3]
+2026-03-05 16:29:43 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:309 - Skipped overlapping: 寿险产品责任类型
+2026-03-05 16:29:43 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 3 conditions
+2026-03-05 16:29:43 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 3 conditions
+2026-03-05 16:29:43 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'age', 'operator': 'RANGE', 'value': {'min': 35, 'max': 35}}, {'field': 'family_members.relationship', 'operator': 'CONTAINS', 'value': '子女'}, {'field': 'life_liability_type', 'operator': 'NOT_CONTAINS', 'value': '重疾'}]}
+2026-03-05 16:29:43 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:29:55 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 20-30岁刚结婚的青年客户
+2026-03-05 16:29:55 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 20-30岁刚结婚的青年客户
+2026-03-05 16:29:55 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 20-30岁刚结婚的青年客户
+2026-03-05 16:29:55 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:29:55 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:29:55 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年龄-精确' matched: 30岁
+2026-03-05 16:29:55 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年龄-范围' matched: 20-30岁
+2026-03-05 16:29:55 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '婚姻状况' matched: 刚结婚
+2026-03-05 16:29:55 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 年龄-范围 at [0:6]
+2026-03-05 16:29:55 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:309 - Skipped overlapping: 年龄-精确
+2026-03-05 16:29:55 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 婚姻状况 at [6:9]
+2026-03-05 16:29:55 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 2 conditions
+2026-03-05 16:29:55 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 2 conditions
+2026-03-05 16:29:55 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'age', 'operator': 'RANGE', 'value': {'min': 20, 'max': 30}}, {'field': 'marital_status', 'operator': 'MATCH', 'value': '已婚'}]}
+2026-03-05 16:29:55 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:30:16 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 子女在小学阶段的客户
+2026-03-05 16:30:16 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 子女在小学阶段的客户
+2026-03-05 16:30:16 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 子女在小学阶段的客户
+2026-03-05 16:30:16 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:30:16 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:30:16 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 0 conditions
+2026-03-05 16:30:16 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 0 conditions
+2026-03-05 16:30:16 | INFO     | app.core.query_router:route_with_peeling:52 - No conditions from L1+L2+L3, falling back to Level 4 (LLM)
+2026-03-05 16:30:18 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息', '家庭成员信息']
+2026-03-05 16:30:18 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 44 fields for domains: ['客户基本信息', '家庭成员信息']
+2026-03-05 16:30:27 | INFO     | app.core.level4_llm_parser:_parse_with_fields:141 - LLM parsed 1 conditions
+2026-03-05 16:30:27 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'family_members.age', 'operator': 'RANGE', 'value': {'min': 6, 'max': 12}}]}
+2026-03-05 16:30:27 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:31:04 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 子女3-5周岁的客户
+2026-03-05 16:31:04 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 子女3-5周岁的客户
+2026-03-05 16:31:04 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 子女3-5周岁的客户
+2026-03-05 16:31:04 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:31:04 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:31:04 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年龄-精确' matched: 5周岁
+2026-03-05 16:31:04 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 年龄-精确 at [4:7]
+2026-03-05 16:31:04 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 1 conditions
+2026-03-05 16:31:04 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 1 conditions
+2026-03-05 16:31:04 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'age', 'operator': 'RANGE', 'value': {'min': 5, 'max': 5}}]}
+2026-03-05 16:31:04 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:31:25 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 有小朋友的客户
+2026-03-05 16:31:25 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 有小朋友的客户
+2026-03-05 16:31:25 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 有小朋友的客户
+2026-03-05 16:31:25 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:31:25 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:31:25 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '子女-有' matched: 有小朋友
+2026-03-05 16:31:25 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 子女-有 at [0:4]
+2026-03-05 16:31:25 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 1 conditions
+2026-03-05 16:31:25 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 1 conditions
+2026-03-05 16:31:25 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'family_members.relationship', 'operator': 'CONTAINS', 'value': '子女'}]}
+2026-03-05 16:31:25 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:31:38 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 子女在上初中/高中的客户
+2026-03-05 16:31:38 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 子女在上初中/高中的客户
+2026-03-05 16:31:38 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 子女在上初中/高中的客户
+2026-03-05 16:31:38 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:31:38 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:31:38 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 0 conditions
+2026-03-05 16:31:38 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 0 conditions
+2026-03-05 16:31:38 | INFO     | app.core.query_router:route_with_peeling:52 - No conditions from L1+L2+L3, falling back to Level 4 (LLM)
+2026-03-05 16:31:42 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息', '家庭成员信息']
+2026-03-05 16:31:42 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 44 fields for domains: ['客户基本信息', '家庭成员信息']
+2026-03-05 16:32:21 | WARNING  | app.core.level4_llm_parser:_parse_with_fields:139 - Failed to parse condition: {'field': 'family_members.birth_date', 'operator': 'RANGE', 'value': {'min': '2006-01-01', 'max': '2011-12-31'}}, error: 4 validation errors for RangeValue
+min.int
+  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='2006-01-01', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.9/v/int_parsing
+min.float
+  Input should be a valid number, unable to parse string as a number [type=float_parsing, input_value='2006-01-01', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.9/v/float_parsing
+max.int
+  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='2011-12-31', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.9/v/int_parsing
+max.float
+  Input should be a valid number, unable to parse string as a number [type=float_parsing, input_value='2011-12-31', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.9/v/float_parsing
+2026-03-05 16:32:21 | INFO     | app.core.level4_llm_parser:_parse_with_fields:141 - LLM parsed 0 conditions
+2026-03-05 16:32:21 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': []}
+2026-03-05 16:32:21 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:35:55 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 已购房客户
+2026-03-05 16:35:55 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 已购房客户
+2026-03-05 16:35:55 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 已购房客户
+2026-03-05 16:35:55 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:35:55 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:35:55 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '房产状况' matched: 已购房客户
+2026-03-05 16:35:55 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 房产状况 at [0:5]
+2026-03-05 16:35:55 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 1 conditions
+2026-03-05 16:35:55 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 1 conditions
+2026-03-05 16:35:55 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'test_agent', 'page': 1, 'size': 20}, 'query_logic': 'AND', 'conditions': [{'field': 'real_estate_status', 'operator': 'MATCH', 'value': '有房'}]}
+2026-03-05 16:35:55 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:36:17 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 子女在小学阶段的客户
+2026-03-05 16:36:17 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 子女在小学阶段的客户
+2026-03-05 16:36:17 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 子女在小学阶段的客户
+2026-03-05 16:36:17 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:36:17 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:36:17 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 0 conditions
+2026-03-05 16:36:17 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 0 conditions
+2026-03-05 16:36:17 | INFO     | app.core.query_router:route_with_peeling:52 - No conditions from L1+L2+L3, falling back to Level 4 (LLM)
+2026-03-05 16:36:19 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息', '家庭成员信息']
+2026-03-05 16:36:19 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 44 fields for domains: ['客户基本信息', '家庭成员信息']
+2026-03-05 16:37:14 | INFO     | app.core.level4_llm_parser:_parse_with_fields:141 - LLM parsed 1 conditions
+2026-03-05 16:37:14 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'test_agent', 'page': 1, 'size': 20}, 'query_logic': 'AND', 'conditions': [{'field': 'family_members.age', 'operator': 'RANGE', 'value': {'min': 6, 'max': 12}}]}
+2026-03-05 16:37:14 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:37:51 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 有子女的客户
+2026-03-05 16:37:51 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 有子女的客户
+2026-03-05 16:37:51 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 有子女的客户
+2026-03-05 16:37:51 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:37:51 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:37:51 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '子女-有' matched: 有子女
+2026-03-05 16:37:51 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 子女-有 at [0:3]
+2026-03-05 16:37:51 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 1 conditions
+2026-03-05 16:37:51 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 1 conditions
+2026-03-05 16:37:51 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'test_agent', 'page': 1, 'size': 20}, 'query_logic': 'AND', 'conditions': [{'field': 'family_members.relationship', 'operator': 'CONTAINS', 'value': '子女'}]}
+2026-03-05 16:37:51 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:39:25 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 年收入20万以上的已婚男性客户
+2026-03-05 16:39:25 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 年收入20万以上的已婚男性客户
+2026-03-05 16:39:25 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 年收入20万以上的已婚男性客户
+2026-03-05 16:39:25 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:39:25 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:39:25 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '婚姻状况' matched: 已婚
+2026-03-05 16:39:25 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '性别' matched: 男性客户
+2026-03-05 16:39:25 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年收入-以上' matched: 年收入20万以上
+2026-03-05 16:39:25 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 年收入-以上 at [0:8]
+2026-03-05 16:39:25 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 性别 at [11:15]
+2026-03-05 16:39:25 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 婚姻状况 at [9:11]
+2026-03-05 16:39:25 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 3 conditions
+2026-03-05 16:39:25 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 3 conditions
+2026-03-05 16:39:25 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'test_agent', 'page': 1, 'size': 20}, 'query_logic': 'AND', 'conditions': [{'field': 'annual_income', 'operator': 'GTE', 'value': 200000}, {'field': 'marital_status', 'operator': 'MATCH', 'value': '已婚'}, {'field': 'gender', 'operator': 'MATCH', 'value': '男'}]}
+2026-03-05 16:39:25 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:41:37 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 不超过50岁的客户
+2026-03-05 16:41:37 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 不超过50岁的客户
+2026-03-05 16:41:37 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 不超过50岁的客户
+2026-03-05 16:41:37 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:41:37 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:41:37 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年龄-精确' matched: 50岁
+2026-03-05 16:41:37 | DEBUG    | app.core.level2_enhanced_matcher:match:109 - Rule '年龄-以下' matched: 不超过50岁
+2026-03-05 16:41:37 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:307 - Selected: 年龄-以下 at [0:6]
+2026-03-05 16:41:37 | DEBUG    | app.core.level2_enhanced_matcher:_resolve_conflicts:309 - Skipped overlapping: 年龄-精确
+2026-03-05 16:41:37 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 1 conditions
+2026-03-05 16:41:37 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 1 conditions
+2026-03-05 16:41:37 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'test_agent', 'page': 1, 'size': 20}, 'query_logic': 'AND', 'conditions': [{'field': 'age', 'operator': 'LTE', 'value': 50}]}
+2026-03-05 16:41:37 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results
+2026-03-05 16:42:11 | INFO     | app.api.routes:natural_language_search:29 - Received natural language search request: 有车的客户
+2026-03-05 16:42:11 | INFO     | app.services.search_service:natural_language_search:39 - Processing natural language query: 有车的客户
+2026-03-05 16:42:11 | INFO     | app.core.query_router:route_with_peeling:31 - Routing query: 有车的客户
+2026-03-05 16:42:11 | INFO     | app.core.level1_rule_engine:extract:137 - Level 1 extracted 0 conditions, residual: True
+2026-03-05 16:42:11 | INFO     | app.core.query_router:route_with_peeling:37 - Level 1 extracted 0 conditions
+2026-03-05 16:42:11 | INFO     | app.core.level2_enhanced_matcher:match:130 - Level 2 Enhanced matched 0 conditions
+2026-03-05 16:42:11 | INFO     | app.core.query_router:route_with_peeling:42 - Level 2 extracted 0 conditions
+2026-03-05 16:42:11 | INFO     | app.core.query_router:route_with_peeling:52 - No conditions from L1+L2+L3, falling back to Level 4 (LLM)
+2026-03-05 16:42:14 | INFO     | app.core.domain_classifier:classify:110 - Query classified to domains: ['客户基本信息']
+2026-03-05 16:42:14 | INFO     | app.core.domain_classifier:get_fields_for_domains:133 - Retrieved 39 fields for domains: ['客户基本信息']
+2026-03-05 16:42:22 | INFO     | app.core.level4_llm_parser:_parse_with_fields:141 - LLM parsed 1 conditions
+2026-03-05 16:42:22 | INFO     | app.services.search_api_client:search:34 - Calling search API with payload: {'header': {'agent_id': 'A000001', 'page': 1, 'size': 10}, 'query_logic': 'AND', 'conditions': [{'field': 'vehicle_plate_number', 'operator': 'CONTAINS', 'value': ''}]}
+2026-03-05 16:42:23 | INFO     | app.services.search_api_client:search:44 - Search API returned 0 results

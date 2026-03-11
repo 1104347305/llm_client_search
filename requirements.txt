@@ -1,0 +1,30 @@
+# FastAPI 和 Web 框架
+fastapi==0.115.5
+uvicorn==0.32.1
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# HTTP 客户端
+httpx==0.28.1
+
+# AI 和 LLM
+agno>=2.0.0
+openai>=1.0.0
+
+# 日志
+loguru==0.7.3
+
+# 中文分词
+jieba==0.42.1
+
+# YAML 配置
+PyYAML==6.0.2
+
+# Elasticsearch
+elasticsearch[async]==8.17.1
+
+# Redis (可选，用于缓存)
+redis==5.2.1
+
+# 其他工具
+python-dotenv==1.0.1
