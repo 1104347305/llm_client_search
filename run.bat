@@ -40,11 +40,45 @@ exit /b 0
 
 :stop
 echo [INFO] Stopping all services...
-for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":%API_PORT% " ^| findstr "LISTENING"') do taskkill /PID %%P /F >nul 2>&1
-for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":%AGENT_PORT% " ^| findstr "LISTENING"') do taskkill /PID %%P /F >nul 2>&1
-if exist "%PID_DIR%\api.pid"      del /f "%PID_DIR%\api.pid"
-if exist "%PID_DIR%\agent_os.pid" del /f "%PID_DIR%\agent_os.pid"
-echo [OK] All services stopped.
+
+:: ── 检测是否以管理员身份运行，否则自动提权重启 ──
+net session >nul 2>&1
+if errorlevel 1 (
+    echo [INFO] Requesting administrator privileges...
+    powershell -NoProfile -Command "Start-Process cmd -ArgumentList '/c \"%~f0\" --stop' -Verb RunAs -Wait"
+    exit /b 0
+)
+
+:: ── 方法1：按命令行特征杀进程（最可靠，不依赖 PID 是否变化）──
+wmic process where "name='python.exe' and commandline like '%%uvicorn%%app%%main%%'" delete >nul 2>&1
+wmic process where "name='python.exe' and commandline like '%%agent_os_app%%'"       delete >nul 2>&1
+
+:: ── 方法2：通过保存的父进程 PID 杀整棵进程树 ──
+if exist "%PID_DIR%\api.pid" (
+    set /p _APID=<"%PID_DIR%\api.pid"
+    taskkill /F /T /PID !_APID! >nul 2>&1
+    del /f "%PID_DIR%\api.pid"
+)
+if exist "%PID_DIR%\agent_os.pid" (
+    set /p _GPID=<"%PID_DIR%\agent_os.pid"
+    taskkill /F /T /PID !_GPID! >nul 2>&1
+    del /f "%PID_DIR%\agent_os.pid"
+)
+
+:: ── 方法3：按端口扫描残留进程（含 /T 杀子树）──
+for /f "tokens=5" %%P in ('netstat -ano 2^>nul ^| findstr ":%API_PORT% " ^| findstr "LISTENING"') do taskkill /F /T /PID %%P >nul 2>&1
+for /f "tokens=5" %%P in ('netstat -ano 2^>nul ^| findstr ":%AGENT_PORT% " ^| findstr "LISTENING"') do taskkill /F /T /PID %%P >nul 2>&1
+
+timeout /t 1 /nobreak >nul
+:: ── 验证端口是否已释放 ──
+set _STILL=0
+for /f "tokens=5" %%P in ('netstat -ano 2^>nul ^| findstr ":%API_PORT% " ^| findstr "LISTENING"') do set _STILL=1
+for /f "tokens=5" %%P in ('netstat -ano 2^>nul ^| findstr ":%AGENT_PORT% " ^| findstr "LISTENING"') do set _STILL=1
+if "!_STILL!"=="1" (
+    echo [WARN] Ports still in use. Check if another app is using ports %API_PORT%/%AGENT_PORT%.
+) else (
+    echo [OK] All services stopped.
+)
 exit /b 0
 
 :: ==================== MAIN ====================
@@ -117,7 +151,7 @@ for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":%API_PORT% " ^| findstr "LI
     timeout /t 1 /nobreak >nul
 )
 echo [INFO] Starting Search API (port %API_PORT%)...
-start "SearchAPI" /min cmd /c "%PYTHON% -m uvicorn app.main:app --host 0.0.0.0 --port %API_PORT% --reload --log-level info >>%LOG_DIR%\api.log 2>&1"
+start "SearchAPI" /min cmd /c "%PYTHON% -m uvicorn app.main:app --host 0.0.0.0 --port %API_PORT% --log-level info >>%LOG_DIR%\api.log 2>&1"
 set API_READY=0
 for /l %%i in (1,1,20) do (
     if "!API_READY!"=="0" (

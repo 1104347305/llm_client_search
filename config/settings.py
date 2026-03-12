@@ -45,10 +45,10 @@ class Settings(BaseSettings):
     TIMEOUT_SECONDS: int = 30
 
     # Layer Toggle（各层开关，默认全部开启）
-    ENABLE_L1: bool = False   # L1 规则引擎（Jieba 实体提取）
+    ENABLE_L1: bool = True   # L1 规则引擎（Jieba 实体提取）
     ENABLE_L2: bool = True   # L2 增强模板匹配器（YAML 规则）
-    ENABLE_L3: bool = False   # L3 语义缓存（Redis）
-    ENABLE_L4: bool = False   # L4 LLM 解析器（兜底）
+    ENABLE_L3: bool = True   # L3 语义缓存（Redis）
+    ENABLE_L4: bool = True   # L4 LLM 解析器（兜底）
 
     # 复杂查询阈值：query 长度（去空格后）超过此值直接走 L4，0 表示不启用
     L4_DIRECT_QUERY_LENGTH: int = 20

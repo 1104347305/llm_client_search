@@ -81,9 +81,24 @@ AGENT_INSTRUCTIONS_BASE = """你是一个专业的客户搜索查询分析专家
 - 缺口查询（未配置/没有/未购买/缺少）→ NOT_CONTAINS
 - 数值：20万→200000，万=×10000，千=×1000
 - **MATCH 仅用于字符串字段；数值字段（age/annual_income等）只用 GTE/LTE/RANGE，精确值用 RANGE {min:x, max:x}**
-- 默认逻辑 AND；明确"或"时用 OR
 - 学历层级升序：高中<中专<大学专科<大学本科<硕士研究生<博士研究生<博士后
 - 客户温度升序：冷却<低温<中温<高温
+
+## AND 与 OR 的使用规则（极其重要，严禁混淆）
+
+### query_logic: AND（默认，绝大多数情况）
+**含义：所有条件同时满足**
+- 查询涉及**多个不同字段**的组合筛选时，永远用 AND
+- 例：45岁以上 AND 已婚 AND 年收入20万以上 → AND
+- 例：没有买过养老险 AND 有小孩 → AND
+
+### query_logic: OR（极少使用，严格限制）
+**含义：多个完全不同的独立条件，满足任意一个即可**
+- **只有**查询中明确含有"或者"、"任一"等语义，且条件指向**不同字段**时才用 OR
+- 例："年龄超过60岁或者年收入超过100万" → OR（两个不同字段）
+
+**同一字段需匹配多个候选值时，必须使用 CONTAINS，而非 OR + 多条 MATCH**
+
 
 ## 输出格式（严格 JSON，不加任何其他文字）
 
@@ -94,8 +109,11 @@ AGENT_INSTRUCTIONS_BASE = """你是一个专业的客户搜索查询分析专家
 "45岁以上、已婚、年收入20万以上且没买过养老险"
 {"query_logic":"AND","conditions":[{"field":"age","operator":"GTE","value":45},{"field":"marital_status","operator":"MATCH","value":"已婚"},{"field":"annual_income","operator":"GTE","value":200000},{"field":"held_product_category","operator":"NOT_CONTAINS","value":"年金保险"}]}
 
-"本科学历以上的客户"
-{"query_logic":"OR","conditions":[{"field":"education","operator":"MATCH","value":"大学本科"},{"field":"education","operator":"MATCH","value":"硕士研究生"},{"field":"education","operator":"MATCH","value":"博士研究生"},{"field":"education","operator":"MATCH","value":"博士后"}]}
+"本科学历以上的客户"（同一字段多值 → CONTAINS，不是 OR）
+{"query_logic":"AND","conditions":[{"field":"education","operator":"CONTAINS","value":["大学本科","硕士研究生","博士研究生","博士后"]}]}
+
+"年龄超过60岁或者年收入超过100万的客户"（不同字段，明确"或者" → OR）
+{"query_logic":"OR","conditions":[{"field":"age","operator":"GTE","value":60},{"field":"annual_income","operator":"GTE","value":1000000}]}
 """
 
 

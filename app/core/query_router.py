@@ -91,32 +91,13 @@ class QueryRouter:
     async def route_with_peeling(self, query: str) -> ParsedQuery:
         """
         串联流水线路由：
-        1. 检测复杂逻辑词，如有则直接转 LLM
-        2. L1 处理原始查询，提取确定性实体
-        3. L2 处理原始查询，提取模板条件
-        4. L3 对原始查询检索语义缓存
-        5. 若 L1+L2+L3 合计条件为空，则转至 L4 (LLM)
+        1. L1 处理原始查询，提取确定性实体
+        2. L2 处理原始查询，提取模板条件
+        3. L3 对原始查询检索语义缓存
+        4. 若 L1+L2+L3 合计条件为空，则转至 L4 (LLM)
         """
         logger.info(f"Routing query: {query}")
         query = query.replace(' ', '')
-
-        # 检测复杂逻辑词，如果有则直接转 LLM
-        logic_ops = self._detect_logic_operators(query)
-        if logic_ops and settings.ENABLE_L4:
-            logger.info(f"Detected logic operators: {[op[1] for op in logic_ops]}, routing to LLM")
-            parsed = await self.level4.parse(query)
-            if settings.ENABLE_L3:
-                await self.level3.set(query, parsed)
-            return parsed
-
-        # 查询过长（超过阈值）→ 直接走 L4，跳过 L1/L2/L3 规则层
-        threshold = settings.L4_DIRECT_QUERY_LENGTH
-        if threshold > 0 and len(query) > threshold and settings.ENABLE_L4:
-            logger.info(f"Query length {len(query)} > threshold {threshold}, routing directly to L4")
-            parsed = await self.level4.parse(query)
-            if settings.ENABLE_L3:
-                await self.level3.set(query, parsed)
-            return parsed
 
         all_conditions = []
 

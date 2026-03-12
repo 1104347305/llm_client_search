@@ -48,6 +48,7 @@ class Level2EnhancedMatcher:
         self.rules = []
         self.composite_rules = []
         self.negation_words = NEGATION_WORDS
+        self.position_words: List[str] = []
         self.value_mappings = {}
         self.enum_orders = {}
         self.enum_values: Dict[str, List[str]] = {}   # 各字段的标准枚举值列表
@@ -71,7 +72,9 @@ class Level2EnhancedMatcher:
                     return
 
                 self.rules = config.get('rules', [])
+                self.composite_rules = config.get('composite_rules', [])  # 提前加载，使 _expand_pattern_vars 能处理 composite 模板
                 self.negation_words = config.get('negation_words', NEGATION_WORDS)
+                self.position_words = config.get('position_words', [])
                 self.value_mappings = config.get('value_mappings', {})
                 self.enum_orders = config.get('enum_orders', {})
 
@@ -110,8 +113,7 @@ class Level2EnhancedMatcher:
                     if paired:
                         self._paired_requirements[rule['field']] = paired
 
-                # 6. 加载并展开组合规则（【rule_name】引用替换）
-                self.composite_rules = config.get('composite_rules', [])
+                # 6. 展开组合规则（【rule_name】引用替换；composite_rules 已在步骤1提前加载）
                 self._expand_composite_refs()
 
             logger.info(f"Loaded {len(self.rules)} enhanced rules, "
@@ -145,10 +147,18 @@ class Level2EnhancedMatcher:
         将规则中的 patterns_template 展开为 patterns。
         {enum}     → enum_values[enum_ref] 的捕获交替组，如 (v1|v2|v3)。
         {negation} → negation_words 的非捕获交替组，如 (?:未配置|没有|...)。
+        {position} → position_words 的非捕获交替组，如 (?:购买了|持有|买了|...)。
         """
         # 预构建否定词非捕获组（按长度降序，避免短词先匹配）
         sorted_neg = sorted(self.negation_words, key=len, reverse=True)
         negation_group = '(?:' + '|'.join(re.escape(w) for w in sorted_neg) + ')'
+
+        # 预构建持有词非捕获组（按长度降序）
+        if self.position_words:
+            sorted_pos = sorted(self.position_words, key=len, reverse=True)
+            position_group = '(?:' + '|'.join(re.escape(w) for w in sorted_pos) + ')'
+        else:
+            position_group = '(?:持有|购买了?|买了?|买过|购买过|有过?|投保了|配置了?|已有)'
 
         for rule in self.rules:
             enum_ref = rule.get('enum_ref')
@@ -170,7 +180,9 @@ class Level2EnhancedMatcher:
                 templates = ['{enum}']
 
             rule['patterns'] = [
-                t.replace('{enum}', enum_group).replace('{negation}', negation_group)
+                t.replace('{enum}', enum_group)
+                 .replace('{negation}', negation_group)
+                 .replace('{position}', position_group)
                 for t in templates
             ]
             logger.debug(f"Expanded rule '{rule.get('name')}' with {len(values)} enum values")
@@ -590,13 +602,20 @@ class Level2EnhancedMatcher:
         return None
 
     def _compute_dynamic_date_range(self, config: Dict, match: Optional[re.Match] = None) -> Optional[RangeValue]:
-        """动态计算日期范围（next_month / current_month / next_n_days / last_n_days）"""
+        """动态计算日期范围（next_month / current_month / next_n_days / last_n_days / last_year）"""
         import calendar
         from datetime import date, timedelta
 
         date_range = config.get("date_range", "")
         fmt_str = config.get("format", "YYYY-MM-DD")
-        date_fmt = "%Y-%m-%d" if "YYYY-MM-DD" in fmt_str else "%Y%m%d"
+
+        # 判断格式：MM-DD 或 YYYY-MM-DD
+        if fmt_str == "MM-DD":
+            date_fmt = "%m-%d"
+            month_day_only = True
+        else:
+            date_fmt = "%Y-%m-%d" if "YYYY-MM-DD" in fmt_str else "%Y%m%d"
+            month_day_only = False
 
         today = date.today()
 
@@ -604,6 +623,11 @@ class Level2EnhancedMatcher:
             year = today.year + 1 if today.month == 12 else today.year
             month = 1 if today.month == 12 else today.month + 1
             last_day = calendar.monthrange(year, month)[1]
+            if month_day_only:
+                return RangeValue(
+                    min=f"{month:02d}-01",
+                    max=f"{month:02d}-{last_day:02d}",
+                )
             return RangeValue(
                 min=date(year, month, 1).strftime(date_fmt),
                 max=date(year, month, last_day).strftime(date_fmt),
@@ -612,6 +636,11 @@ class Level2EnhancedMatcher:
         elif date_range == "current_month":
             year, month = today.year, today.month
             last_day = calendar.monthrange(year, month)[1]
+            if month_day_only:
+                return RangeValue(
+                    min=f"{month:02d}-01",
+                    max=f"{month:02d}-{last_day:02d}",
+                )
             return RangeValue(
                 min=date(year, month, 1).strftime(date_fmt),
                 max=date(year, month, last_day).strftime(date_fmt),
@@ -626,9 +655,15 @@ class Level2EnhancedMatcher:
                     n = int(match.group(days_group))
                 except (IndexError, ValueError):
                     pass
+            end_date = today + timedelta(days=n)
+            if month_day_only:
+                return RangeValue(
+                    min=today.strftime("%m-%d"),
+                    max=end_date.strftime("%m-%d"),
+                )
             return RangeValue(
                 min=today.strftime(date_fmt),
-                max=(today + timedelta(days=n)).strftime(date_fmt),
+                max=end_date.strftime(date_fmt),
             )
 
         elif date_range == "last_n_days":
@@ -639,9 +674,26 @@ class Level2EnhancedMatcher:
                     n = int(match.group(days_group))
                 except (IndexError, ValueError):
                     pass
+            start_date = today - timedelta(days=n)
+            if month_day_only:
+                return RangeValue(
+                    min=start_date.strftime("%m-%d"),
+                    max=today.strftime("%m-%d"),
+                )
             return RangeValue(
-                min=(today - timedelta(days=n)).strftime(date_fmt),
+                min=start_date.strftime(date_fmt),
                 max=today.strftime(date_fmt),
+            )
+
+        elif date_range == "last_year":
+            if month_day_only:
+                # MM-DD 格式不适用于 last_year，返回 None
+                logger.warning("last_year not supported for MM-DD format")
+                return None
+            last_year = today.year - 1
+            return RangeValue(
+                min=date(last_year, 1, 1).strftime(date_fmt),
+                max=date(last_year, 12, 31).strftime(date_fmt),
             )
 
         logger.warning(f"Unknown date_range type: '{date_range}'")

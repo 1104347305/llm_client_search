@@ -92,7 +92,7 @@ rules:
 
   - name: "手机号-匹配"
     patterns:
-      - '{SEARCH}(1[3-9]\d{9})'
+      - '{SEARCH}？(1[3-9]\d{9})'
       - '{SEARCH}手机号?(\d{1,10})(?:的客户|客户)?'
       - '{SEARCH}手机号?(\d{1,11})开头(?:的客户|客户)?'
       - '{SEARCH}手机{CW}{0,2}(\d{1,11})开头(?:的客户|客户)?'
@@ -647,6 +647,47 @@ rules:
       transform: "year_to_birth_range"
     priority: 8
 
+  - name: "生日-下个月"
+    patterns:
+      - '{SEARCH}下个?月{CW}{0,2}生日(?:的客户|客户)?'
+      - '{SEARCH}生日{CW}{0,2}在下个?月(?:的客户|客户)?'
+    field: "client_birth_month_and_day"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "next_month"
+      format: "MM-DD"
+    priority: 9
+
+  - name: "生日-未来N天"
+    patterns:
+      - '{SEARCH}未来{CW}{0,2}(\d+)天{CW}{0,2}生日(?:的客户|客户)?'
+      - '{SEARCH}(\d+)天内{CW}{0,2}生日(?:的客户|客户)?'
+      - '{SEARCH}生日{CW}{0,2}在未来{CW}{0,2}(\d+)天(?:的客户|客户)?'
+    field: "client_birth_month_and_day"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "next_n_days"
+      days_group: 1
+      format: "MM-DD"
+    priority: 9
+
+  - name: "生日-未来一周"
+    patterns:
+      - '{SEARCH}未来{CW}{0,2}一周{CW}{0,2}生日(?:的客户|客户)?'
+      - '{SEARCH}下周{CW}{0,2}生日(?:的客户|客户)?'
+      - '{SEARCH}生日{CW}{0,2}在未来{CW}{0,2}一周(?:的客户|客户)?'
+      - '{SEARCH}生日{CW}{0,2}在下周(?:的客户|客户)?'
+    field: "client_birth_month_and_day"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "next_n_days"
+      days: 7
+      format: "MM-DD"
+    priority: 9
+
   # ==================== 学历 (education) ====================
 
   - name: "学历"
@@ -938,10 +979,11 @@ rules:
 
   # ==================== 寿险产品 (life_insurance_product) ====================
 
-  - name: "寿险产品-包含匹配"
+  - name: "寿险产品-持有"
     enum_ref: "life_insurance_product"
     patterns_template:
       - '{SEARCH}{enum}(?:的客户|客户)?'
+      - '{SEARCH}{position}{enum}(?:的客户|客户)?'
     field: "life_insurance_product"
     operator: "CONTAINS"
     value_type: "capture"
@@ -950,26 +992,39 @@ rules:
     priority: 9
     negation_support: true
 
+  - name: "寿险产品-未持有"
+    enum_ref: "life_insurance_product"
+    patterns_template:
+      - '{SEARCH}{negation}{enum}(?:的客户|客户)?'
+    field: "life_insurance_product"
+    operator: "NOT_CONTAINS"
+    value_type: "capture"
+    value:
+      group: 1
+    priority: 10
+
   # ==================== 持有产品类型 (held_product_type) ====================
 
-  - name: "持有产品类型-全枚举匹配-持有"
+  - name: "持有产品类型-持有"
     enum_ref: "held_product_type"
     patterns_template:
-      - '{SEARCH}{enum}'
+      - '{SEARCH}{enum}(?:的客户|客户)?'
+      - '{SEARCH}{position}{enum}(?:产品|保险)?(?:的客户|客户)?'
       - '{SEARCH}持有产品类型[为是：:]{enum}(?:的客户|客户)?'
       - '{SEARCH}{enum}产品持有者'
+      - '{SEARCH}(?:所有)?{position}?{enum}(?:产品|保险)?(?:的客户|客户|名单)?'
     field: "held_product_type"
-    operator: "MATCH"
+    operator: "CONTAINS"
     value_type: "capture"
     value:
       group: 1
     priority: 10
     negation_support: true
 
-  - name: "持有产品类型-全枚举匹配-未持有"
+  - name: "持有产品类型-未持有"
     enum_ref: "held_product_type"
     patterns_template:
-      - '{SEARCH}{negation}{enum}产品?(?:的客户|客户)?'
+      - '{SEARCH}{negation}{enum}(?:产品|保险)?(?:的客户|客户)?'
     field: "held_product_type"
     operator: "NOT_CONTAINS"
     value_type: "capture"
@@ -982,7 +1037,7 @@ rules:
   - name: "险种-持有"
     enum_ref: "held_product_category"
     patterns_template:
-      - '{SEARCH}(?:买了|购买了|持有|配置了|配置有|购买过|买过|投保了|已有|有){enum}(?:的客户|客户)?'
+      - '{SEARCH}{position}{enum}(?:产品|保险)?(?:的客户|客户)?'
       - '{SEARCH}{enum}(?:产品)?(?:的客户|客户)'
     field: "held_product_category"
     operator: "CONTAINS"
@@ -995,7 +1050,7 @@ rules:
   - name: "险种-未配置"
     enum_ref: "held_product_category"
     patterns_template:
-      - '{SEARCH}{negation}(?:买|购买|投保|持有|配置)?{enum}(?:的客户|客户)?'
+      - '{SEARCH}{negation}{enum}(?:产品|保险)?(?:的客户|客户)?'
     field: "held_product_category"
     operator: "NOT_CONTAINS"
     value_type: "capture"
@@ -1008,7 +1063,8 @@ rules:
   - name: "产险产品-持有"
     enum_ref: "property_insurance_product"
     patterns_template:
-      - '{SEARCH}{enum}产品?(?:的客户|客户)?'
+      - '{SEARCH}{enum}(?:产品|保险)?(?:的客户|客户)?'
+      - '{SEARCH}{position}{enum}产品?(?:的客户|客户)?'
     field: "property_insurance_product"
     operator: "CONTAINS"
     value_type: "capture"
@@ -1020,7 +1076,7 @@ rules:
   - name: "产险产品-未持有"
     enum_ref: "property_insurance_product"
     patterns_template:
-      - '{SEARCH}{negation}{enum}产品?(?:的客户|客户)?'
+      - '{SEARCH}{negation}{enum}(?:产品|保险)?(?:的客户|客户)?'
     field: "property_insurance_product"
     operator: "NOT_CONTAINS"
     value_type: "capture"
@@ -1034,7 +1090,7 @@ rules:
     enum_ref: "life_liability_type"
     patterns_template:
       - '{SEARCH}{enum}(?:责任|产品|险|保险)(?:的客户|客户)?'
-      - '{SEARCH}有{enum}(?:的客户|客户)?'
+      - '{SEARCH}{position}{enum}(?:产品|保险)?(?:的客户|客户)?'
       - '{SEARCH}{enum}(?:险|保险)?(?:客户|名单)(?:的客户|客户)?'
     field: "life_liability_type"
     operator: "CONTAINS"
@@ -1047,7 +1103,7 @@ rules:
   - name: "寿险责任类型-未持有"
     enum_ref: "life_liability_type"
     patterns_template:
-      - '{SEARCH}{negation}(?:买|购买|投保|持有|配置)?{enum}(?:责任|产品)?(?:的客户|客户)?'
+      - '{SEARCH}{negation}{enum}(?:责任|产品)?(?:的客户|客户)?'
     field: "life_liability_type"
     operator: "NOT_CONTAINS"
     value_type: "capture"
@@ -1061,6 +1117,7 @@ rules:
     enum_ref: "life_design_type"
     patterns_template:
       - '{SEARCH}{enum}(?:型|产品|保险|险)(?:的客户|客户)?'
+      - '{SEARCH}{position}{enum}(?:型|产品|保险|险)(?:的客户|客户)?'
       - '{SEARCH}所?有{enum}(?:的客户|客户)?'
       - '{SEARCH}{enum}(?:型|险|保险)?(?:客户|名单)(?:的客户|客户)?'
     field: "life_design_type"
@@ -1103,6 +1160,7 @@ rules:
       - '{SEARCH}年缴{CW}{0,2}(\d+)万?以上(?:的客户|客户)?'
       - '{SEARCH}年交?保费{CW}{0,2}大于(\d+)万?(?:的客户|客户)?'
       - '{SEARCH}年缴{CW}{0,2}高于(\d+)万?(?:的客户|客户)?'
+      - '{SEARCH}客户年交?保费{CW}{0,2}(\d+)万?以上(?:的客户|客户)?'
     field: "annual_premium"
     operator: "GTE"
     value_type: "capture"
@@ -1332,7 +1390,7 @@ rules:
     patterns:
       - '{SEARCH}下周{CW}{0,2}(?:需要|应|要)?(?:缴费|缴款|应缴)(?:的客户|客户)?'
       - '{SEARCH}(?:需要|应|要)?(?:缴费|缴款|应缴){CW}{0,2}下周(?:的客户|客户)?'
-      - '{SEARCH}应缴日{CW}{0,2}在下周(?:的客户|客户)?'
+      - '{SEARCH}有?应缴日{CW}{0,2}在下周(?:的客户|客户)?'
       - '{SEARCH}下周{CW}{0,2}(?:应缴日|缴费日|缴款日)(?:的客户|客户)?'
     field: "policies.due_date"
     operator: "RANGE"
@@ -1375,6 +1433,8 @@ rules:
     enum_ref: "held_cross_sell_category"
     patterns_template:
       - '{SEARCH}{enum}(?:的客户|客户)?'
+      - '{SEARCH}{position}{enum}产品?(?:的客户|客户)?'
+      - '{SEARCH}{position}{enum}'
     field: "held_cross_sell_category"
     operator: "CONTAINS"
     value_type: "capture"
@@ -1389,6 +1449,8 @@ rules:
     patterns:
       - '{SEARCH}综拓{CW}{0,2}理赔报案(?:的客户|客户)?'
       - '{SEARCH}综拓理赔报案(?:的客户|客户)?'
+      - '{SEARCH}有过?综拓{CW}{0,2}产品?{CW}{0,2}理赔报案(?:的客户|客户)?'
+      - '{SEARCH}综拓{CW}{0,2}产品?{CW}{0,2}理赔报案(?:的客户|客户)?'
     field: "is_cross_sell_claim"
     operator: "MATCH"
     value_type: "static"
@@ -1410,7 +1472,7 @@ rules:
   - name: "保单到期时间"
     enum_ref: "policy_expiry_date"
     patterns_template:
-      - '{SEARCH}{enum}到期(?:的客户|客户)?'
+      - '{SEARCH}{enum}到期(?:的)?(?:短期?保单|客户|保单)?'
       - '{SEARCH}到期{CW}{0,2}{enum}'
     field: "policy_expiry_date"
     operator: "MATCH"
@@ -1425,6 +1487,7 @@ rules:
     enum_ref: "valid_short_term_policy"
     patterns_template:
       - '{SEARCH}{enum}(?:的客户|客户)?'
+      - '{SEARCH}{position}{enum}(?:产品)?(?:的客户|客户)?'
     field: "valid_short_term_policy"
     operator: "CONTAINS"
     value_type: "capture"
@@ -1545,8 +1608,8 @@ rules:
   - name: "臻享家族等级"
     enum_ref: "zhenxiang_family_level"
     patterns_template:
-      - '{SEARCH}臻享家{CW}{0,2}{enum}(?:的客户|客户)?'
-      - '{SEARCH}{enum}臻享家'
+      - '{SEARCH}臻享家医?{CW}{0,2}{enum}(?:的客户|客户)?'
+      - '{SEARCH}{enum}臻享家医?(?:客户)?'
     field: "zhenxiang_family_level"
     operator: "MATCH"
     value_type: "capture"
@@ -1579,7 +1642,7 @@ rules:
     patterns_template:
       - '{SEARCH}(?<![没无])有?{enum}(?:的客户|客户)?'
       # 支持修饰词在中间：有未成年子女、有年迈父母
-      - '{SEARCH}(?<![没无])有?[\u4e00-\u9fa5]{0,6}{enum}(?:的客户|客户)?'
+      - '{SEARCH}(?<![没无])有?[\u4e00-\u9fa5]{0,2}{enum}(?:的客户|客户)?'
     field: "family_members.relationship"
     operator: "CONTAINS"
     value_type: "capture"
@@ -1591,7 +1654,7 @@ rules:
     enum_ref: "family_members.relationship"
     patterns_template:
       - '{SEARCH}(?:无|没有){enum}(?:的客户|客户)?'
-      - '{SEARCH}(?:无|没有)[\u4e00-\u9fa5]{0,6}{enum}(?:的客户|客户)?'
+      - '{SEARCH}(?:无|没有)[\u4e00-\u9fa5]{0,2}{enum}(?:的客户|客户)?'
     field: "family_members.relationship"
     operator: "NOT_CONTAINS"
     value_type: "capture"
@@ -1699,6 +1762,19 @@ rules:
       max: 18
     priority: 9
 
+  # 初中或高中：用 / 或 或 分隔，年龄区间合并为 12-18
+  - name: "子女教育阶段-初高中"
+    patterns:
+      - '{SEARCH}(?:子女|孩子|小孩|小朋友|儿子|女儿)(?:在[上读]?|上|读)?(?:初中|高中)[/／或](?:初中|高中)(?:的客户|客户)?'
+      - '{SEARCH}有(?:子女|孩子|小孩|小朋友)(?:在[上读]?|上|读)?(?:初中|高中)[/／或](?:初中|高中)(?:的客户|客户)?'
+    field: "family_members.age"
+    operator: "RANGE"
+    value_type: "static"
+    value:
+      min: 12
+      max: 18
+    priority: 9
+
   - name: "子女教育阶段-大学"
     patterns:
       - '{SEARCH}(?:子女|孩子|小孩|小朋友|儿子|女儿)(?:在[上读]?|上|读)?(大学|本科|专科)(?:的客户|客户)?'
@@ -1723,6 +1799,58 @@ rules:
     value_type: "static"
     value: "子女"
     priority: 9
+
+  # ==================== 家庭成员属性基础规则（统一引擎，供 composite_rules 引用）====================
+  # 设计原则：
+  #   1. value_mappings 将"孩子/老婆/妈妈"等预处理归一化为标准枚举值"子女/配偶/父母"
+  #   2. 成员关系词-捕获 用 enum_ref 一条规则覆盖所有关系类型，动态捕获关系值
+  #   3. 属性规则加 require_paired_field 安全锁：单独触发时丢弃，
+  #      必须由 composite_rules 同时输出 relationship 才有效
+
+  - name: "成员关系词-捕获"
+    enum_ref: "family_members.relationship"
+    patterns_template:
+      - '{enum}'
+    field: "family_members.relationship"
+    operator: "CONTAINS"
+    value_type: "capture"
+    value:
+      group: 1
+    priority: 11
+
+  - name: "成员姓名词-捕获"
+    patterns:
+      - '([\u4e00-\u9fa5]{2,4}?)'
+    field: "family_members.name"
+    operator: "NESTED_MATCH"
+    value_type: "capture"
+    value:
+      group: 1
+    require_paired_field: "family_members.relationship"
+    priority: 2   # 极低：仅用于组合规则子规则，不单独 fullmatch 短查询
+
+  - name: "成员手机号词-捕获"
+    patterns:
+      - '(1[3-9]\d{9})'
+      - '(\d{4,10})'
+    field: "family_members.mobile"
+    operator: "NESTED_MATCH"
+    value_type: "capture"
+    value:
+      group: 1
+    require_paired_field: "family_members.relationship"
+    priority: 11
+
+  - name: "成员出生日期词-捕获"
+    patterns:
+      - '(\d{8})'
+    field: "family_members.birth_date"
+    operator: "NESTED_MATCH"
+    value_type: "capture"
+    value:
+      group: 1
+    require_paired_field: "family_members.relationship"
+    priority: 11
 
   # ==================== 证件类型 (certificates.id_type) ====================
   - name: "证件类型"
@@ -1790,9 +1918,10 @@ rules:
   - name: "保单状态"
     enum_ref: "policies.status"
     patterns_template:
-      - '{SEARCH}{enum}的?保单'
+      - '{SEARCH}{enum}的?保单(?:的客户|客户)?'
       - '{SEARCH}保单{CW}{0,2}{enum}(?:的客户|客户)?'
-      - '{SEARCH}{enum}客户'
+      - '{SEARCH}{enum}(?:的)?客户'
+      - '{SEARCH}有{enum}保单(?:的客户|客户)?'
     field: "policies.status"
     operator: "NESTED_MATCH"
     value_type: "capture"
@@ -1805,7 +1934,7 @@ rules:
   - name: "保单险种类型-持有"
     enum_ref: "policies.coverage_details.type"
     patterns_template:
-      - '{SEARCH}[有|买了|持有|投保了]{enum}(?:的客户|客户)?'
+      - '{SEARCH}{position}{enum}(?:的客户|客户)?'
       - '{SEARCH}{enum}客户'
     field: "policies.coverage_details.type"
     operator: "NESTED_MATCH"
@@ -1833,8 +1962,8 @@ rules:
   - name: "理赔产品-coverage"
     enum_ref: "life_insurance_product"
     patterns_template:
-      - '{SEARCH}{enum}{CW}{0,2}(?:理赔|出险|报案)(?:的客户|客户)?'
-      - '{SEARCH}(?:理赔|出险|报案){CW}{0,2}{enum}(?:的客户|客户)?'
+      - '{SEARCH}{enum}{CW}{0,2}(?:理赔|出险|报案)过?(?:的客户|客户)?'
+      - '{SEARCH}(?:理赔过?|出险|报案){CW}{0,2}{enum}(?:的客户|客户)?'
     field: "policies.claim_records.coverage"
     operator: "CONTAINS"
     value_type: "capture"
@@ -1860,6 +1989,19 @@ rules:
     field: "policies.claim_records.case_id"
     operator: "NOT_EXISTS"
     value_type: "none"
+    priority: 9
+
+  - name: "理赔时间-去年"
+    patterns:
+      - '{SEARCH}去年{CW}{0,2}(?:理赔|出险|报案)(?:过)?(?:的客户|客户)?'
+      - '{SEARCH}(?:理赔|出险|报案)(?:过)?{CW}{0,2}去年(?:的客户|客户)?'
+      - '{SEARCH}去年有?(?:理赔|出险|报案)(?:记录|过)?(?:的客户|客户)?'
+    field: "policies.claim_records.report_date"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "last_year"
+      format: "YYYY-MM-DD"
     priority: 9
 
   # ==================== 会员等级 (benefits.member_info.level) ====================
@@ -2139,13 +2281,13 @@ composite_rules:
   - name: "年龄GTE+婚姻+有子女+未配置寿险责任"
     # 35岁已婚有子女未配置重疾险的客户
     patterns:
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:[的青年家庭]{0,4})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:[的]{0,2})?(?:的客户|客户)?'
     priority: 35
 
   - name: "年龄GTE+婚姻+有子女+未配置险种"
     # 35岁已婚有小朋友未配置医疗险的客户
     patterns:
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【险种-未配置】(?:[的青年家庭]{0,4})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【险种-未配置】(?:[的]{0,2})?(?:的客户|客户)?'
     priority: 35
 
   # ==============================
@@ -2155,28 +2297,28 @@ composite_rules:
   - name: "年龄GTE+婚姻+性别"
     # 45岁以上已婚女性客户
     patterns:
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【性别-枚举】(?:性)?(?:[的青年]{0,3})?(?:的客户|客户)?'
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【性别-枚举】(?:性)?(?:[的、，, ]{0,3})?【婚姻状况】(?:[的青年]{0,3})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【性别-枚举】(?:性)?(?:[的]{0,2})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【性别-枚举】(?:性)?(?:[的、，, ]{0,3})?【婚姻状况】(?:[的]{0,2})?(?:的客户|客户)?'
     priority: 30
 
   - name: "年龄GTE+婚姻+未配置寿险责任"
     # 45岁以上已婚未配置养老险的客户
     patterns:
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:[的青年家庭]{0,4})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:[的]{0,2})?(?:的客户|客户)?'
       - '{SEARCH}【婚姻状况】(?:[的、，, ]{0,3})?【年龄-以上】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:[的]{0,2})?(?:的客户|客户)?'
     priority: 30
 
   - name: "年龄GTE+婚姻+未配置险种"
     # 45岁以上已婚未配置医疗险的客户
     patterns:
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【险种-未配置】(?:[的青年家庭]{0,4})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【险种-未配置】(?:[的]{0,2})?(?:的客户|客户)?'
     priority: 30
 
   - name: "年龄GTE+婚姻+高净值"
     # 45岁以上已婚高净值客户
     patterns:
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?高净值(?:[的青年]{0,3})?(?:的客户|客户)?'
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?高净值(?:[的、，, ]{0,3})?【婚姻状况】(?:[的青年]{0,3})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?高净值(?:[的]{0,2})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?高净值(?:[的、，, ]{0,3})?【婚姻状况】(?:[的]{0,2})?(?:的客户|客户)?'
     extra_conditions:
       - field: "investable_assets"
         operator: "MATCH"
@@ -2186,25 +2328,37 @@ composite_rules:
   - name: "年龄GTE+有子女+未配置寿险责任"
     # 35岁有小朋友未配置重疾险的客户
     patterns:
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:[的青年家庭]{0,4})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:[的]{0,2})?(?:的客户|客户)?'
+    priority: 30
+
+  - name: "年龄精确+有子女+未配置寿险责任"
+    # 35岁有小朋友还没配置重疾险的客户（精确年龄，含"还/就/也"连接词）
+    patterns:
+      - '{SEARCH}【年龄-精确】(?:[的、，, 还就也]{0,4})?【家庭成员关系-有】(?:[的、，, 还就也]{0,4})?【寿险责任类型-未持有】(?:[的]{0,2})?(?:的客户|客户)?'
     priority: 30
 
   - name: "年龄GTE+有子女+未配置险种"
     # 35岁有孩子未配置医疗险的客户
     patterns:
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【险种-未配置】(?:[的青年家庭]{0,4})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【险种-未配置】(?:[的]{0,2})?(?:的客户|客户)?'
+    priority: 30
+
+  - name: "年龄精确+有子女+未配置险种"
+    # 35岁有小朋友还没配置医疗险的客户（精确年龄）
+    patterns:
+      - '{SEARCH}【年龄-精确】(?:[的、，, 还就也]{0,4})?【家庭成员关系-有】(?:[的、，, 还就也]{0,4})?【险种-未配置】(?:[的]{0,2})?(?:的客户|客户)?'
     priority: 30
 
   - name: "婚姻+有子女+未配置寿险责任"
     # 已婚有子女未配置重疾险的客户
     patterns:
-      - '{SEARCH}【婚姻状况】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:[的家庭]{0,3})?(?:的客户|客户)?'
+      - '{SEARCH}【婚姻状况】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:[的]{0,2})?(?:的客户|客户)?'
     priority: 30
 
   - name: "婚姻+有子女+未配置险种"
     # 已婚有小朋友未配置医疗险的客户
     patterns:
-      - '{SEARCH}【婚姻状况】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【险种-未配置】(?:[的家庭]{0,3})?(?:的客户|客户)?'
+      - '{SEARCH}【婚姻状况】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【险种-未配置】(?:[的]{0,2})?(?:的客户|客户)?'
     priority: 30
 
   - name: "婚姻+有车+未配置险种"
@@ -2222,6 +2376,121 @@ composite_rules:
   # ==============================
   # 2 条件
   # ==============================
+
+  # ---------- 家庭成员：关系 + 姓名 ----------
+  # 统一引擎：【成员关系词-捕获】动态捕获关系类型（子女/配偶/父母）
+  # value_mappings 预处理后"孩子/老婆/妈妈"已归一化为标准值
+  # 输出两个条件：family_members.relationship CONTAINS <关系>
+  #              family_members.name NESTED_MATCH <姓名>
+  - name: "成员关系+成员姓名"
+    patterns:
+      # 关系在前：子女叫李辉 / 配偶名叫王芳 / 父母姓名是张明
+      - '{SEARCH}【成员关系词-捕获】{CW}{0,3}(?:叫|名叫|叫做|姓名是|名字叫)【成员姓名词-捕获】(?:的客户|客户)?'
+      # 名字在前：叫李辉的子女 / 叫王芳的配偶
+      - '{SEARCH}(?:叫|名叫|叫做)【成员姓名词-捕获】的【成员关系词-捕获】(?:的客户|客户)?'
+    priority: 15
+
+  # ---------- 家庭成员：关系 + 手机号 ----------
+  # 输出两个条件：family_members.relationship CONTAINS <关系>
+  #              family_members.mobile NESTED_MATCH <手机号>
+  - name: "成员关系+成员手机号"
+    patterns:
+      - '{SEARCH}【成员关系词-捕获】{CW}{0,3}手机号?[为是：:]?\s*【成员手机号词-捕获】(?:的客户|客户)?'
+    priority: 15
+
+  # ---------- 家庭成员：关系 + 出生日期 ----------
+  # 输出两个条件：family_members.relationship CONTAINS <关系>
+  #              family_members.birth_date NESTED_MATCH <日期>
+  - name: "成员关系+成员出生日期"
+    patterns:
+      - '{SEARCH}【成员关系词-捕获】{CW}{0,3}(?:出生日期[为是：:]?|出生[于年月日]?|生日[为是：:]?)【成员出生日期词-捕获】(?:的客户|客户)?'
+    priority: 15
+
+  # ---------- 家庭成员：关系 + 年龄 ----------
+  - name: "成员关系+成员年龄-范围"
+    # 孩子10到15岁 / 子女5~12岁
+    # 输出两个条件：family_members.relationship CONTAINS 子女
+    #              family_members.age RANGE <min>~<max>
+    patterns:
+      - '【子女年龄-范围】'
+    extra_conditions:
+      - field: "family_members.relationship"
+        operator: "CONTAINS"
+        value: "子女"
+    priority: 15
+
+  - name: "成员关系+成员年龄-幼儿园"
+    patterns:
+      - '【子女教育阶段-幼儿园】'
+    extra_conditions:
+      - field: "family_members.relationship"
+        operator: "CONTAINS"
+        value: "子女"
+    priority: 14
+
+  - name: "成员关系+成员年龄-小学"
+    patterns:
+      - '【子女教育阶段-小学】'
+    extra_conditions:
+      - field: "family_members.relationship"
+        operator: "CONTAINS"
+        value: "子女"
+    priority: 14
+
+  - name: "成员关系+成员年龄-初中"
+    patterns:
+      - '【子女教育阶段-初中】'
+    extra_conditions:
+      - field: "family_members.relationship"
+        operator: "CONTAINS"
+        value: "子女"
+    priority: 14
+
+  - name: "成员关系+成员年龄-高中"
+    patterns:
+      - '【子女教育阶段-高中】'
+    extra_conditions:
+      - field: "family_members.relationship"
+        operator: "CONTAINS"
+        value: "子女"
+    priority: 14
+
+  - name: "成员关系+成员年龄-初高中"
+    # 子女在上初中/高中的客户（年龄 12-18）
+    patterns:
+      - '【子女教育阶段-初高中】'
+    extra_conditions:
+      - field: "family_members.relationship"
+        operator: "CONTAINS"
+        value: "子女"
+    priority: 14
+
+  - name: "成员关系+成员年龄-大学"
+    patterns:
+      - '【子女教育阶段-大学】'
+    extra_conditions:
+      - field: "family_members.relationship"
+        operator: "CONTAINS"
+        value: "子女"
+    priority: 14
+
+  - name: "成员关系+成员年龄-未成年"
+    patterns:
+      - '【子女年龄-未成年】'
+    extra_conditions:
+      - field: "family_members.relationship"
+        operator: "CONTAINS"
+        value: "子女"
+    priority: 14
+
+  - name: "成员关系+成员年龄-青年"
+    patterns:
+      - '【子女年龄-青年】'
+    extra_conditions:
+      - field: "family_members.relationship"
+        operator: "CONTAINS"
+        value: "子女"
+    priority: 14
 
   - name: "年龄GTE+婚姻"
     # 45岁以上已婚的客户
@@ -2245,37 +2514,37 @@ composite_rules:
   - name: "年龄GTE+性别"
     # 45岁以上女性客户
     patterns:
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【性别-枚举】(?:性)?(?:[的青年]{0,3})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【性别-枚举】(?:性)?(?:的客户|客户)?'
     priority: 20
 
   - name: "年龄GTE+未配置寿险责任"
     # 45岁以上未配置养老险的客户
     patterns:
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:[的青年家庭]{0,4})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:的客户|客户)?'
     priority: 20
 
   - name: "年龄GTE+未配置险种"
     # 45岁以上未配置医疗险的客户
     patterns:
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【险种-未配置】(?:[的青年家庭]{0,4})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【险种-未配置】(?:的客户|客户)?'
     priority: 20
 
   - name: "年龄GTE+持有寿险责任"
     # 45岁以上有重疾险的客户
     patterns:
-      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【寿险责任类型-持有】(?:[的青年家庭]{0,4})?(?:的客户|客户)?'
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【寿险责任类型-持有】(?:的客户|客户)?'
     priority: 18
 
   - name: "婚姻+未配置寿险责任"
     # 已婚未配置重疾险的客户
     patterns:
-      - '{SEARCH}【婚姻状况】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:[的家庭]{0,3})?(?:的客户|客户)?'
+      - '{SEARCH}【婚姻状况】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:的客户|客户)?'
     priority: 20
 
   - name: "婚姻+未配置险种"
     # 已婚未配置医疗险的客户
     patterns:
-      - '{SEARCH}【婚姻状况】(?:[的、，, ]{0,3})?【险种-未配置】(?:[的家庭]{0,3})?(?:的客户|客户)?'
+      - '{SEARCH}【婚姻状况】(?:[的、，, ]{0,3})?【险种-未配置】(?:的客户|客户)?'
     priority: 20
 
   - name: "有子女+未配置寿险责任"
@@ -2310,6 +2579,12 @@ composite_rules:
     priority: 20
 
   - name: "年龄范围+未配置寿险责任"
+    # 30-40岁没有配置重疾险的客户
+    patterns:
+      - '{SEARCH}【年龄-范围】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:的客户|客户)?'
+    priority: 20
+
+  - name: "年龄范围+未配置产品类型"
     # 30-40岁没有配置重疾险的客户
     patterns:
       - '{SEARCH}【年龄-范围】(?:[的、，, ]{0,3})?【寿险责任类型-未持有】(?:的客户|客户)?'
@@ -2356,6 +2631,13 @@ composite_rules:
     patterns:
       - '{SEARCH}【年龄-精确】(?:[的、，, ]{0,3})?【险种-未配置】(?:的客户|客户)?'
     priority: 20
+
+  - name: "持有寿险产品+未持有寿险产品"
+    # 买了金瑞人生20，但是没有配置盛世金越的客户
+    patterns:
+      - '{SEARCH}【寿险产品-持有】(?:[的、，, ]{0,4})?(?:但是?|可是)?【寿险产品-未持有】(?:[的]{0,2})?(?:的客户|客户)?'
+      - '{SEARCH}{position}【寿险产品-持有】(?:[的、，, ]{0,4})?(?:但是?没有?|未){position}?【寿险产品-未持有】(?:[的]{0,2})?(?:的客户|客户)?'
+    priority: 22
 
   - name: "持有寿险责任+未持有寿险责任"
     # 买了医疗险但是没有养老险的客户 / 买了医疗险寿险但没有年金险的客户
@@ -2710,6 +2992,23 @@ negation_words:
   - "未"
   - "非"
 
+# ==================== 持有词列表（{position} 变量）====================
+# 按长度降序排列，确保较长词优先匹配
+
+position_words:
+  - "购买了"
+  - "配置了"
+  - "配置有"
+  - "投保了"
+  - "购买过"
+  - "买过"
+  - "买了"
+  - "已有"
+  - "有了"
+  - "有过"
+  - "持有"
+  - "有"
+
 # ==================== 值映射 ====================
 # 标准枚举值以客户信息表格定义为准
 # 每个字段只列别名→标准值的映射，标准值本身无需重复列出
@@ -2757,12 +3056,14 @@ value_mappings:
     非纯存续单: "非纯存续单客户"
     孤儿单: "非纯存续单客户"
     存续单: "纯存续单客户"
+    在职有效单: "在职有效客户"
 
   # 寿险投保被保人
   is_life_insured:
     投保人和被保人: "投被保人"
     投保人: "仅投保人"
     被保人: "仅被保人"
+    仅仅是投保人: "仅投保人"
 
   # 持有产品类别（含新增的定期寿险、两全保险别名）
   held_product_category:
@@ -2773,7 +3074,7 @@ value_mappings:
     意外医疗: "意外伤害保险"
     年金险: "年金保险"
     年金: "年金保险"
-    寿险: "终身寿险"
+    教育金: "年金保险"
     定期险: "定期寿险"
     定寿: "定期寿险"
     两全: "两全保险"
@@ -2801,7 +3102,6 @@ value_mappings:
     万能险: "万能"
     万能保险: "万能"
     万能产品: "万能"
-    万能型: "万能"
     普通险: "普通"
     普通保险: "普通"
     普通型: "普通"
@@ -2815,16 +3115,25 @@ value_mappings:
 
   # 家庭成员关系
   family_members.relationship:
+    # 子女同义词
     孩子: "子女"
     小孩: "子女"
     小朋友: "子女"
     儿子: "子女"
     女儿: "子女"
+    # 配偶同义词
     伴侣: "配偶"
+    老婆: "配偶"
+    老公: "配偶"
+    妻子: "配偶"
+    丈夫: "配偶"
+    爱人: "配偶"
+    # 父母同义词
     父亲: "父母"
     爸爸: "父母"
     母亲: "父母"
     妈妈: "父母"
+    爸妈: "父母"
 
   # 房产状况（官方标准值：有房、没房）
   real_estate_status:
@@ -2890,6 +3199,13 @@ value_mappings:
 
   # 保单状态别名
   policies.status:
+    # 自映射（防止标准值被其他规则干扰）
+    缴费有效: "缴费有效"
+    等待续保: "等待续保"
+    停效: "停效"
+    失效: "失效"
+    退保: "退保"
+    # 别名映射
     生效中: "缴费有效"
     生效: "缴费有效"
     有效中: "缴费有效"

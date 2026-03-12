@@ -165,12 +165,9 @@ intents:
     examples:
       - query: "本科以上学历的客户"
         output:
-          query_logic: OR
+          query_logic: CONTAINS
           conditions:
-            - {field: education, operator: MATCH, value: "大学本科"}
-            - {field: education, operator: MATCH, value: "硕士研究生"}
-            - {field: education, operator: MATCH, value: "博士研究生"}
-            - {field: education, operator: MATCH, value: "博士后"}
+            - {field: education, operator: CONTAINS, value: ["大学本科", "硕士研究生", "博士研究生", "博士后"]}
 
   # ==================== 婚姻状况 ====================
 
@@ -270,13 +267,9 @@ intents:
     examples:
       - query: "B类以上客户"
         output:
-          query_logic: OR
+          query_logic: CONTAINS
           conditions:
-            - {field: customer_value, operator: MATCH, value: "A1类客户"}
-            - {field: customer_value, operator: MATCH, value: "A2类客户"}
-            - {field: customer_value, operator: MATCH, value: "A3类客户"}
-            - {field: customer_value, operator: MATCH, value: "A4类客户"}
-            - {field: customer_value, operator: MATCH, value: "B类客户"}
+            - {field: customer_value, operator: CONTAINS, value: ["A1类客户", "A2类客户", "A3类客户", "A4类客户", "B类客户"]}
 
   # ==================== 客户温度 ====================
 
@@ -304,10 +297,9 @@ intents:
     examples:
       - query: "中温及以上客户"
         output:
-          query_logic: OR
+          query_logic: CONTAINS
           conditions:
-            - {field: customer_temperature, operator: MATCH, value: "中温"}
-            - {field: customer_temperature, operator: MATCH, value: "高温"}
+            - {field: customer_temperature, operator: CONTAINS, value: ["中温", "高温"]}
 
   # ==================== 客群标签 ====================
 
@@ -368,10 +360,9 @@ intents:
     examples:
       - query: "铂金以上会员"
         output:
-          query_logic: OR
+          query_logic: CONTAINS
           conditions:
-            - {field: life_insurance_vip, operator: MATCH, value: "铂金V1"}
-            - {field: life_insurance_vip, operator: MATCH, value: "原铂金VIP"}
+            - {field: life_insurance_vip, operator: CONTAINS, value: ["铂金V1", "原铂金VIP"]}
 
   # ==================== 平安VIP ====================
 
@@ -519,6 +510,8 @@ intents:
         output: {field: life_liability_type, operator: CONTAINS, value: "重疾"}
       - query: "有养老责任的客户"
         output: {field: life_liability_type, operator: CONTAINS, value: "养老"}
+      - query: "寿险客户"
+        output: { field: life_liability_type, operator: CONTAINS, value: "寿险" }
 
   - id: life_liability_type_not
     retrieval_text: >
