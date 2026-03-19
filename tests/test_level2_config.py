@@ -1,7 +1,7 @@
 """
 测试 Level2 模板匹配器的配置化规则
 """
-from app.core.level2_template_matcher import Level2TemplateMatcher
+from core.level2_template_matcher import Level2TemplateMatcher
 from loguru import logger
 
 def test_level2_matcher():

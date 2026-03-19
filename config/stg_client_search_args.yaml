@@ -1,0 +1,51 @@
+# 测试环境配置
+ENV: stg
+
+# API 服务配置
+API_HOST: "0.0.0.0"
+API_PORT: 8000
+API_RELOAD: false
+
+# LLM 配置
+LLM_MODEL: "qwen3.5-27b"
+LLM_API_KEY: "sk-03b30a83b16d4b40b7da585d54776712"
+LLM_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+LLM_TEMPERATURE: 0.1
+LLM_MAX_TOKENS: 2000
+
+# 搜索 API 配置
+SEARCH_API_BASE_URL: "http://stg-search-api:8081"
+
+
+# Elasticsearch 配置
+ES_HOST: "http://stg-es:9200"
+ES_USERNAME: null
+ES_PASSWORD: null
+ES_FIELD_INDEX: "field_intents"
+ES_ANALYZER: "ik_max_word"
+
+# Redis 配置
+REDIS_HOST: "stg-redis"
+REDIS_PORT: 6379
+REDIS_DB: 0
+REDIS_PASSWORD: null
+
+# 缓存配置
+CACHE_TTL: 3600
+SEMANTIC_CACHE_THRESHOLD: 0.85
+
+# 性能配置
+MAX_WORKERS: 4
+TIMEOUT_SECONDS: 30
+
+# 各层开关（默认全部开启）
+ENABLE_L1: true
+ENABLE_L2: true
+ENABLE_L3: true
+ENABLE_L4: true
+
+# 复杂查询阈值：query 长度超过此值直接走 L4，0 表示不启用
+L4_DIRECT_QUERY_LENGTH: 20
+
+# 字段定义文件路径（相对于项目根目录）
+FIELD_DEFINITIONS_PATH: "config/field_definitions.yaml"

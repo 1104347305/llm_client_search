@@ -1,8 +1,8 @@
 """测试逻辑运算符支持"""
 import sys
-sys.path.insert(0, '/Users/mickey/project/PA-ALG/agentic_client_search_v3')
+from sys.path.insert(0, '/Users/mickey/project/PA-ALG/agentic_client_search_v3')
 
-from app.core.query_router import QueryRouter
+from core.query_router import QueryRouter
 
 router = QueryRouter()
 

@@ -18,8 +18,8 @@ from agno.os import AgentOS
 from agno.tools import tool
 
 from config.settings import settings
-from app.core.query_router import QueryRouter
-from app.services.search_api_client import SearchAPIClient
+from core.query_router import QueryRouter
+from services.search_api_client import SearchAPIClient
 
 
 # ==================== 工具定义 ====================
@@ -75,7 +75,7 @@ async def search_customers(
         if not parsed.conditions:
             return "未能从查询中提取有效条件，请尝试更具体的描述。"
 
-        from app.models.schemas import SearchRequest, RequestHeader
+        models.schemas import SearchRequest, RequestHeader
         request = SearchRequest(
             header=RequestHeader(agent_id=agent_id, page=page, size=min(size, 100)),
             query_logic=parsed.query_logic,
@@ -87,7 +87,7 @@ async def search_customers(
         total = data.get("total", 0)
         customers = data.get("list", [])
 
-        from app.db.request_logger import get_request_logger
+        db.request_logger import get_request_logger
         await get_request_logger().log(
             agent_id=agent_id,
             query=query,
@@ -158,7 +158,7 @@ async def retrieve_fields(query: str, top_k: int = 6) -> str:
     Returns:
         相关字段定义说明
     """
-    from app.core.field_registry import get_field_registry
+    core.field_registry import get_field_registry
     registry = get_field_registry()
     intents = registry.retrieve(query, top_k=top_k)
     return registry.format_prompt_section(intents) or "未找到相关字段定义"
