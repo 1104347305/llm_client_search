@@ -111,7 +111,7 @@ intents:
 
   - id: age_lte
     retrieval_text: >
-      岁以下 岁及以下 年龄小于 年龄不超过 年轻 年轻客户 未满
+      年龄 岁以下 岁及以下 年龄小于 年龄不超过 年轻 年轻客户 未满x岁 小于x岁
     field: age
     operator: LTE
     value_type: numeric
@@ -122,8 +122,8 @@ intents:
 
   - id: age_range
     retrieval_text: >
-      年龄范围 到岁之间 岁到岁 年龄区间 多少岁到多少岁
-      30到40岁 中年 青年 老年 年龄段 x岁
+      年龄 年龄范围 到岁之间 岁到岁 年龄区间 x岁到x岁
+      30到40岁 中年 青年 老年 年龄段 x岁 30岁
     field: age
     operator: RANGE
     value_type: numeric
@@ -276,12 +276,12 @@ intents:
   - id: customer_temperature_exact
     retrieval_text: >
       客户温度 高温客户 中温客户 低温客户 冷却客户
-      温度 活跃度 客户活跃 意向度
+      温度 活跃度 客户活跃 意向度 没有联系 联系频繁
     field: customer_temperature
     operator: MATCH
     value_type: enum
     enum: ["高温", "中温", "低温", "冷却"]
-    notes: "根据客户活跃度分类，温度从低到高：冷却<低温<中温<高温"
+    notes: "根据客户活跃度分类，温度从低到高：冷却<低温<中温<高温；联系频次低、没有联系---》低温；联系频繁、最近有联系--》高温"
     examples:
       - query: "高温客户"
         output: {field: customer_temperature, operator: MATCH, value: "高温"}

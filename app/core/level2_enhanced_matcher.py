@@ -116,6 +116,9 @@ class Level2EnhancedMatcher:
                 # 6. 展开组合规则（【rule_name】引用替换；composite_rules 已在步骤1提前加载）
                 self._expand_composite_refs()
 
+                # 7. 预编译所有正则表达式以提升性能
+                self._compile_patterns()
+
             logger.info(f"Loaded {len(self.rules)} enhanced rules, "
                         f"{len(self.composite_rules)} composite rules, "
                         f"{len(self.enum_values)} enum fields from {self.config_path}")
@@ -287,6 +290,10 @@ class Level2EnhancedMatcher:
                         current_offset += n_groups
                         expanded = expanded.replace(f'【{ref_name}】', sub_pat, 1)
 
+                    # 对展开后的 pattern 再次应用 pattern_vars 替换（处理模板中残留的 {position} 等占位符）
+                    for var, val in self._pattern_vars.items():
+                        expanded = expanded.replace('{' + var + '}', val)
+
                     all_variants.append((expanded, sub_rules_offsets))
                     logger.debug(
                         f"Composite '{comp_rule['name']}' variant: {expanded[:80]}..."
@@ -296,6 +303,37 @@ class Level2EnhancedMatcher:
             logger.info(
                 f"Composite '{comp_rule['name']}': {len(all_variants)} expanded variants"
             )
+
+    def _compile_patterns(self):
+        """
+        预编译所有正则表达式以提升匹配性能。
+        将字符串模式编译为re.Pattern对象，避免每次查询时重复编译。
+        """
+        # 编译普通规则的patterns
+        for rule in self.rules:
+            patterns = rule.get('patterns', [])
+            compiled = []
+            for pattern_str in patterns:
+                try:
+                    compiled.append(re.compile(pattern_str))
+                except re.error as e:
+                    logger.warning(f"Failed to compile pattern in rule '{rule.get('name')}': {e}")
+            rule['_compiled_patterns'] = compiled
+
+        # 编译组合规则的expanded_variants
+        for comp_rule in self.composite_rules:
+            variants = comp_rule.get('_expanded_variants', [])
+            compiled_variants = []
+            for pattern_str, sub_rules_offsets in variants:
+                try:
+                    compiled_variants.append((re.compile(pattern_str), sub_rules_offsets))
+                except re.error as e:
+                    logger.warning(f"Failed to compile composite pattern in rule '{comp_rule.get('name')}': {e}")
+            comp_rule['_compiled_variants'] = compiled_variants
+
+        logger.info(f"Compiled {sum(len(r.get('_compiled_patterns', [])) for r in self.rules)} "
+                    f"regular patterns and {sum(len(r.get('_compiled_variants', [])) for r in self.composite_rules)} "
+                    f"composite patterns")
 
     def _build_conditions_from_sub_rules(
         self, comp_rule: Dict, match: re.Match, query: str,
@@ -361,11 +399,12 @@ class Level2EnhancedMatcher:
         # ===== 优先尝试组合规则（fullmatch，一次提取多个条件）=====
         for rule in self.composite_rules:
             rule_name = rule.get('name', 'unknown')
-            for pattern_str, sub_rules_offsets in rule.get('_expanded_variants', []):
-                if not pattern_str:
+            # 使用预编译的正则表达式
+            for compiled_pattern, sub_rules_offsets in rule.get('_compiled_variants', []):
+                if not compiled_pattern:
                     continue
                 try:
-                    m = re.fullmatch(pattern_str, normalized_query)
+                    m = compiled_pattern.fullmatch(normalized_query)
                     if m:
                         comp_conds = self._build_conditions_from_sub_rules(
                             rule, m, normalized_query, sub_rules_offsets
@@ -384,12 +423,12 @@ class Level2EnhancedMatcher:
         # 第一步: 收集所有匹配（使用归一化后的查询）
         for rule in self.rules:
             rule_name = rule.get('name', 'unknown')
-            patterns = rule.get('patterns', [])
+            compiled_patterns = rule.get('_compiled_patterns', [])
             priority = rule.get('priority', 0)
 
-            for pattern_str in patterns:
+            for compiled_pattern in compiled_patterns:
                 try:
-                    match = re.fullmatch(pattern_str, normalized_query)
+                    match = compiled_pattern.fullmatch(normalized_query)
                     if match:
                         condition = self._build_condition(rule, match, normalized_query)
                         if condition:
@@ -602,7 +641,7 @@ class Level2EnhancedMatcher:
         return None
 
     def _compute_dynamic_date_range(self, config: Dict, match: Optional[re.Match] = None) -> Optional[RangeValue]:
-        """动态计算日期范围（next_month / current_month / next_n_days / last_n_days / last_year）"""
+        """动态计算日期范围（next_month / current_month / next_n_days / next_week / last_n_days / last_year）"""
         import calendar
         from datetime import date, timedelta
 
@@ -619,7 +658,45 @@ class Level2EnhancedMatcher:
 
         today = date.today()
 
-        if date_range == "next_month":
+        if date_range == "today":
+            # 今天
+            if month_day_only:
+                return RangeValue(
+                    min=today.strftime("%m-%d"),
+                    max=today.strftime("%m-%d"),
+                )
+            return RangeValue(
+                min=today.strftime(date_fmt),
+                max=today.strftime(date_fmt),
+            )
+
+        elif date_range == "tomorrow":
+            # 明天
+            tomorrow = today + timedelta(days=1)
+            if month_day_only:
+                return RangeValue(
+                    min=tomorrow.strftime("%m-%d"),
+                    max=tomorrow.strftime("%m-%d"),
+                )
+            return RangeValue(
+                min=tomorrow.strftime(date_fmt),
+                max=tomorrow.strftime(date_fmt),
+            )
+
+        elif date_range == "day_after_tomorrow":
+            # 后天
+            day_after = today + timedelta(days=2)
+            if month_day_only:
+                return RangeValue(
+                    min=day_after.strftime("%m-%d"),
+                    max=day_after.strftime("%m-%d"),
+                )
+            return RangeValue(
+                min=day_after.strftime(date_fmt),
+                max=day_after.strftime(date_fmt),
+            )
+
+        elif date_range == "next_month":
             year = today.year + 1 if today.month == 12 else today.year
             month = 1 if today.month == 12 else today.month + 1
             last_day = calendar.monthrange(year, month)[1]
@@ -655,15 +732,34 @@ class Level2EnhancedMatcher:
                     n = int(match.group(days_group))
                 except (IndexError, ValueError):
                     pass
-            end_date = today + timedelta(days=n)
+            # 从明天开始往后延n天
+            start_date = today + timedelta(days=1)
+            end_date = start_date + timedelta(days=n - 1)
             if month_day_only:
                 return RangeValue(
-                    min=today.strftime("%m-%d"),
+                    min=start_date.strftime("%m-%d"),
                     max=end_date.strftime("%m-%d"),
                 )
             return RangeValue(
-                min=today.strftime(date_fmt),
+                min=start_date.strftime(date_fmt),
                 max=end_date.strftime(date_fmt),
+            )
+
+        elif date_range == "next_week":
+            # 下周：从下周一到下周日
+            days_until_next_monday = (7 - today.weekday()) % 7
+            if days_until_next_monday == 0:
+                days_until_next_monday = 7
+            next_monday = today + timedelta(days=days_until_next_monday)
+            next_sunday = next_monday + timedelta(days=6)
+            if month_day_only:
+                return RangeValue(
+                    min=next_monday.strftime("%m-%d"),
+                    max=next_sunday.strftime("%m-%d"),
+                )
+            return RangeValue(
+                min=next_monday.strftime(date_fmt),
+                max=next_sunday.strftime(date_fmt),
             )
 
         elif date_range == "last_n_days":
@@ -683,6 +779,23 @@ class Level2EnhancedMatcher:
             return RangeValue(
                 min=start_date.strftime(date_fmt),
                 max=today.strftime(date_fmt),
+            )
+
+        elif date_range == "last_month":
+            # 上个月
+            if today.month == 1:
+                year, month = today.year - 1, 12
+            else:
+                year, month = today.year, today.month - 1
+            last_day = calendar.monthrange(year, month)[1]
+            if month_day_only:
+                return RangeValue(
+                    min=f"{month:02d}-01",
+                    max=f"{month:02d}-{last_day:02d}",
+                )
+            return RangeValue(
+                min=date(year, month, 1).strftime(date_fmt),
+                max=date(year, month, last_day).strftime(date_fmt),
             )
 
         elif date_range == "last_year":
@@ -709,6 +822,11 @@ class Level2EnhancedMatcher:
 
         elif transform == "multiply":
             multiplier = config.get('multiplier', 1)
+            # 支持中文数字转换
+            if value in ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']:
+                cn_num_map = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+                              '六': 6, '七': 7, '八': 8, '九': 9, '十': 10}
+                value = str(cn_num_map.get(value, value))
             return int(value) * multiplier
 
         elif transform == "plus_range":

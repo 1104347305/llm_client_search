@@ -69,15 +69,13 @@ AGENT_INSTRUCTIONS_BASE = """你是一个专业的客户搜索查询分析专家
 
 ## 操作符说明
 - **MATCH**: 精确/模糊匹配
-- **GTE / LTE**: 大于等于 / 小于等于（数值）
-- **RANGE**: 范围，value 为 `{"min": x, "max": y}`
 - **CONTAINS**: 数组字段包含某值
 - **NOT_CONTAINS**: 数组字段不包含某值（缺口查询）
 - **EXISTS / NOT_EXISTS**: 字段有/无数据
-- **NESTED_MATCH**: 嵌套对象字段匹配
+- ****: 大于等于 / 小于等于（数值）
+- **GTE/LTE/RANGE**: 大于等于/小于等于/区间范围（精确年龄使用RANGE表述，如：45岁--》{"min": 45, "max": 45}）
 
 ## 通用规则
-
 - 缺口查询（未配置/没有/未购买/缺少）→ NOT_CONTAINS
 - 数值：20万→200000，万=×10000，千=×1000
 - **MATCH 仅用于字符串字段；数值字段（age/annual_income等）只用 GTE/LTE/RANGE，精确值用 RANGE {min:x, max:x}**
@@ -88,16 +86,16 @@ AGENT_INSTRUCTIONS_BASE = """你是一个专业的客户搜索查询分析专家
 
 ### query_logic: AND（默认，绝大多数情况）
 **含义：所有条件同时满足**
-- 查询涉及**多个不同字段**的组合筛选时，永远用 AND
-- 例：45岁以上 AND 已婚 AND 年收入20万以上 → AND
-- 例：没有买过养老险 AND 有小孩 → AND
+- 查询涉及**多个不同字段**的组合筛选时，需所有条件都满足，永远用 AND
+- 例：45岁以上，已婚，年收入20万以上 → AND
+- 例：没有买过养老险且有小孩 → AND
 
 ### query_logic: OR（极少使用，严格限制）
 **含义：多个完全不同的独立条件，满足任意一个即可**
 - **只有**查询中明确含有"或者"、"任一"等语义，且条件指向**不同字段**时才用 OR
 - 例："年龄超过60岁或者年收入超过100万" → OR（两个不同字段）
 
-**同一字段需匹配多个候选值时，必须使用 CONTAINS，而非 OR + 多条 MATCH**
+**同一字段匹配多个候选值时，必须使用 CONTAINS，而非 OR + 多条 MATCH，例如：高温或中温的客户--》{"field": "customer_temperature", "operator": "CONTAINS", "value": ["高温","中温"]}**
 
 
 ## 输出格式（严格 JSON，不加任何其他文字）
@@ -114,6 +112,12 @@ AGENT_INSTRUCTIONS_BASE = """你是一个专业的客户搜索查询分析专家
 
 "年龄超过60岁或者年收入超过100万的客户"（不同字段，明确"或者" → OR）
 {"query_logic":"OR","conditions":[{"field":"age","operator":"GTE","value":60},{"field":"annual_income","operator":"GTE","value":1000000}]}
+
+"45岁的女性客户"（精确年龄需要使用RANGE表述，min=max=具体年龄）
+{"query_logic":"AND","conditions":[{"field":"age","operator":"RANGE","value":{"min": 45, "max": 45}},{"field":"gender","operator":"MATCH","value":"女"}]}
+
+"40岁左右的客户"（年龄左右需要使用RANGE表述）
+{"query_logic":"AND","conditions":[{"field":"age","operator":"RANGE","value":{"min": 38, "max": 42}}]}
 """
 
 

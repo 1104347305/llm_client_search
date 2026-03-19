@@ -165,9 +165,9 @@ class BatchTester:
 async def main():
     """主函数"""
     # 配置
-    queries_file = "test_queries_v1.txt"
+    queries_file = "./docs/test_questions.txt"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_file = f"test_results_{timestamp}.xlsx"
+    output_file = f"test_questions_{timestamp}.xlsx"
 
     # 检查文件是否存在
     if not Path(queries_file).exists():
