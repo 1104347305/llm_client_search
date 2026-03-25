@@ -206,7 +206,7 @@ intents:
       - query: "下个月生日的客户（当前2026年3月）"
         output: {field: birthdayMd, operator: RANGE, value: {min: "04-01", max: "04-30"}}
       - query: "下周生日的客户（当前2026年3月25号）"
-        output: { field: birthdayMd, operator: RANGE, value: { min: "04-01", max: "04-08" }}
+        output: { field: birthdayMd, operator: RANGE, value: { min: "03-30", max: "04-05" }}
       - query: "未来一周的客户（当前2026年3月25号）"
         output: { field: birthdayMd, operator: RANGE, value:  { min: "03-26", max: "04-01" }}
       - query: "未来一个月的客户（当前2026年3月25号）"

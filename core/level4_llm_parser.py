@@ -23,12 +23,11 @@ Level 4: LLM 解析器 - 使用 Agno Agent 进行查询解析（兜底方案）
 - 支持 100+ 个客户字段
 """
 import asyncio
-import calendar
 import json
 import re
 import time
 from typing import List, Any, Dict
-from datetime import datetime, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 from loguru import logger
 from openai import AsyncOpenAI
@@ -37,6 +36,7 @@ from config.settings import settings
 from models.schemas import ParsedQuery, Condition, QueryLogic, Operator, RangeValue
 from core.field_registry import get_field_registry
 from core.level2_enhanced_matcher import Level2EnhancedMatcher
+from core.time_range_resolver import resolve_dynamic_date_placeholder
 
 
 # ==================== 输出模型定义 ====================
@@ -414,48 +414,7 @@ class Level4LLMParser:
 
     def _resolve_dynamic_date_placeholder(self, value):
         """将 LLM 可能输出的动态日期占位符展开为具体时间。"""
-        if not isinstance(value, str):
-            return value
-
-        text = value.strip()
-        now = datetime.now()
-
-        if re.fullmatch(r"<today>", text, re.IGNORECASE):
-            resolved = now.strftime("%Y-%m-%d 00:00:00")
+        resolved = resolve_dynamic_date_placeholder(value)
+        if resolved != value:
             logger.debug(f"Resolved dynamic date placeholder '{value}' -> '{resolved}'")
-            return resolved
-
-        m = re.fullmatch(r"<today\+(\d+)days>", text, re.IGNORECASE)
-        if m:
-            days = int(m.group(1))
-            target = now + timedelta(days=days)
-            resolved = target.strftime("%Y-%m-%d 00:00:00")
-            logger.debug(f"Resolved dynamic date placeholder '{value}' -> '{resolved}'")
-            return resolved
-
-        month_last_day = calendar.monthrange(now.year, now.month)[1]
-        next_month_year = now.year + 1 if now.month == 12 else now.year
-        next_month = 1 if now.month == 12 else now.month + 1
-        next_month_last_day = calendar.monthrange(next_month_year, next_month)[1]
-        mapping = {
-            "<current_month_start>": now.replace(day=1).strftime("%Y-%m-%d 00:00:00"),
-            "<current_month_end>": now.replace(day=month_last_day).strftime("%Y-%m-%d 00:00:00"),
-            "<current_year_start>": now.replace(month=1, day=1).strftime("%Y-%m-%d 00:00:00"),
-            "<current_year_end>": now.replace(month=12, day=31).strftime("%Y-%m-%d 00:00:00"),
-        }
-        resolved = mapping.get(text.lower())
-        if resolved:
-            logger.debug(f"Resolved dynamic date placeholder '{value}' -> '{resolved}'")
-            return resolved
-
-        next_month_md = re.fullmatch(r"下个?月-(\d{2})", text)
-        if next_month_md:
-            day = next_month_md.group(1)
-            if day == "31":
-                resolved = f"{next_month:02d}-{next_month_last_day:02d}"
-            else:
-                resolved = f"{next_month:02d}-{day}"
-            logger.debug(f"Resolved dynamic date placeholder '{value}' -> '{resolved}'")
-            return resolved
-
-        return value
+        return resolved

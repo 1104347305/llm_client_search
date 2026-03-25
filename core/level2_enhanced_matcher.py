@@ -13,6 +13,7 @@ from loguru import logger
 from config.settings import settings
 from models.schemas import Condition, Operator, RangeValue
 from models.field_mapping import NEGATION_WORDS
+from core.time_range_resolver import resolve_dynamic_date_range
 
 
 class RuleMatch:
@@ -783,200 +784,45 @@ class Level2EnhancedMatcher:
 
     def _compute_dynamic_date_range(self, config: Dict, match: Optional[re.Match] = None) -> Optional[RangeValue]:
         """动态计算日期范围。"""
-        import calendar
-        from datetime import date, timedelta
-
         date_range = config.get("date_range", "")
         fmt_str = config.get("format", "YYYY-MM-DD")
 
         # 判断格式：MM-dd / MM-DD 或 YYYY-MM-DD
         if fmt_str.upper() == "MM-DD":
-            date_fmt = "%m-%d"
             month_day_only = True
         else:
-            date_fmt = "%Y-%m-%d" if "YYYY-MM-DD" in fmt_str.upper() else "%Y%m%d"
             month_day_only = False
 
-        today = date.today()
+        resolved = resolve_dynamic_date_range(config, match=match)
+        if resolved is not None:
+            return resolved
 
-        def _format_date(d: date) -> str:
-            rendered = d.strftime(date_fmt)
-            if not month_day_only and "HH:mm:ss" in fmt_str:
-                return f"{rendered} 00:00:00"
-            return rendered
-
-        if date_range == "today":
-            # 今天
-            if month_day_only:
-                return RangeValue(
-                    min=today.strftime("%m-%d"),
-                    max=today.strftime("%m-%d"),
-                )
-            return RangeValue(
-                min=_format_date(today),
-                max=_format_date(today),
-            )
-
-        elif date_range == "tomorrow":
-            # 明天
-            tomorrow = today + timedelta(days=1)
-            if month_day_only:
-                return RangeValue(
-                    min=tomorrow.strftime("%m-%d"),
-                    max=tomorrow.strftime("%m-%d"),
-                )
-            return RangeValue(
-                min=_format_date(tomorrow),
-                max=_format_date(tomorrow),
-            )
-
-        elif date_range == "day_after_tomorrow":
-            # 后天
-            day_after = today + timedelta(days=2)
-            if month_day_only:
-                return RangeValue(
-                    min=day_after.strftime("%m-%d"),
-                    max=day_after.strftime("%m-%d"),
-                )
-            return RangeValue(
-                min=_format_date(day_after),
-                max=_format_date(day_after),
-            )
-
-        elif date_range == "next_month":
-            year = today.year + 1 if today.month == 12 else today.year
-            month = 1 if today.month == 12 else today.month + 1
-            last_day = calendar.monthrange(year, month)[1]
-            if month_day_only:
-                return RangeValue(
-                    min=f"{month:02d}-01",
-                    max=f"{month:02d}-{last_day:02d}",
-                )
-            return RangeValue(
-                min=_format_date(date(year, month, 1)),
-                max=_format_date(date(year, month, last_day)),
-            )
-
-        elif date_range == "current_month":
-            year, month = today.year, today.month
-            last_day = calendar.monthrange(year, month)[1]
-            if month_day_only:
-                return RangeValue(
-                    min=f"{month:02d}-01",
-                    max=f"{month:02d}-{last_day:02d}",
-                )
-            return RangeValue(
-                min=_format_date(date(year, month, 1)),
-                max=_format_date(date(year, month, last_day)),
-            )
-
-        elif date_range == "next_n_days":
-            # 优先从捕获组读取天数
-            n = config.get("days", 30)
-            days_group = config.get("days_group")
-            if days_group and match:
-                try:
-                    n = int(match.group(days_group))
-                except (IndexError, ValueError):
-                    pass
-            # 从明天开始往后延n天
-            start_date = today + timedelta(days=1)
-            end_date = start_date + timedelta(days=n - 1)
-            if month_day_only:
-                return RangeValue(
-                    min=start_date.strftime("%m-%d"),
-                    max=end_date.strftime("%m-%d"),
-                )
-            return RangeValue(
-                min=_format_date(start_date),
-                max=_format_date(end_date),
-            )
-
-        elif date_range == "today_plus_n_days":
-            n = config.get("days", 30)
-            days_group = config.get("days_group")
-            if days_group and match:
-                try:
-                    n = int(match.group(days_group))
-                except (IndexError, ValueError):
-                    pass
-            target_date = today + timedelta(days=n)
-            return _format_date(target_date)
-
-        elif date_range == "next_week":
-            # 下周：从下周一到下周日
-            days_until_next_monday = (7 - today.weekday()) % 7
-            if days_until_next_monday == 0:
-                days_until_next_monday = 7
-            next_monday = today + timedelta(days=days_until_next_monday)
-            next_sunday = next_monday + timedelta(days=6)
-            if month_day_only:
-                return RangeValue(
-                    min=next_monday.strftime("%m-%d"),
-                    max=next_sunday.strftime("%m-%d"),
-                )
-            return RangeValue(
-                min=_format_date(next_monday),
-                max=_format_date(next_sunday),
-            )
-
-        elif date_range == "last_n_days":
-            n = config.get("days", 30)
-            days_group = config.get("days_group")
-            if days_group and match:
-                try:
-                    n = int(match.group(days_group))
-                except (IndexError, ValueError):
-                    pass
-            start_date = today - timedelta(days=n)
-            if month_day_only:
-                return RangeValue(
-                    min=start_date.strftime("%m-%d"),
-                    max=today.strftime("%m-%d"),
-                )
-            return RangeValue(
-                min=_format_date(start_date),
-                max=_format_date(today),
-            )
-
-        elif date_range == "last_month":
-            # 上个月
-            if today.month == 1:
-                year, month = today.year - 1, 12
-            else:
-                year, month = today.year, today.month - 1
-            last_day = calendar.monthrange(year, month)[1]
-            if month_day_only:
-                return RangeValue(
-                    min=f"{month:02d}-01",
-                    max=f"{month:02d}-{last_day:02d}",
-                )
-            return RangeValue(
-                min=_format_date(date(year, month, 1)),
-                max=_format_date(date(year, month, last_day)),
-            )
-
-        elif date_range == "last_year":
+        if date_range == "last_year":
+            from datetime import date
             if month_day_only:
                 # MM-DD 格式不适用于 last_year，返回 None
                 logger.warning("last_year not supported for MM-DD format")
                 return None
+            today = date.today()
             last_year = today.year - 1
             return RangeValue(
-                min=_format_date(date(last_year, 1, 1)),
-                max=_format_date(date(last_year, 12, 31)),
+                min=f"{last_year}-01-01 00:00:00" if "HH:mm:ss" in fmt_str else f"{last_year}-01-01",
+                max=f"{last_year}-12-31 00:00:00" if "HH:mm:ss" in fmt_str else f"{last_year}-12-31",
             )
 
         elif date_range == "current_year":
+            from datetime import date
             if month_day_only:
                 logger.warning("current_year not supported for MM-DD format")
                 return None
+            today = date.today()
             return RangeValue(
-                min=_format_date(date(today.year, 1, 1)),
-                max=_format_date(date(today.year, 12, 31)),
+                min=f"{today.year}-01-01 00:00:00" if "HH:mm:ss" in fmt_str else f"{today.year}-01-01",
+                max=f"{today.year}-12-31 00:00:00" if "HH:mm:ss" in fmt_str else f"{today.year}-12-31",
             )
 
         elif date_range == "year_month_day":
+            from datetime import date
             if month_day_only:
                 logger.warning("year_month_day not supported for MM-DD format")
                 return None
@@ -992,9 +838,12 @@ class Level2EnhancedMatcher:
                     day = int(match.group(3) or 1)
             except (TypeError, ValueError, IndexError):
                 return None
+            rendered = f"{year:04d}-{month:02d}-{day:02d}"
+            if "HH:mm:ss" in fmt_str:
+                rendered = f"{rendered} 00:00:00"
             return RangeValue(
-                min=_format_date(date(year, month, day)),
-                max=_format_date(date(year, month, day)),
+                min=rendered,
+                max=rendered,
             )
 
         logger.warning(f"Unknown date_range type: '{date_range}'")

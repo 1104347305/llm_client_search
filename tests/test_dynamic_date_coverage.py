@@ -11,6 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from core.field_registry import FieldRegistry
 from core.level2_enhanced_matcher import Level2EnhancedMatcher
 from core.level4_llm_parser import Level4LLMParser
+from core.time_range_resolver import resolve_dynamic_date_range, resolve_dynamic_date_placeholder
 
 
 def test_level2_matches_birthday_recent_window():
@@ -108,3 +109,53 @@ def test_level4_resolves_today_and_next_month_placeholders():
     assert conditions[0].value.max == (now + timedelta(days=30)).strftime("%Y-%m-%d 00:00:00")
     assert conditions[1].value.min == f"{next_month:02d}-01"
     assert conditions[1].value.max == f"{next_month:02d}-{next_month_last_day:02d}"
+
+
+def test_unified_relative_time_ranges_are_stable():
+    base_now = datetime(2026, 3, 25, 10, 30, 0)
+
+    next_week_range = resolve_dynamic_date_range(
+        {"date_range": "next_week", "format": "yyyy-MM-dd HH:mm:ss"},
+        now=base_now,
+    )
+    assert next_week_range.min == "2026-03-30 00:00:00"
+    assert next_week_range.max == "2026-04-05 00:00:00"
+
+    next_month_range = resolve_dynamic_date_range(
+        {"date_range": "next_month", "format": "yyyy-MM-dd HH:mm:ss"},
+        now=base_now,
+    )
+    assert next_month_range.min == "2026-04-01 00:00:00"
+    assert next_month_range.max == "2026-04-30 00:00:00"
+
+    next_week_window = resolve_dynamic_date_range(
+        {"date_range": "next_n_days", "days": 7, "format": "yyyy-MM-dd HH:mm:ss"},
+        now=base_now,
+    )
+    assert next_week_window.min == "2026-03-26 00:00:00"
+    assert next_week_window.max == "2026-04-01 00:00:00"
+
+    next_month_window = resolve_dynamic_date_range(
+        {"date_range": "next_n_days", "days": 30, "format": "yyyy-MM-dd HH:mm:ss"},
+        now=base_now,
+    )
+    assert next_month_window.min == "2026-03-26 00:00:00"
+    assert next_month_window.max == "2026-04-24 00:00:00"
+
+
+def test_level4_resolves_new_relative_placeholders():
+    parser = Level4LLMParser.__new__(Level4LLMParser)
+    parser.field_registry = FieldRegistry.__new__(FieldRegistry)
+    parser.field_registry._enum_values_by_field = {}
+    parser.field_registry._value_mappings = {}
+
+    base_now = datetime(2026, 3, 25, 10, 30, 0)
+
+    assert resolve_dynamic_date_placeholder("<next_week_start>", now=base_now) == "2026-03-30 00:00:00"
+    assert resolve_dynamic_date_placeholder("<next_week_end>", now=base_now) == "2026-04-05 00:00:00"
+    assert resolve_dynamic_date_placeholder("<next_month_start>", now=base_now) == "2026-04-01 00:00:00"
+    assert resolve_dynamic_date_placeholder("<next_month_end>", now=base_now) == "2026-04-30 00:00:00"
+    assert resolve_dynamic_date_placeholder("<next_7_days_start>", now=base_now) == "2026-03-26 00:00:00"
+    assert resolve_dynamic_date_placeholder("<next_7_days_end>", now=base_now) == "2026-04-01 00:00:00"
+    assert resolve_dynamic_date_placeholder("<next_30_days_start>", now=base_now) == "2026-03-26 00:00:00"
+    assert resolve_dynamic_date_placeholder("<next_30_days_end>", now=base_now) == "2026-04-24 00:00:00"
