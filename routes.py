@@ -11,7 +11,11 @@ from loguru import logger
 from models.schemas import (
     SearchRequest,
     NaturalLanguageSearchRequest,
-    SearchResponse
+    SearchResponse,
+    ParseApiRequest,
+    ParseApiExtraOutput,
+    ParseApiData,
+    ParseApiResponse,
 )
 from services.search_service import SearchService
 from core.field_registry import get_field_registry
@@ -112,29 +116,50 @@ def _reload_runtime_components(force_reindex_fields: bool = True) -> Dict[str, A
     }
 
 
-@router.post("/parse", summary="解析查询条件（不执行搜索）")
-async def parse_query(request: ParseRequest):
+@router.post("/parse", summary="解析查询条件（不执行搜索）", response_model=ParseApiResponse)
+async def parse_query(request: ParseApiRequest):
     """
     解析自然语言查询，返回结构化条件和逻辑关系，不执行实际搜索。
-    前端可在发送 Agent 消息的同时调用此接口，快速展示查询条件。
+    遵循 AskBob 标准 Bot 接入协议，入参和出参均为标准包装格式。
     """
     try:
-        startTime = time.perf_counter()
-        parsed = await _query_router.route_with_peeling(request.query)
-        return {
-            "query": request.query,
-            "matched_level": parsed.matched_level,
-            "confidence": round(parsed.confidence, 4),
-            "query_logic": parsed.query_logic if parsed.query_logic else "AND",
-            "conditions": parsed.conditions,
-            "prompt": None,
-            "rewritten_query": parsed.rewritten_query,
-            "matched_patterns": _build_debug_patterns(parsed),
-            "last_times": time.perf_counter() - startTime
-        }
+        start_time = time.perf_counter()
+        parsed = await _query_router.route_with_peeling(request.user_text)
+        elapsed = time.perf_counter() - start_time
+
+        conditions = parsed.conditions or []
+        robot_text = f"已解析 {len(conditions)} 个查询条件" if conditions else "未能解析查询条件"
+
+        await get_request_logger().log(
+            agent_id=request.user_id or "",
+            query=request.user_text,
+            request_payload=request.model_dump(),
+            response_data={},
+            matched_level=parsed.matched_level,
+            confidence=parsed.confidence,
+        )
+
+        return ParseApiResponse(
+            code=0,
+            msg="操作成功",
+            data=ParseApiData(
+                robot_text=robot_text,
+                end_flag=1,
+                trace_id=request.trace_id,
+                extra_output_params=ParseApiExtraOutput(
+                    query=request.user_text,
+                    query_logic=parsed.query_logic,
+                    conditions=conditions,
+                    matched_level=parsed.matched_level,
+                    rewritten_query=parsed.rewritten_query,
+                    matched_patterns=_build_debug_patterns(parsed),
+                    last_tims=round(elapsed, 6),
+                ),
+            ),
+        )
     except Exception as e:
         logger.error(f"Parse error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return ParseApiResponse(code=500, msg=str(e), data=None)
 
 
 @router.post("/config/reload", summary="热更新运行时配置")

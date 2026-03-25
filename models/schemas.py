@@ -90,6 +90,45 @@ class SearchResponse(BaseModel):
     matched_patterns: Optional[List[Dict[str, Any]]] = None  # 命中的规则/正则调试信息
 
 
+class ParseApiRequest(BaseModel):
+    """AskBob 标准协议入参"""
+    source: str = "askbob"
+    user_text: str
+    session_id: Optional[str] = None
+    trace_id: Optional[str] = None
+    user_id: Optional[str] = None
+    ts: Optional[int] = None
+    user_action: str = "write"
+    action_scenario: str = "customerSearch"
+    extra_input_params: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ParseApiExtraOutput(BaseModel):
+    """extra_output_params 内的解析结果"""
+    query: str
+    query_logic: Optional[QueryLogic] = None
+    conditions: List[Condition] = Field(default_factory=list)
+    matched_level: int = 0
+    rewritten_query: Optional[str] = None
+    matched_patterns: Optional[List[Dict[str, Any]]] = None
+    last_tims: Optional[float] = None
+
+
+class ParseApiData(BaseModel):
+    """响应 data 层"""
+    robot_text: str
+    end_flag: int = 1
+    extra_output_params: ParseApiExtraOutput
+    trace_id: Optional[str] = None
+
+
+class ParseApiResponse(BaseModel):
+    """AskBob 标准协议响应"""
+    code: int = 0
+    msg: str = "操作成功"
+    data: Optional[ParseApiData] = None
+
+
 class ParsedQuery(BaseModel):
     """LLM 解析后的结构化查询"""
     conditions: List[Condition]  # 扁平列表（向后兼容）

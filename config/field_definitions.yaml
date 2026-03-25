@@ -654,6 +654,9 @@ intents:
     examples:
       - query: "买了保险的客户"
         output: { field: pType, operator: EXISTS, value: "" }
+    negative_examples:
+      - query: "近一年买保险的客户"
+        reason: "这里除了要求买了保险以后，还要查询买保险的时间是近一年内买的"
 
   - id: held_product_type_not_exists
     retrieval_text: >
@@ -1067,6 +1070,10 @@ intents:
         output: {field: isBuyPregnancyCar, operator: MATCH, value: "车险"}
       - query: "有非车险的客户"
         output: {field: isBuyPregnancyCar, operator: MATCH, value: "非车险"}
+    negative_examples:
+      - query: "车险即将到期"
+        reason: "这里主要是查询车险到期的时间，并不是单纯的看是否有车险"
+
 
   # ==================== 家庭成员性别 ====================
 
