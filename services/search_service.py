@@ -1,6 +1,7 @@
 """
 搜索服务 - 整合查询路由和 API 调用
 """
+import time
 from typing import Dict, Any
 from loguru import logger
 from models.schemas import (
@@ -22,6 +23,19 @@ class SearchService:
         self.api_client = SearchAPIClient()
         logger.info("Search service initialized")
 
+    def _build_debug_patterns(self, parsed) -> list:
+        """统一组装调试信息：规则层 matched_patterns + L4 prompt。"""
+        patterns = list(parsed.matched_patterns or [])
+        if parsed.matched_level == 4 and parsed.prompt:
+            patterns.append({
+                "rule_name": "L4_PROMPT",
+                "pattern": None,
+                "matched_text": None,
+                "match_type": "llm_prompt",
+                "prompt": parsed.prompt,
+            })
+        return patterns or None
+
     async def natural_language_search(
         self,
         request: NaturalLanguageSearchRequest
@@ -35,6 +49,7 @@ class SearchService:
         Returns:
             搜索响应
         """
+        _start = time.time()
         try:
             logger.info(f"Processing natural language query: {request.query}")
 
@@ -51,7 +66,11 @@ class SearchService:
                     matched_level=parsed.matched_level,
                     confidence=parsed.confidence,
                     conditions=[],
-                    query_logic=parsed.query_logic
+                    query_logic=parsed.query_logic,
+                    elapsed_ms=round((time.time() - _start) * 1000, 2),
+                    prompt=None,
+                    rewritten_query=parsed.rewritten_query,
+                    matched_patterns=self._build_debug_patterns(parsed),
                 )
 
             # 构建结构化搜索请求
@@ -76,7 +95,11 @@ class SearchService:
                 matched_level=parsed.matched_level,
                 confidence=parsed.confidence,
                 conditions=parsed.conditions,
-                query_logic=parsed.query_logic
+                query_logic=parsed.query_logic,
+                elapsed_ms=round((time.time() - _start) * 1000, 2),
+                prompt=None,
+                rewritten_query=parsed.rewritten_query,
+                matched_patterns=self._build_debug_patterns(parsed),
             )
 
         except Exception as e:
@@ -86,7 +109,8 @@ class SearchService:
                 message=str(e),
                 data={},
                 matched_level=0,
-                confidence=0.0
+                confidence=0.0,
+                elapsed_ms=round((time.time() - _start) * 1000, 2)
             )
 
     async def structured_search(self, request: SearchRequest) -> SearchResponse:

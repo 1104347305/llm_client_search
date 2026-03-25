@@ -8,11 +8,9 @@ from loguru import logger
 import sys
 import os
 import httpx
+import routes as routes_module
 from routes import router
 from config.settings import settings
-
-# AgentOS 本地地址（服务器内部通信，无跨域问题）
-_AGENT_OS_BASE = "http://localhost:7777"
 
 # 配置日志
 logger.remove()
@@ -49,6 +47,18 @@ app.add_middleware(
 app.include_router(router, prefix="/api/v1", tags=["search"])
 
 
+@app.on_event("startup")
+async def startup_reload_runtime_config():
+    """服务启动时自动重载配置并刷新运行时组件。"""
+    result = routes_module._reload_runtime_components(force_reindex_fields=True)
+    logger.info(
+        "Startup config reload completed | "
+        f"env={result['env']} "
+        f"config={result['config_path']} "
+        f"field_intents={result['field_intent_total']}"
+    )
+
+
 @app.get("/")
 async def root():
     """根路径"""
@@ -64,48 +74,6 @@ async def root():
 async def health_check():
     """健康检查"""
     return {"status": "healthy"}
-
-
-@app.get("/chat")
-async def chat_ui():
-    """前端聊天界面"""
-    path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "chat.html")
-    return FileResponse(path, media_type="text/html")
-
-
-@app.api_route("/agent/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-async def agent_proxy(path: str, request: Request):
-    """反向代理：将 /agent/* 转发到 AgentOS（localhost:7777），解决跨域问题"""
-    url = f"{_AGENT_OS_BASE}/{path}"
-    body = await request.body()
-    headers = {k: v for k, v in request.headers.items()
-               if k.lower() not in ("host", "content-length")}
-
-    async def _iter(resp: httpx.Response):
-        async for chunk in resp.aiter_bytes(chunk_size=512):
-            yield chunk
-
-    client = httpx.AsyncClient(timeout=120)
-    resp = await client.send(
-        client.build_request(
-            method=request.method,
-            url=url,
-            headers=headers,
-            params=dict(request.query_params),
-            content=body,
-        ),
-        stream=True,
-    )
-    content_type = resp.headers.get("content-type", "application/json")
-    extra = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"} \
-        if "text/event-stream" in content_type else {}
-    return StreamingResponse(
-        _iter(resp),
-        status_code=resp.status_code,
-        media_type=content_type,
-        headers=extra,
-        background=None,
-    )
 
 
 if __name__ == "__main__":

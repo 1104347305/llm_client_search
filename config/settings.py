@@ -1,8 +1,16 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
 
 import yaml
+
+
+def _resolve_yaml_path() -> Path:
+    """根据 ENV 解析当前配置文件路径。"""
+    env = os.environ.get("ENV", "dev").lower()
+    config_dir = Path(__file__).parent
+    yaml_path = config_dir / f"{env}_client_search_args.yaml"
+    return yaml_path
 
 
 def _load_yaml_config() -> dict:
@@ -11,8 +19,7 @@ def _load_yaml_config() -> dict:
     ENV 取值：dev（默认）、stg、prd
     """
     env = os.environ.get("ENV", "dev").lower()
-    config_dir = Path(__file__).parent
-    yaml_path = config_dir / f"{env}_client_search_args.yaml"
+    yaml_path = _resolve_yaml_path()
 
     if not yaml_path.exists():
         raise FileNotFoundError(
@@ -51,54 +58,76 @@ def _float(val) -> float:
 
 
 class Settings:
-    # API 服务配置
-    API_HOST: str = _get("API_HOST", "0.0.0.0")
-    API_PORT: int = _int(_get("API_PORT", 8000))
-    API_RELOAD: bool = _bool(_get("API_RELOAD", False))
+    def __init__(self):
+        # API 服务配置
+        self.API_HOST = _get("API_HOST", "0.0.0.0")
+        self.API_PORT = _int(_get("API_PORT", 8000))
+        self.API_RELOAD = _bool(_get("API_RELOAD", False))
 
-    # LLM 配置
-    LLM_MODEL: str = _get("LLM_MODEL", "qwen3.5-27b")
-    LLM_API_KEY: str = _get("LLM_API_KEY", "")
-    LLM_BASE_URL: str = _get("LLM_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
-    LLM_TEMPERATURE: float = _float(_get("LLM_TEMPERATURE", 0.1))
-    LLM_MAX_TOKENS: int = _int(_get("LLM_MAX_TOKENS", 2000))
+        # LLM 配置
+        self.LLM_MODEL = _get("LLM_MODEL", "qwen3.5-27b")
+        self.LLM_API_KEY = _get("LLM_API_KEY", "")
+        self.LLM_BASE_URL = _get("LLM_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+        self.LLM_TEMPERATURE = _float(_get("LLM_TEMPERATURE", 0.1))
+        self.LLM_MAX_TOKENS = _int(_get("LLM_MAX_TOKENS", 2000))
 
-    # 搜索 API 配置
-    SEARCH_API_BASE_URL: str = _get("SEARCH_API_BASE_URL", "http://localhost:8081")
+        # 搜索 API 配置
+        self.SEARCH_API_BASE_URL = _get("SEARCH_API_BASE_URL", "http://localhost:8081")
 
+        # Elasticsearch 配置
+        self.ES_HOST = _get("ES_HOST", "http://localhost:9200")
+        self.ES_USERNAME = _get("ES_USERNAME", None)
+        self.ES_PASSWORD = _get("ES_PASSWORD", None)
+        self.ES_FIELD_INDEX = _get("ES_FIELD_INDEX", "field_intents")
+        self.ES_ANALYZER = _get("ES_ANALYZER", "ik_max_word")
 
-    # Elasticsearch 配置
-    ES_HOST: str = _get("ES_HOST", "http://localhost:9200")
-    ES_USERNAME: Optional[str] = _get("ES_USERNAME", None)
-    ES_PASSWORD: Optional[str] = _get("ES_PASSWORD", None)
-    ES_FIELD_INDEX: str = _get("ES_FIELD_INDEX", "field_intents")
-    ES_ANALYZER: str = _get("ES_ANALYZER", "ik_max_word")
+        # Redis 配置
+        self.REDIS_HOST = _get("REDIS_HOST", "localhost")
+        self.REDIS_PORT = _int(_get("REDIS_PORT", 6379))
+        self.REDIS_DB = _int(_get("REDIS_DB", 0))
+        self.REDIS_PASSWORD = _get("REDIS_PASSWORD", None)
 
-    # Redis 配置
-    REDIS_HOST: str = _get("REDIS_HOST", "localhost")
-    REDIS_PORT: int = _int(_get("REDIS_PORT", 6379))
-    REDIS_DB: int = _int(_get("REDIS_DB", 0))
-    REDIS_PASSWORD: Optional[str] = _get("REDIS_PASSWORD", None)
+        # 缓存配置
+        self.CACHE_TTL = _int(_get("CACHE_TTL", 3600))
+        self.SEMANTIC_CACHE_THRESHOLD = _float(_get("SEMANTIC_CACHE_THRESHOLD", 0.85))
 
-    # 缓存配置
-    CACHE_TTL: int = _int(_get("CACHE_TTL", 3600))
-    SEMANTIC_CACHE_THRESHOLD: float = _float(_get("SEMANTIC_CACHE_THRESHOLD", 0.85))
+        # 性能配置
+        self.MAX_WORKERS = _int(_get("MAX_WORKERS", 4))
+        self.TIMEOUT_SECONDS = _int(_get("TIMEOUT_SECONDS", 30))
 
-    # 性能配置
-    MAX_WORKERS: int = _int(_get("MAX_WORKERS", 4))
-    TIMEOUT_SECONDS: int = _int(_get("TIMEOUT_SECONDS", 30))
+        # 各层开关
+        self.ENABLE_L1 = _bool(_get("ENABLE_L1", True))
+        self.ENABLE_L2 = _bool(_get("ENABLE_L2", True))
+        self.ENABLE_L3 = _bool(_get("ENABLE_L3", True))
+        self.ENABLE_L4 = _bool(_get("ENABLE_L4", True))
+        self.ENABLE_L4_RAG_ES = _bool(_get("ENABLE_L4_RAG_ES", True))
+        self.ENABLE_L4_RAG_TRIE = _bool(_get("ENABLE_L4_RAG_TRIE", True))
+        self.ENABLE_L4_RAG_L2 = _bool(_get("ENABLE_L4_RAG_L2", True))
+        self.L4_RAG_TOP_K = _int(_get("L4_RAG_TOP_K", 10))
 
-    # 各层开关
-    ENABLE_L1: bool = _bool(_get("ENABLE_L1", True))
-    ENABLE_L2: bool = _bool(_get("ENABLE_L2", True))
-    ENABLE_L3: bool = _bool(_get("ENABLE_L3", True))
-    ENABLE_L4: bool = _bool(_get("ENABLE_L4", True))
+        # 复杂查询阈值：query 长度超过此值直接走 L4，0 表示不启用
+        self.L4_DIRECT_QUERY_LENGTH = _int(_get("L4_DIRECT_QUERY_LENGTH", 20))
 
-    # 复杂查询阈值：query 长度超过此值直接走 L4，0 表示不启用
-    L4_DIRECT_QUERY_LENGTH: int = _int(_get("L4_DIRECT_QUERY_LENGTH", 20))
+        # 字段定义文件路径（相对于项目根目录）
+        self.FIELD_DEFINITIONS_PATH = _get("FIELD_DEFINITIONS_PATH", "config/field_definitions.yaml")
+        self.ENHANCED_RULES_PATH = _get("ENHANCED_RULES_PATH", "config/enhanced_rules.yaml")
+        self.ENUMS_DIR_PATH = _get("ENUMS_DIR_PATH", "config/enums")
+        self.VALUE_MAPPINGS_PATH = _get("VALUE_MAPPINGS_PATH", "config/value_mappings.yaml")
 
-    # 字段定义文件路径（相对于项目根目录）
-    FIELD_DEFINITIONS_PATH: str = _get("FIELD_DEFINITIONS_PATH", "config/field_definitions.yaml")
+        # agent instructions
+        self.AGENT_INSTRUCTIONS_BASE = _get("AGENT_INSTRUCTIONS_BASE", "")
 
+    def reload(self) -> Dict[str, Any]:
+        """从当前环境对应的 YAML 重新加载配置，并原地更新实例属性。"""
+        global _cfg
+        _cfg = _load_yaml_config()
+
+        refreshed = Settings()
+        self.__dict__.update(refreshed.__dict__)
+
+        return {
+            "env": os.environ.get("ENV", "dev").lower(),
+            "config_path": str(_resolve_yaml_path()),
+        }
 
 settings = Settings()

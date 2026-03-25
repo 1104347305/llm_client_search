@@ -84,6 +84,10 @@ class SearchResponse(BaseModel):
     confidence: float = 1.0
     conditions: Optional[List[Condition]] = None
     query_logic: Optional[QueryLogic] = None
+    elapsed_ms: Optional[float] = None  # 查询总耗时（毫秒）
+    prompt: Optional[str] = None  # L4解析时的RAG prompt；非L4时为空
+    rewritten_query: Optional[str] = None  # value_mapping 归一化后的查询
+    matched_patterns: Optional[List[Dict[str, Any]]] = None  # 命中的规则/正则调试信息
 
 
 class ParsedQuery(BaseModel):
@@ -94,3 +98,6 @@ class ParsedQuery(BaseModel):
     sort: Optional[List[Sort]] = None
     confidence: float = 1.0
     matched_level: int  # 1=规则, 2=模板, 3=缓存, 4=LLM
+    prompt: Optional[str] = None  # L4解析时的RAG prompt；非L4时为空
+    rewritten_query: Optional[str] = None  # value_mapping 归一化后的查询
+    matched_patterns: Optional[List[Dict[str, Any]]] = None  # 命中的规则/正则调试信息

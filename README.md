@@ -167,6 +167,31 @@ curl -X POST http://localhost:8000/api/v1/search/structured \
   }'
 ```
 
+### 热更新配置
+
+更新了任意 YAML 配置文件后，可直接调用热更新接口，无需重启服务。该接口会按最新内容重载当前服务依赖的全部 YAML 配置。
+
+```bash
+curl -X POST http://localhost:8000/api/v1/config/reload \
+  -H "Content-Type: application/json" \
+  -d '{
+    "force_reindex_fields": true
+  }'
+```
+
+说明：
+- `force_reindex_fields=true` 时，会按最新内容重载全部 YAML 配置，并同步重建字段意图索引
+- 会刷新运行时配置、字段注册表、查询路由器和搜索服务实例
+- 返回结果中会包含本次重载的 `reloaded_yaml_files`
+
+### 重建字段意图索引
+
+如果只更新了字段定义，也可以单独调用字段索引重建接口：
+
+```bash
+curl -X POST http://localhost:8000/api/v1/fields/reindex
+```
+
 ---
 
 ## 📊 性能指标

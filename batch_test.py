@@ -31,7 +31,7 @@ class BatchTester:
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    f"{self.base_url}/api/v1/search/natural",
+                    f"{self.base_url}/api/v1/parse",
                     json={
                         "query": query,
                         "agent_id": agent_id,
@@ -76,13 +76,17 @@ class BatchTester:
             })
 
             # 打印简要信息
-            if result.get("success"):
-                print(f"  ✓ Level {result.get('matched_level')}, "
-                      f"置信度 {result.get('confidence')}, "
-                      f"条件数 {result.get('conditions', [])}, "
-                      f"结果数 {result.get('data', {}).get('data', {}).get('total', 0)}")
-            else:
-                print(f"  ✗ 失败: {result.get('message')}")
+            elapsed = result.get('last_times', 0)
+            cond_count = len(result.get('conditions', []))
+            print(f"  ✓ Level {result.get('matched_level')}, "
+                  f"置信度 {result.get('confidence')}, "
+                  f"条件数 {cond_count}, "
+                  f"耗时 {elapsed*1000:.0f}ms",
+                  f"{result.get('query_logic')}"
+                  f"{result.get('conditions')}"
+                  )
+            # else:
+            #     print(f"  ✗ 失败: {result.get('message')}")
 
             # 避免请求过快
             await asyncio.sleep(0.1)
@@ -101,8 +105,8 @@ class BatchTester:
         header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
         header_font = Font(color="FFFFFF", bold=True)
 
-        # 表头：序号、查询问题、Level、查询条件、客户列表
-        summary_headers = ["序号", "查询问题", "Level", "查询条件（检索接口入参）", "客户列表（最多10条）"]
+        # 表头
+        summary_headers = ["序号", "查询问题", "Level", "置信度", "耗时(ms)", "query_logic", "查询条件"]
         for col, header in enumerate(summary_headers, 1):
             cell = ws_summary.cell(1, col, header)
             cell.fill = header_fill
@@ -123,39 +127,28 @@ class BatchTester:
             # Level
             ws_summary.cell(i, 3, result.get("matched_level", 0))
 
+            # 置信度
+            ws_summary.cell(i, 4, result.get("confidence", 0))
+
+            # 耗时
+            elapsed_ms = round(result.get("last_times", 0) * 1000, 0)
+            ws_summary.cell(i, 5, elapsed_ms)
+
+            # query_logic
+            ws_summary.cell(i, 6, result.get("query_logic", "AND"))
+
             # 查询条件（单行JSON格式）
             conditions = result.get("conditions") or []
-            query_logic = result.get("query_logic", "AND")
-            conditions_json = {
-                "query_logic": query_logic,
-                "conditions": [
-                    {
-                        "field": cond.get("field", ""),
-                        "operator": cond.get("operator", ""),
-                        "value": cond.get("value", "")
-                    }
-                    for cond in conditions
-                ]
-            }
-            ws_summary.cell(i, 4, json.dumps(conditions_json, ensure_ascii=False))
-
-            # 客户列表（最多10条，逗号分隔）
-            customers = result.get("data", {}).get("data", {}).get("list", [])[:10]
-            if customers:
-                customer_list = []
-                for customer in customers:
-                    customer_info = f"{customer.get('name', '')}({customer.get('customer_id', '')})-{customer.get('mobile_phone', '')}"
-                    customer_list.append(customer_info)
-                ws_summary.cell(i, 5, ", ".join(customer_list))
-            else:
-                ws_summary.cell(i, 5, "无结果")
+            ws_summary.cell(i, 7, json.dumps(conditions, ensure_ascii=False))
 
         # 调整列宽
         ws_summary.column_dimensions['A'].width = 8
         ws_summary.column_dimensions['B'].width = 50
         ws_summary.column_dimensions['C'].width = 10
-        ws_summary.column_dimensions['D'].width = 60
-        ws_summary.column_dimensions['E'].width = 60
+        ws_summary.column_dimensions['D'].width = 12
+        ws_summary.column_dimensions['E'].width = 12
+        ws_summary.column_dimensions['F'].width = 12
+        ws_summary.column_dimensions['G'].width = 80
 
         # 保存文件
         wb.save(output_file)
@@ -175,7 +168,7 @@ async def main():
         return
 
     # 创建测试器
-    tester = BatchTester(base_url="http://localhost:8080")
+    tester = BatchTester(base_url="http://localhost:8000")
 
     # 运行批量测试
     await tester.run_batch_test(queries_file)

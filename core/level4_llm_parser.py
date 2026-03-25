@@ -23,16 +23,20 @@ Level 4: LLM 解析器 - 使用 Agno Agent 进行查询解析（兜底方案）
 - 支持 100+ 个客户字段
 """
 import asyncio
+import calendar
+import json
+import re
 import time
-from typing import List
+from typing import List, Any, Dict
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from loguru import logger
-from agno.agent import Agent
-from agno.models.dashscope import DashScope
+from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
-
 from config.settings import settings
 from models.schemas import ParsedQuery, Condition, QueryLogic, Operator, RangeValue
 from core.field_registry import get_field_registry
+from core.level2_enhanced_matcher import Level2EnhancedMatcher
 
 
 # ==================== 输出模型定义 ====================
@@ -55,131 +59,127 @@ class QueryAnalysisResult(BaseModel):
 
 # ==================== Agent 基础指令（静态部分）====================
 
-AGENT_INSTRUCTIONS_BASE = """你是一个专业的客户搜索查询分析专家。你的任务是将用户的自然语言查询转换为结构化的搜索条件。
-
-## 核心约束（最高优先级）
-
-**只能使用下方"参考字段定义"中明确列出的字段名（field）。**
-若查询意图找不到匹配的参考字段，该意图对应的条件必须忽略（不输出）。
-若参考字段给出了明确的枚举值（enum），必须使用给定的枚举值。
-禁止自行推断或编造字段名。
-
-## 操作符说明
-- **MATCH**: 精确/模糊匹配
-- **CONTAINS**: 数组字段包含某值
-- **NOT_CONTAINS**: 数组字段不包含某值（缺口查询）
-- **EXISTS / NOT_EXISTS**: 字段有/无数据
-- ****: 大于等于 / 小于等于（数值）
-- **GTE/LTE/RANGE**: 大于等于/小于等于/区间范围（精确年龄使用RANGE表述，如：45岁--》{"min": 45, "max": 45}）
-
-## 通用规则
-- 缺口查询（未配置/没有/未购买/缺少）→ NOT_CONTAINS
-- 数值：20万→200000，万=×10000，千=×1000
-- **MATCH 仅用于字符串字段；数值字段（age/annual_income等）只用 GTE/LTE/RANGE，精确值用 RANGE {min:x, max:x}**
-- 学历层级升序：高中<中专<大学专科<大学本科<硕士研究生<博士研究生<博士后
-- 客户温度升序：冷却<低温<中温<高温
-
-## AND 与 OR 的使用规则（极其重要，严禁混淆）
-
-### query_logic: AND（默认，绝大多数情况）
-**含义：所有条件同时满足**
-- 查询涉及**多个不同字段**的组合筛选时，需所有条件都满足，永远用 AND
-- 例：45岁以上，已婚，年收入20万以上 → AND
-- 例：没有买过养老险且有小孩 → AND
-
-### query_logic: OR（极少使用，严格限制）
-**含义：多个完全不同的独立条件，满足任意一个即可**
-- **只有**查询中明确含有"或者"、"任一"等语义，且条件指向**不同字段**时才用 OR
-- 例："年龄超过60岁或者年收入超过100万" → OR（两个不同字段）
-
-**同一字段匹配多个候选值时，必须使用 CONTAINS，而非 OR + 多条 MATCH，例如：高温或中温的客户--》{"field": "customer_temperature", "operator": "CONTAINS", "value": ["高温","中温"]}**
-
-
-## 输出格式（严格 JSON，不加任何其他文字）
-
-{"query_logic": "AND", "conditions": [{"field": "字段名", "operator": "操作符", "value": "值"}]}
-
-## 示例
-
-"45岁以上、已婚、年收入20万以上且没买过养老险"
-{"query_logic":"AND","conditions":[{"field":"age","operator":"GTE","value":45},{"field":"marital_status","operator":"MATCH","value":"已婚"},{"field":"annual_income","operator":"GTE","value":200000},{"field":"held_product_category","operator":"NOT_CONTAINS","value":"年金保险"}]}
-
-"本科学历以上的客户"（同一字段多值 → CONTAINS，不是 OR）
-{"query_logic":"AND","conditions":[{"field":"education","operator":"CONTAINS","value":["大学本科","硕士研究生","博士研究生","博士后"]}]}
-
-"年龄超过60岁或者年收入超过100万的客户"（不同字段，明确"或者" → OR）
-{"query_logic":"OR","conditions":[{"field":"age","operator":"GTE","value":60},{"field":"annual_income","operator":"GTE","value":1000000}]}
-
-"45岁的女性客户"（精确年龄需要使用RANGE表述，min=max=具体年龄）
-{"query_logic":"AND","conditions":[{"field":"age","operator":"RANGE","value":{"min": 45, "max": 45}},{"field":"gender","operator":"MATCH","value":"女"}]}
-
-"40岁左右的客户"（年龄左右需要使用RANGE表述）
-{"query_logic":"AND","conditions":[{"field":"age","operator":"RANGE","value":{"min": 38, "max": 42}}]}
-"""
-
-
 class Level4LLMParser:
-    """LLM 解析器 - 使用 Agno Agent 作为兜底方案（集成 RAG 字段检索）"""
+    """LLM 解析器 - 使用原生异步 OpenAI 兼容接口作为兜底方案（集成 RAG 字段检索）"""
 
     def __init__(self):
         """初始化 LLM 解析器"""
+        from agno.agent import Agent
+        from agno.models.dashscope import DashScope
+
         # 加载字段注册表（RAG 检索）
         self.field_registry = get_field_registry()
+        self.level2_recall = Level2EnhancedMatcher() if settings.ENABLE_L4_RAG_L2 else None
 
         # 创建查询分析 Agent（使用基础静态指令）
         self.agent = Agent(
             name="QueryAnalyzer",
-            instructions=AGENT_INSTRUCTIONS_BASE,
+            instructions=settings.AGENT_INSTRUCTIONS_BASE,
             model=DashScope(
                 id=settings.LLM_MODEL,
                 api_key=settings.LLM_API_KEY,
                 base_url=settings.LLM_BASE_URL,
             ),
+            tools=[],  # 添加博查搜索工具
             output_schema=QueryAnalysisResult,  # 强制结构化输出
             markdown=False,  # 不使用 Markdown 格式
             add_datetime_to_context=True,  # 添加当前时间到上下文
         )
-        logger.info(f"Level4 LLM parser initialized with {settings.LLM_MODEL}")
 
-    def _build_rag_message(self, query: str) -> tuple[str, bool]:
+        # 原生异步客户端，兼容 DashScope OpenAI 接口
+        self.client = AsyncOpenAI(
+            api_key=settings.LLM_API_KEY,
+            base_url=settings.LLM_BASE_URL,
+        )
+        self.model = settings.LLM_MODEL
+        self.system_prompt = settings.AGENT_INSTRUCTIONS_BASE
+        logger.info(f"Level4 LLM parser initialized with {settings.LLM_MODEL} (native async)")
+
+    async def _build_rag_message(self, query: str) -> tuple[str, bool]:
         """
         构建带有 RAG 检索字段的消息
 
-        双路检索：
+        三路检索：
         1. ES BM25 全文检索（top 8）：覆盖语义描述匹配
         2. Trie 枚举精确匹配：覆盖查询中直接出现枚举值的场景
-        两路结果按 intent id 去重合并后注入 prompt。
+        3. L2 规则片段召回：基于增强规则 partial search 召回相关字段
+        三路结果按 intent id 去重合并后注入 prompt。
 
         Returns:
             (message, has_intents): has_intents=False 时调用方应跳过 LLM
         """
-        # 路径一：ES BM25 检索
-        es_intents = self.field_registry.retrieve(query, top_k=10)
+        top_k = settings.L4_RAG_TOP_K
 
-        # 路径二：Trie 枚举精确命中
-        trie_intents = self.field_registry.retrieve_by_enum(query)
+        async def _retrieve_es() -> List[Dict[str, Any]]:
+            if not settings.ENABLE_L4_RAG_ES:
+                return []
+            return await asyncio.to_thread(self.field_registry.retrieve, query, top_k)
 
-        # 合并去重（保持 ES 结果顺序优先，Trie 结果追加）
-        seen_ids: set = {i.get("id") for i in es_intents}
-        merged = list(es_intents)
-        for intent in trie_intents:
-            if intent.get("id") not in seen_ids:
+        async def _retrieve_trie() -> List[Dict[str, Any]]:
+            if not settings.ENABLE_L4_RAG_TRIE:
+                return []
+            return await asyncio.to_thread(self.field_registry.retrieve_by_enum, query)
+
+        async def _retrieve_l2() -> List[Dict[str, Any]]:
+            if not settings.ENABLE_L4_RAG_L2 or self.level2_recall is None:
+                return []
+            recalled = await asyncio.to_thread(self.level2_recall.recall_fields, query, top_k)
+            fields = [item["field"] for item in recalled]
+            return await asyncio.to_thread(self.field_registry.retrieve_by_fields, fields)
+
+        es_intents, trie_intents, l2_intents = await asyncio.gather(
+            _retrieve_es(),
+            _retrieve_trie(),
+            _retrieve_l2(),
+        )
+
+        # 合并去重：优先 Trie 和 L2，ES 仅用于补齐剩余额度
+        merged: List[Dict[str, Any]] = []
+        seen_ids: set = set()
+
+        for intent in trie_intents + l2_intents:
+            intent_id = intent.get("id")
+            if intent_id in seen_ids:
+                continue
+            merged.append(intent)
+            seen_ids.add(intent_id)
+            if len(merged) >= top_k:
+                break
+
+        if len(merged) < top_k:
+            for intent in es_intents:
+                intent_id = intent.get("id")
+                if intent_id in seen_ids:
+                    continue
                 merged.append(intent)
-                seen_ids.add(intent.get("id"))
+                seen_ids.add(intent_id)
+                if len(merged) >= top_k:
+                    break
 
         if merged:
-            field_section = self.field_registry.format_prompt_section(merged)
-            message = f"{field_section}\n\n### 用户查询\n{query}"
+            now = datetime.now(ZoneInfo("Asia/Shanghai"))
+            weekday_names = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+            current_time = now.strftime("%Y-%m-%d %H:%M:%S")
+            current_weekday = weekday_names[now.weekday()]
+            field_section = self.field_registry.format_prompt_section(merged, query=query)
+            message = (
+                f"### 当前时间\n{current_time} (Asia/Shanghai)\n"
+                f"### 今天星期\n{current_weekday}\n\n"
+                f"{field_section}\n\n### 用户查询\n{query}"
+            )
             logger.debug(
                 f"RAG merged {len(merged)} intents "
-                f"(ES={len(es_intents)}, Trie={len(trie_intents)}) for query: {query}"
+                f"(ES={'ON' if settings.ENABLE_L4_RAG_ES else 'OFF'}:{len(es_intents)}, "
+                f"Trie={'ON' if settings.ENABLE_L4_RAG_TRIE else 'OFF'}:{len(trie_intents)}, "
+                f"L2={'ON' if settings.ENABLE_L4_RAG_L2 else 'OFF'}:{len(l2_intents)}, "
+                f"TOP_K={top_k}) for query: {query}"
             )
             return message, True
         else:
             logger.debug(f"RAG found no relevant intents for query: {query}")
             return query, False
 
-    async def parse(self, query: str) -> ParsedQuery:
+    async def agent_parse(self, query: str) -> ParsedQuery:
         """
         解析查询（异步版本）
 
@@ -194,7 +194,7 @@ class Level4LLMParser:
 
         try:
             # 构建带 RAG 字段上下文的消息
-            rag_message, has_intents = self._build_rag_message(query)
+            rag_message, has_intents = await self._build_rag_message(query)
 
             # RAG 未召回任何字段定义 → 无法安全解析，直接返回空
             if not has_intents:
@@ -269,6 +269,112 @@ class Level4LLMParser:
                 matched_level=4
             )
 
+    async def parse(self, query: str) -> ParsedQuery:
+        """
+        解析查询（异步版本）
+
+        Args:
+            query: 用户查询
+
+        Returns:
+            ParsedQuery
+        """
+        logger.info(f"Level 4 LLM parsing query: {query}")
+        start_time = time.time()
+
+        try:
+            # 构建带 RAG 字段上下文的消息
+            rag_message, has_intents = await self._build_rag_message(query)
+
+            # RAG 未召回任何字段定义 → 无法安全解析，直接返回空
+            if not has_intents:
+                logger.info(f"Level 4 skipped: no relevant field intents found for query: {query}")
+                return ParsedQuery(
+                    conditions=[],
+                    query_logic=QueryLogic.AND,
+                    sort=None,
+                    confidence=0.0,
+                    matched_level=4,
+                    prompt=rag_message
+                )
+
+            # 直接调用异步 OpenAI 兼容接口
+            # enable_thinking=False 关闭 qwen3 系列 thinking 模式，大幅降低延迟
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": rag_message},
+                ],
+                temperature=float(getattr(settings, 'LLM_TEMPERATURE', 0.1)),
+                max_tokens=int(getattr(settings, 'LLM_MAX_TOKENS', 2000)),
+                extra_body={"enable_thinking": False},
+            )
+
+            duration = time.time() - start_time
+            msg = response.choices[0].message
+            raw_content = msg.content or ""
+
+            # qwen-thinking 系列模型正文可能在 reasoning_content 之后，content 为空时尝试 tool_calls
+            if not raw_content and hasattr(msg, 'tool_calls') and msg.tool_calls:
+                raw_content = msg.tool_calls[0].function.arguments or ""
+
+            # 记录 finish_reason 帮助诊断
+            finish_reason = response.choices[0].finish_reason
+            logger.debug(
+                f"LLM response in {duration*1000:.2f}ms | finish={finish_reason} | "
+                f"content_len={len(raw_content)} | preview={raw_content[:200]}"
+            )
+            if not raw_content:
+                logger.warning(f"LLM returned empty content, finish_reason={finish_reason}")
+
+            # 从文本中提取 JSON（兼容 thinking 模型输出 <think>...</think> 前缀）
+            json_str = raw_content
+            # 尝试找到第一个 { 开始的 JSON 块
+            m = re.search(r'\{.*\}', raw_content, re.DOTALL)
+            if m:
+                json_str = m.group(0)
+
+            try:
+                parsed = json.loads(json_str)
+                if isinstance(parsed, dict):
+                    conditions = self._convert_conditions(parsed.get("conditions", []))
+                    query_logic_str = parsed.get("query_logic", "AND")
+                    query_logic = QueryLogic.AND if query_logic_str == "AND" else QueryLogic.OR
+                    logger.info(f"Level 4 LLM parsed {len(conditions)} conditions in {duration*1000:.2f}ms")
+                    return ParsedQuery(
+                        conditions=conditions,
+                        query_logic=query_logic,
+                        sort=None,
+                        confidence=0.8,
+                        matched_level=4,
+                        prompt=rag_message
+                    )
+            except Exception as parse_error:
+                logger.error(f"Failed to parse LLM JSON response: {parse_error}, raw: {json_str[:500]}")
+
+            # 返回空结果
+            logger.warning("Agent returned empty or invalid result")
+            return ParsedQuery(
+                conditions=[],
+                query_logic=QueryLogic.AND,
+                sort=None,
+                confidence=0.0,
+                matched_level=4,
+                prompt=rag_message
+            )
+
+        except Exception as e:
+            duration = time.time() - start_time
+            logger.error(f"Level 4 LLM parsing failed after {duration*1000:.2f}ms: {e}")
+            return ParsedQuery(
+                conditions=[],
+                query_logic=QueryLogic.AND,
+                sort=None,
+                confidence=0.0,
+                matched_level=4
+            )
+
     def _convert_conditions(self, raw_conditions: List[dict]) -> List[Condition]:
         """
         将原始条件字典转换为 Condition 对象
@@ -282,13 +388,21 @@ class Level4LLMParser:
         conditions = []
         for cond_data in raw_conditions:
             try:
+                field = cond_data["field"]
+
                 # 解析 value
                 value = cond_data.get("value")
                 if isinstance(value, dict) and "min" in value:
-                    value = RangeValue(min=value.get("min"), max=value.get("max"))
+                    value = RangeValue(
+                        min=self._resolve_dynamic_date_placeholder(value.get("min")),
+                        max=self._resolve_dynamic_date_placeholder(value.get("max")),
+                    )
+                else:
+                    value = self._resolve_dynamic_date_placeholder(value)
+                    value = self.field_registry.normalize_field_value(field, value)
 
                 condition = Condition(
-                    field=cond_data["field"],
+                    field=field,
                     operator=Operator(cond_data["operator"]),
                     value=value
                 )
@@ -297,3 +411,51 @@ class Level4LLMParser:
                 logger.warning(f"Failed to convert condition: {cond_data}, error: {e}")
 
         return conditions
+
+    def _resolve_dynamic_date_placeholder(self, value):
+        """将 LLM 可能输出的动态日期占位符展开为具体时间。"""
+        if not isinstance(value, str):
+            return value
+
+        text = value.strip()
+        now = datetime.now()
+
+        if re.fullmatch(r"<today>", text, re.IGNORECASE):
+            resolved = now.strftime("%Y-%m-%d 00:00:00")
+            logger.debug(f"Resolved dynamic date placeholder '{value}' -> '{resolved}'")
+            return resolved
+
+        m = re.fullmatch(r"<today\+(\d+)days>", text, re.IGNORECASE)
+        if m:
+            days = int(m.group(1))
+            target = now + timedelta(days=days)
+            resolved = target.strftime("%Y-%m-%d 00:00:00")
+            logger.debug(f"Resolved dynamic date placeholder '{value}' -> '{resolved}'")
+            return resolved
+
+        month_last_day = calendar.monthrange(now.year, now.month)[1]
+        next_month_year = now.year + 1 if now.month == 12 else now.year
+        next_month = 1 if now.month == 12 else now.month + 1
+        next_month_last_day = calendar.monthrange(next_month_year, next_month)[1]
+        mapping = {
+            "<current_month_start>": now.replace(day=1).strftime("%Y-%m-%d 00:00:00"),
+            "<current_month_end>": now.replace(day=month_last_day).strftime("%Y-%m-%d 00:00:00"),
+            "<current_year_start>": now.replace(month=1, day=1).strftime("%Y-%m-%d 00:00:00"),
+            "<current_year_end>": now.replace(month=12, day=31).strftime("%Y-%m-%d 00:00:00"),
+        }
+        resolved = mapping.get(text.lower())
+        if resolved:
+            logger.debug(f"Resolved dynamic date placeholder '{value}' -> '{resolved}'")
+            return resolved
+
+        next_month_md = re.fullmatch(r"下个?月-(\d{2})", text)
+        if next_month_md:
+            day = next_month_md.group(1)
+            if day == "31":
+                resolved = f"{next_month:02d}-{next_month_last_day:02d}"
+            else:
+                resolved = f"{next_month:02d}-{day}"
+            logger.debug(f"Resolved dynamic date placeholder '{value}' -> '{resolved}'")
+            return resolved
+
+        return value

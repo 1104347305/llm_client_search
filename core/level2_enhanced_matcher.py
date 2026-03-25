@@ -10,6 +10,7 @@ from typing import List, Tuple, Dict, Any, Optional, Set
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from loguru import logger
+from config.settings import settings
 from models.schemas import Condition, Operator, RangeValue
 from models.field_mapping import NEGATION_WORDS
 
@@ -29,8 +30,9 @@ class RuleMatch:
 class Level2EnhancedMatcher:
     """增强规则匹配器 - 支持 YAML 配置的完整条件定义"""
 
-    def __init__(self, config_path: str = "config/enhanced_rules.yaml"):
+    def __init__(self, config_path: Optional[str] = None):
         """初始化增强匹配器"""
+        config_path = config_path or settings.ENHANCED_RULES_PATH
         logger.debug(f"Initializing Level2EnhancedMatcher with config: {config_path}")
 
         if not Path(config_path).is_absolute():
@@ -56,6 +58,7 @@ class Level2EnhancedMatcher:
         self.enum_values: Dict[str, List[str]] = {}   # 各字段的标准枚举值列表
         self._preprocess_map: List[tuple] = []         # 预归一化替换表 [(alias, std), ...]
         self._paired_requirements: Dict[str, str] = {} # field → 必须同时存在的 paired field
+        self._last_matched_patterns: List[Dict[str, Any]] = []
         self.load_config()
 
     def load_config(self):
@@ -77,7 +80,18 @@ class Level2EnhancedMatcher:
                 self.composite_rules = config.get('composite_rules', [])  # 提前加载，使 _expand_pattern_vars 能处理 composite 模板
                 self.negation_words = config.get('negation_words', NEGATION_WORDS)
                 self.position_words = config.get('position_words', [])
-                self.value_mappings = config.get('value_mappings', {})
+                # 从外部文件加载 value_mappings
+                vm_file = config.get('value_mappings_file', '')
+                vm_path = self.config_path.parent.parent / vm_file
+                if not vm_path.exists():
+                    vm_path = Path(vm_file)
+                if vm_path.exists():
+                    with open(vm_path, 'r', encoding='utf-8') as vf:
+                        self.value_mappings = yaml.safe_load(vf) or {}
+                    logger.debug(f"Loaded value_mappings from {vm_path}")
+                else:
+                    self.value_mappings = {}
+                    logger.warning(f"value_mappings_file not found: {vm_file}")
                 self.enum_orders = config.get('enum_orders', {})
 
                 # 1. 加载内联枚举值
@@ -90,13 +104,30 @@ class Level2EnhancedMatcher:
                     abs_path = self.config_path.parent.parent / rel_path
                     if not abs_path.exists():
                         abs_path = Path(rel_path)
-                    if abs_path.exists():
-                        with open(abs_path, 'r', encoding='utf-8') as ef:
-                            values = yaml.safe_load(ef) or []
-                            self.enum_values[field] = [str(v) for v in values]
-                        logger.debug(f"Loaded enum file '{field}': {len(self.enum_values[field])} values")
-                    else:
+                    if not abs_path.exists():
                         logger.warning(f"Enum file not found: {rel_path}")
+                        continue
+                    with open(abs_path, 'r', encoding='utf-8') as ef:
+                        raw = yaml.safe_load(ef) or {}
+                    if field == '__all__':
+                        # 统一枚举文件：{fieldName: {values: [...], ordered: bool}}
+                        for k, entry in raw.items():
+                            vals = entry.get('values', []) if isinstance(entry, dict) else list(entry)
+                            self.enum_values[k] = [str(v) for v in vals]
+                            if isinstance(entry, dict) and entry.get('ordered'):
+                                self.enum_orders[k] = [str(v) for v in vals]
+                        logger.debug(f"Loaded __all__ enum file: {len(raw)} fields")
+                    else:
+                        # 单字段文件：支持列表格式 [...] 或字典格式 {field: {values: [...]}}
+                        if isinstance(raw, list):
+                            self.enum_values[field] = [str(v) for v in raw]
+                        elif isinstance(raw, dict):
+                            entry = raw.get(field, raw)
+                            vals = entry.get('values', []) if isinstance(entry, dict) else list(entry)
+                            self.enum_values[field] = [str(v) for v in vals]
+                            if isinstance(entry, dict) and entry.get('ordered'):
+                                self.enum_orders[field] = [str(v) for v in vals]
+                        logger.debug(f"Loaded enum file '{field}': {len(self.enum_values.get(field, []))} values")
 
                 # 3. 展开 pattern_vars 占位符（如 {CW}）
                 self._pattern_vars = config.get('pattern_vars', {})
@@ -397,6 +428,7 @@ class Level2EnhancedMatcher:
         """
         # 预归一化：将查询文本中的别名替换为标准值，之后 pattern 只需匹配标准值
         normalized_query = self._preprocess_query(query)
+        self._last_matched_patterns = []
 
         # ===== 优先尝试组合规则（fullmatch，一次提取多个条件）=====
         for rule in self.composite_rules:
@@ -408,6 +440,12 @@ class Level2EnhancedMatcher:
                 try:
                     m = compiled_pattern.fullmatch(normalized_query)
                     if m:
+                        self._last_matched_patterns.append({
+                            "rule_name": rule_name,
+                            "pattern": compiled_pattern.pattern,
+                            "matched_text": m.group(0),
+                            "match_type": "composite",
+                        })
                         comp_conds = self._build_conditions_from_sub_rules(
                             rule, m, normalized_query, sub_rules_offsets
                         )
@@ -432,6 +470,12 @@ class Level2EnhancedMatcher:
                 try:
                     match = compiled_pattern.fullmatch(normalized_query)
                     if match:
+                        self._last_matched_patterns.append({
+                            "rule_name": rule_name,
+                            "pattern": compiled_pattern.pattern,
+                            "matched_text": match.group(0),
+                            "match_type": "regular",
+                        })
                         condition = self._build_condition(rule, match, normalized_query)
                         if condition:
                             if match.lastindex and match.lastindex >= 1:
@@ -450,6 +494,24 @@ class Level2EnhancedMatcher:
                             )
                             rule_match.matched_text = match.group(0)
                             all_matches.append(rule_match)
+
+                            # 处理普通规则的 extra_conditions（静态附加条件）
+                            for extra in rule.get('extra_conditions', []):
+                                extra_cond = Condition(
+                                    field=extra['field'],
+                                    operator=self._get_operator(extra['operator'], False),
+                                    value=extra.get('value'),
+                                )
+                                extra_match = RuleMatch(
+                                    rule_name=f"{rule_name}[extra]",
+                                    condition=extra_cond,
+                                    start=start,
+                                    end=end,
+                                    priority=priority,
+                                )
+                                extra_match.matched_text = match.group(0)
+                                all_matches.append(extra_match)
+
                             logger.debug(f"Rule '{rule_name}' fullmatch: {match.group(0)}")
                 except re.error as e:
                     logger.warning(f"Invalid regex pattern: {pattern_str}, error: {e}")
@@ -480,6 +542,74 @@ class Level2EnhancedMatcher:
 
         logger.info(f"Level 2 Enhanced matched {len(conditions)} conditions")
         return conditions
+
+    def recall_fields(self, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
+        """
+        基于 L2 规则做字段召回。
+
+        与 match() 不同：
+        - 不要求整句 fullmatch
+        - 仅用于给 L4 提供“相关字段”上下文
+        - 返回命中的字段及调试信息，不直接产出最终条件
+        """
+        normalized_query = self._preprocess_query(query)
+        recalled: Dict[str, Dict[str, Any]] = {}
+
+        for rule in self.rules:
+            field = rule.get("field")
+            if not field:
+                continue
+
+            compiled_patterns = rule.get("_compiled_patterns", [])
+            priority = int(rule.get("priority", 0))
+            rule_name = rule.get("name", "unknown")
+
+            for compiled_pattern in compiled_patterns:
+                try:
+                    match = compiled_pattern.search(normalized_query)
+                except re.error as e:
+                    logger.warning(f"Invalid regex pattern in recall '{rule_name}': {e}")
+                    continue
+
+                if not match:
+                    continue
+
+                current = recalled.get(field)
+                candidate = {
+                    "field": field,
+                    "rule_name": rule_name,
+                    "pattern": compiled_pattern.pattern,
+                    "matched_text": match.group(0),
+                    "priority": priority,
+                }
+
+                if current is None or priority > current["priority"]:
+                    recalled[field] = candidate
+
+                for extra in rule.get("extra_conditions", []):
+                    extra_field = extra.get("field")
+                    if not extra_field:
+                        continue
+                    extra_current = recalled.get(extra_field)
+                    extra_candidate = {
+                        "field": extra_field,
+                        "rule_name": f"{rule_name}[extra]",
+                        "pattern": compiled_pattern.pattern,
+                        "matched_text": match.group(0),
+                        "priority": priority,
+                    }
+                    if extra_current is None or priority > extra_current["priority"]:
+                        recalled[extra_field] = extra_candidate
+
+        results = sorted(
+            recalled.values(),
+            key=lambda item: (-item["priority"], item["field"])
+        )[:top_k]
+        logger.debug(
+            f"L2 field recall matched {len(results)} fields for query '{query}': "
+            f"{[item['field'] for item in results]}"
+        )
+        return results
 
     def _build_condition(self, rule: Dict, match: re.Match, query: str) -> Optional[Condition]:
         """根据规则配置构建条件"""
@@ -532,9 +662,17 @@ class Level2EnhancedMatcher:
         if isinstance(value, str) and field in self.value_mappings and not rule.get('enum_ref'):
             value = self.value_mappings[field].get(value, value)
 
-        # enum_gte / enum_lte value_type：按 enum_orders 展开为有序列表（operator 已是 CONTAINS）
-        if value_type in ("enum_gte", "enum_lte") and isinstance(value, str):
-            op_str = "ENUM_GTE" if value_type == "enum_gte" else "ENUM_LTE"
+        # enum_gte / enum_gt / enum_lte / enum_lt value_type：
+        # 按 enum_orders 展开为有序列表（operator 已是 CONTAINS）
+        if value_type in ("enum_gte", "enum_gt", "enum_lte", "enum_lt") and isinstance(value, str):
+            if value_type == "enum_gte":
+                op_str = "ENUM_GTE"
+            elif value_type == "enum_gt":
+                op_str = "ENUM_GT"
+            elif value_type == "enum_lte":
+                op_str = "ENUM_LTE"
+            else:
+                op_str = "ENUM_LT"
             resolved = self._resolve_enum_order(field, op_str, value)
             if resolved is not None:
                 value = resolved
@@ -595,7 +733,7 @@ class Level2EnhancedMatcher:
                 except IndexError:
                     return None
 
-        elif value_type in ("enum_gte", "enum_lte"):
+        elif value_type in ("enum_gte", "enum_gt", "enum_lte", "enum_lt"):
             # 与 capture 相同：先捕获字符串，_build_condition 再展开为有序列表
             group = value_config.get('group', 1) if isinstance(value_config, dict) else 1
             try:
@@ -629,25 +767,43 @@ class Level2EnhancedMatcher:
             # 动态日期范围（运行时计算）：next_month / current_month / next_n_days
             return self._compute_dynamic_date_range(value_config or {}, match)
 
+        elif value_type == "exact_range":
+            if isinstance(value_config, dict):
+                group = value_config.get('group', 1)
+                transform = value_config.get('transform', 'exact_range')
+                try:
+                    captured = match.group(group)
+                    if not captured:
+                        return None
+                    return self._apply_transform(captured, transform, value_config)
+                except IndexError:
+                    return None
+
         return None
 
     def _compute_dynamic_date_range(self, config: Dict, match: Optional[re.Match] = None) -> Optional[RangeValue]:
-        """动态计算日期范围（next_month / current_month / next_n_days / next_week / last_n_days / last_year）"""
+        """动态计算日期范围。"""
         import calendar
         from datetime import date, timedelta
 
         date_range = config.get("date_range", "")
         fmt_str = config.get("format", "YYYY-MM-DD")
 
-        # 判断格式：MM-DD 或 YYYY-MM-DD
-        if fmt_str == "MM-DD":
+        # 判断格式：MM-dd / MM-DD 或 YYYY-MM-DD
+        if fmt_str.upper() == "MM-DD":
             date_fmt = "%m-%d"
             month_day_only = True
         else:
-            date_fmt = "%Y-%m-%d" if "YYYY-MM-DD" in fmt_str else "%Y%m%d"
+            date_fmt = "%Y-%m-%d" if "YYYY-MM-DD" in fmt_str.upper() else "%Y%m%d"
             month_day_only = False
 
         today = date.today()
+
+        def _format_date(d: date) -> str:
+            rendered = d.strftime(date_fmt)
+            if not month_day_only and "HH:mm:ss" in fmt_str:
+                return f"{rendered} 00:00:00"
+            return rendered
 
         if date_range == "today":
             # 今天
@@ -657,8 +813,8 @@ class Level2EnhancedMatcher:
                     max=today.strftime("%m-%d"),
                 )
             return RangeValue(
-                min=today.strftime(date_fmt),
-                max=today.strftime(date_fmt),
+                min=_format_date(today),
+                max=_format_date(today),
             )
 
         elif date_range == "tomorrow":
@@ -670,8 +826,8 @@ class Level2EnhancedMatcher:
                     max=tomorrow.strftime("%m-%d"),
                 )
             return RangeValue(
-                min=tomorrow.strftime(date_fmt),
-                max=tomorrow.strftime(date_fmt),
+                min=_format_date(tomorrow),
+                max=_format_date(tomorrow),
             )
 
         elif date_range == "day_after_tomorrow":
@@ -683,8 +839,8 @@ class Level2EnhancedMatcher:
                     max=day_after.strftime("%m-%d"),
                 )
             return RangeValue(
-                min=day_after.strftime(date_fmt),
-                max=day_after.strftime(date_fmt),
+                min=_format_date(day_after),
+                max=_format_date(day_after),
             )
 
         elif date_range == "next_month":
@@ -697,8 +853,8 @@ class Level2EnhancedMatcher:
                     max=f"{month:02d}-{last_day:02d}",
                 )
             return RangeValue(
-                min=date(year, month, 1).strftime(date_fmt),
-                max=date(year, month, last_day).strftime(date_fmt),
+                min=_format_date(date(year, month, 1)),
+                max=_format_date(date(year, month, last_day)),
             )
 
         elif date_range == "current_month":
@@ -710,8 +866,8 @@ class Level2EnhancedMatcher:
                     max=f"{month:02d}-{last_day:02d}",
                 )
             return RangeValue(
-                min=date(year, month, 1).strftime(date_fmt),
-                max=date(year, month, last_day).strftime(date_fmt),
+                min=_format_date(date(year, month, 1)),
+                max=_format_date(date(year, month, last_day)),
             )
 
         elif date_range == "next_n_days":
@@ -732,9 +888,20 @@ class Level2EnhancedMatcher:
                     max=end_date.strftime("%m-%d"),
                 )
             return RangeValue(
-                min=start_date.strftime(date_fmt),
-                max=end_date.strftime(date_fmt),
+                min=_format_date(start_date),
+                max=_format_date(end_date),
             )
+
+        elif date_range == "today_plus_n_days":
+            n = config.get("days", 30)
+            days_group = config.get("days_group")
+            if days_group and match:
+                try:
+                    n = int(match.group(days_group))
+                except (IndexError, ValueError):
+                    pass
+            target_date = today + timedelta(days=n)
+            return _format_date(target_date)
 
         elif date_range == "next_week":
             # 下周：从下周一到下周日
@@ -749,8 +916,8 @@ class Level2EnhancedMatcher:
                     max=next_sunday.strftime("%m-%d"),
                 )
             return RangeValue(
-                min=next_monday.strftime(date_fmt),
-                max=next_sunday.strftime(date_fmt),
+                min=_format_date(next_monday),
+                max=_format_date(next_sunday),
             )
 
         elif date_range == "last_n_days":
@@ -768,8 +935,8 @@ class Level2EnhancedMatcher:
                     max=today.strftime("%m-%d"),
                 )
             return RangeValue(
-                min=start_date.strftime(date_fmt),
-                max=today.strftime(date_fmt),
+                min=_format_date(start_date),
+                max=_format_date(today),
             )
 
         elif date_range == "last_month":
@@ -785,8 +952,8 @@ class Level2EnhancedMatcher:
                     max=f"{month:02d}-{last_day:02d}",
                 )
             return RangeValue(
-                min=date(year, month, 1).strftime(date_fmt),
-                max=date(year, month, last_day).strftime(date_fmt),
+                min=_format_date(date(year, month, 1)),
+                max=_format_date(date(year, month, last_day)),
             )
 
         elif date_range == "last_year":
@@ -796,8 +963,38 @@ class Level2EnhancedMatcher:
                 return None
             last_year = today.year - 1
             return RangeValue(
-                min=date(last_year, 1, 1).strftime(date_fmt),
-                max=date(last_year, 12, 31).strftime(date_fmt),
+                min=_format_date(date(last_year, 1, 1)),
+                max=_format_date(date(last_year, 12, 31)),
+            )
+
+        elif date_range == "current_year":
+            if month_day_only:
+                logger.warning("current_year not supported for MM-DD format")
+                return None
+            return RangeValue(
+                min=_format_date(date(today.year, 1, 1)),
+                max=_format_date(date(today.year, 12, 31)),
+            )
+
+        elif date_range == "year_month_day":
+            if month_day_only:
+                logger.warning("year_month_day not supported for MM-DD format")
+                return None
+            try:
+                if match.lastindex == 1:
+                    raw = match.group(1).lstrip(".")
+                    if len(raw) != 10:
+                        return None
+                    year, month, day = map(int, raw.split("-"))
+                else:
+                    year = int(match.group(1))
+                    month = int(match.group(2))
+                    day = int(match.group(3) or 1)
+            except (TypeError, ValueError, IndexError):
+                return None
+            return RangeValue(
+                min=_format_date(date(year, month, day)),
+                max=_format_date(date(year, month, day)),
             )
 
         logger.warning(f"Unknown date_range type: '{date_range}'")
@@ -835,14 +1032,26 @@ class Level2EnhancedMatcher:
             return value
 
         elif transform == "exact_range":
-            # 将单个数值转为精确范围 {min: n, max: n}，用于精确年龄等数值匹配
+            # 将单个数值转为精确范围；若配置了 range，则按左右范围展开
             n = int(value)
+            spread = config.get('range')
+            if isinstance(spread, int) and spread > 0:
+                return RangeValue(min=n - spread, max=n + spread)
             return RangeValue(min=n, max=n)
 
+        elif transform == "yyyymmdd_to_datetime":
+            # 将 8 位日期转为接口要求的日期时间格式
+            if len(value) != 8 or not value.isdigit():
+                return value
+            return f"{value[:4]}-{value[4:6]}-{value[6:8]} 00:00:00"
+
         elif transform == "year_to_birth_range":
-            # 将出生年份转为 client_birth 日期范围，如 "1953" → {min:"19530101", max:"19531231"}
+            # 将出生年份转为接口要求的出生日期范围
             year = int(value)
-            return RangeValue(min=f"{year}0101", max=f"{year}1231")
+            return RangeValue(
+                min=f"{year}-01-01 00:00:00",
+                max=f"{year}-12-31 00:00:00",
+            )
 
         elif transform == "chinese_decade_plus_range":
             # 将中文年代词转为整数后应用 plus_range
@@ -866,7 +1075,7 @@ class Level2EnhancedMatcher:
 
         Args:
             field: 字段名
-            operator_str: "ENUM_GTE" 或 "ENUM_LTE"
+            operator_str: "ENUM_GTE" / "ENUM_GT" / "ENUM_LTE" / "ENUM_LT"
             value: 已经过 value_mappings 标准化的枚举值
 
         Returns:
@@ -888,8 +1097,12 @@ class Level2EnhancedMatcher:
         idx = order.index(value)
         if operator_str == "ENUM_GTE":
             result = order[idx:]
-        else:  # ENUM_LTE
+        elif operator_str == "ENUM_GT":
+            result = order[idx + 1:]
+        elif operator_str == "ENUM_LTE":
             result = order[:idx + 1]
+        else:  # ENUM_LT
+            result = order[:idx]
 
         logger.debug(f"ENUM resolve field='{field}' {operator_str} '{value}' → {result}")
         return result
@@ -960,4 +1173,5 @@ class Level2EnhancedMatcher:
             "rules_loaded": self.rules is not None and len(self.rules) > 0,
             "enum_fields": list(self.enum_values.keys()),
             "preprocess_aliases": len(self._preprocess_lookup),
+            "last_matched_patterns": self._last_matched_patterns,
         }

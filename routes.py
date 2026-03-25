@@ -1,6 +1,9 @@
 """
 API 路由定义
 """
+import time
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Any, Optional, Dict
@@ -14,6 +17,7 @@ from services.search_service import SearchService
 from core.field_registry import get_field_registry
 from core.query_router import QueryRouter
 from db.request_logger import get_request_logger
+from config.settings import settings
 
 router = APIRouter()
 search_service = SearchService()
@@ -50,6 +54,64 @@ class ParseRequest(BaseModel):
     query: str = Field(..., description="自然语言查询")
 
 
+class ConfigReloadRequest(BaseModel):
+    force_reindex_fields: bool = Field(
+        default=True,
+        description="是否按最新内容重载全部 YAML 配置，并同步重建字段意图索引"
+    )
+
+
+def _build_debug_patterns(parsed) -> Optional[List[Dict[str, Any]]]:
+    """统一组装调试信息：规则层 matched_patterns + L4 prompt。"""
+    patterns = list(parsed.matched_patterns or [])
+    if parsed.matched_level == 4 and parsed.prompt:
+        patterns.append({
+            "rule_name": "L4_PROMPT",
+            "pattern": None,
+            "matched_text": None,
+            "match_type": "llm_prompt",
+            "prompt": parsed.prompt,
+        })
+    return patterns or None
+
+
+def _collect_config_yaml_files() -> List[str]:
+    """收集当前服务依赖的全部配置 YAML 文件。"""
+    config_dir = Path(__file__).parent / "config"
+    return sorted(
+        str(path.resolve())
+        for path in config_dir.rglob("*.yaml")
+    )
+
+
+def _reload_runtime_components(force_reindex_fields: bool = True) -> Dict[str, Any]:
+    """热更新运行时配置与依赖组件。"""
+    global search_service, _query_router
+
+    reload_meta = settings.reload()
+    reloaded_yaml_files = _collect_config_yaml_files()
+
+    import core.field_registry as reg_module
+
+    reg_module._registry = None
+    registry = reg_module.FieldRegistry(force_reindex=force_reindex_fields)
+    reg_module._registry = registry
+
+    search_service = SearchService()
+    _query_router = QueryRouter()
+
+    search_service.router = _query_router
+
+    return {
+        "env": reload_meta["env"],
+        "config_path": reload_meta["config_path"],
+        "field_definitions_path": str((Path(__file__).parent / settings.FIELD_DEFINITIONS_PATH).resolve()),
+        "force_reindex_fields": force_reindex_fields,
+        "reloaded_yaml_files": reloaded_yaml_files,
+        "field_intent_total": len(registry.intents),
+    }
+
+
 @router.post("/parse", summary="解析查询条件（不执行搜索）")
 async def parse_query(request: ParseRequest):
     """
@@ -57,30 +119,42 @@ async def parse_query(request: ParseRequest):
     前端可在发送 Agent 消息的同时调用此接口，快速展示查询条件。
     """
     try:
+        startTime = time.perf_counter()
         parsed = await _query_router.route_with_peeling(request.query)
-        conditions = []
-        for c in parsed.conditions:
-            val = c.value
-            if hasattr(val, "min"):
-                val = f"{val.min}~{val.max}"
-            elif isinstance(val, list):
-                val = " / ".join(str(v) for v in val)
-            else:
-                val = str(val)
-            conditions.append({
-                "field": c.field,
-                "operator": c.operator.value,
-                "value": val,
-            })
         return {
             "query": request.query,
             "matched_level": parsed.matched_level,
             "confidence": round(parsed.confidence, 4),
             "query_logic": parsed.query_logic if parsed.query_logic else "AND",
-            "conditions": conditions,
+            "conditions": parsed.conditions,
+            "prompt": None,
+            "rewritten_query": parsed.rewritten_query,
+            "matched_patterns": _build_debug_patterns(parsed),
+            "last_times": time.perf_counter() - startTime
         }
     except Exception as e:
         logger.error(f"Parse error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/config/reload", summary="热更新运行时配置")
+async def reload_config(request: Optional[ConfigReloadRequest] = None):
+    """
+    重新加载当前环境 YAML 配置，并同步刷新运行时组件。
+
+    默认同时按最新内容重载全部 YAML 配置，并重建字段意图索引，
+    适用于更新了字段定义、规则配置、枚举映射、LLM 提示词等场景。
+    """
+    try:
+        request = request or ConfigReloadRequest()
+        result = _reload_runtime_components(force_reindex_fields=request.force_reindex_fields)
+        return {
+            "success": True,
+            "message": "配置热更新完成",
+            **result,
+        }
+    except Exception as e:
+        logger.error(f"Config reload error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -119,7 +193,7 @@ async def retrieve_fields(request: FieldRetrievalRequest):
     try:
         registry = get_field_registry()
         intents = registry.retrieve(request.query, top_k=request.top_k)
-        prompt_section = registry.format_prompt_section(intents)
+        prompt_section = registry.format_prompt_section(intents, query=request.query)
 
         return FieldRetrievalResponse(
             query=request.query,

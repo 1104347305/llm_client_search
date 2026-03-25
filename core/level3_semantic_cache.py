@@ -109,7 +109,9 @@ class Level3SemanticCache:
                 for s in (parsed_query.sort or [])
             ] if parsed_query.sort else None,
             "confidence": parsed_query.confidence,
-            "matched_level": parsed_query.matched_level
+            "matched_level": parsed_query.matched_level,
+            "rewritten_query": parsed_query.rewritten_query,
+            "matched_patterns": parsed_query.matched_patterns,
         }
 
     def _serialize_value(self, value):
@@ -141,7 +143,9 @@ class Level3SemanticCache:
             query_logic=QueryLogic(data["query_logic"]),
             sort=sort,
             confidence=data["confidence"],
-            matched_level=data["matched_level"]
+            matched_level=data["matched_level"],
+            rewritten_query=data.get("rewritten_query"),
+            matched_patterns=data.get("matched_patterns"),
         )
 
     def _deserialize_value(self, value):

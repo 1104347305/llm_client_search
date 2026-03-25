@@ -3,14 +3,17 @@
 L1 → L2 → L3 依次执行并累积条件；三层均无条件时转至 L4 (LLM)
 """
 from loguru import logger
-from models.schemas import ParsedQuery, QueryLogic, LogicNode, Condition, Operator
+from models.schemas import ParsedQuery, QueryLogic, LogicNode, Condition, Operator, RangeValue
 from core.level1_rule_engine import Level1RuleEngine
 from core.level2_enhanced_matcher import Level2EnhancedMatcher
 from core.level3_semantic_cache import Level3SemanticCache
 from core.level4_llm_parser import Level4LLMParser
+from core.field_registry import get_field_registry
 from config.settings import settings
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Set, Dict
+from pathlib import Path
 import re
+import yaml
 
 
 class QueryRouter:
@@ -21,14 +24,44 @@ class QueryRouter:
         self.level2 = Level2EnhancedMatcher()
         self.level3 = Level3SemanticCache()
         self.level4 = Level4LLMParser()
+        self.field_registry = get_field_registry()
+
+        # 加载已知字段和枚举值，用于 L4 输出后处理校验
+        self._valid_fields: Set[str] = set()
+        self._enum_values: Dict[str, List[str]] = {}
+        self._load_validation_data()
 
         logger.info(
             f"Query router initialized | "
             f"L1={'ON' if settings.ENABLE_L1 else 'OFF'} "
             f"L2={'ON' if settings.ENABLE_L2 else 'OFF'} "
             f"L3={'ON' if settings.ENABLE_L3 else 'OFF'} "
-            f"L4={'ON' if settings.ENABLE_L4 else 'OFF'}"
+            f"L4={'ON' if settings.ENABLE_L4 else 'OFF'} "
+            f"已知字段={len(self._valid_fields)}"
         )
+        self._last_rewritten_query: Optional[str] = None
+        self._last_matched_patterns: List[Dict[str, str]] = []
+
+    def _load_validation_data(self):
+        """从配置指定的 field_definitions 和 enums 目录加载校验基准"""
+        base = Path(__file__).parent.parent
+        # 1. 从 field_definitions.yaml 收集合法字段名
+        fd_path = base / settings.FIELD_DEFINITIONS_PATH
+        if fd_path.exists():
+            data = yaml.safe_load(fd_path.read_text(encoding='utf-8')) or {}
+            for intent in data.get('intents', []):
+                self._valid_fields.add(intent['field'])
+        # 2. 从配置指定的 enums 目录收集枚举值
+        enums_dir = base / settings.ENUMS_DIR_PATH
+        value_mappings_path = (base / settings.VALUE_MAPPINGS_PATH).resolve()
+        for f in sorted(enums_dir.glob('*.yaml')):
+            if f.resolve() == value_mappings_path:
+                continue
+            raw = yaml.safe_load(f.read_text(encoding='utf-8')) or {}
+            for field, entry in raw.items():
+                vals = entry.get('values', []) if isinstance(entry, dict) else list(entry)
+                if vals:
+                    self._enum_values[field] = [str(v) for v in vals]
 
 
     async def route_with_peeling(self, query: str) -> ParsedQuery:
@@ -39,8 +72,15 @@ class QueryRouter:
         3. L3 对原始查询检索语义缓存
         4. 若 L1+L2+L3 合计条件为空，则转至 L4 (LLM)
         """
-        logger.info(f"Routing query: {query}")
+        original_query = query
+        logger.info(f"Routing query: {original_query}")
         query = query.replace(' ', '')
+        normalized_query = self.field_registry.normalize_query(query)
+        if normalized_query != query:
+            logger.info(f"Query normalized: '{query}' -> '{normalized_query}'")
+        query = normalized_query
+        self._last_rewritten_query = query
+        self._last_matched_patterns = []
 
         all_conditions = []
 
@@ -48,6 +88,7 @@ class QueryRouter:
         l1_conditions = []
         if settings.ENABLE_L1:
             l1_conditions = await self.level1.extract(query)
+            self._last_matched_patterns = list(getattr(self.level1, "_last_matched_patterns", []))
             logger.info(f"Level 1 extracted {len(l1_conditions)} conditions")
         else:
             logger.info("Level 1 DISABLED, skipped")
@@ -56,6 +97,7 @@ class QueryRouter:
         l2_conditions = []
         if settings.ENABLE_L2:
             l2_conditions = await self.level2.match(query)
+            self._last_matched_patterns.extend(list(getattr(self.level2, "_last_matched_patterns", [])))
             logger.info(f"Level 2 matched {len(l2_conditions)} conditions")
         else:
             logger.info("Level 2 DISABLED, skipped")
@@ -112,6 +154,11 @@ class QueryRouter:
             if settings.ENABLE_L4:
                 logger.info("No conditions from L1+L2+L3, falling back to Level 4 (LLM)")
                 parsed = await self.level4.parse(query)
+                # parsed = await self.level4.agent_parse(query)
+                parsed.conditions = self._convert_age_to_birthday(parsed.conditions)
+                parsed.conditions = self._validate_conditions(parsed.conditions)
+                parsed.rewritten_query = self._last_rewritten_query
+                parsed.matched_patterns = self._last_matched_patterns
                 if settings.ENABLE_L3:
                     await self.level3.set(query, parsed)
                 return parsed
@@ -127,17 +174,125 @@ class QueryRouter:
         else:
             matched_level, confidence = 1, 1.0
 
-        # 若存在 CONTAINS+列表条件（enum_gte/lte 展开结果），语义上是 OR（匹配列表中任一值）
-        has_enum_list = any(
-            cond.operator == Operator.CONTAINS and isinstance(cond.value, list)
-            for cond in all_conditions
-        )
-        query_logic = QueryLogic.OR if has_enum_list else QueryLogic.AND
+        # 后处理：将年龄条件转换为出生日期条件
+        all_conditions = self._convert_age_to_birthday(all_conditions)
+
+        # 后处理：校验所有条件（字段名+枚举值），有非法条件则返回空
+        all_conditions = self._validate_conditions(all_conditions)
 
         return ParsedQuery(
             conditions=all_conditions,
-            query_logic=query_logic,
+            # 外层 query_logic 仅表示多个 condition 之间的关系。
+            # 单个 condition 内部的 CONTAINS + list 由接口按 IN/OR 语义解释，
+            # 不能提升为外层 OR，否则会错误放宽多个条件之间的约束。
+            query_logic=QueryLogic.AND,
             logic_tree=None,
             confidence=confidence,
-            matched_level=matched_level
+            matched_level=matched_level,
+            rewritten_query=self._last_rewritten_query,
+            matched_patterns=self._last_matched_patterns,
         )
+
+    def _validate_conditions(self, conditions: List[Condition]) -> List[Condition]:
+        """
+        校验所有层级输出的条件。若存在任何非法条件，返回空列表（避免条件缺失导致错误结果）。
+        校验规则：
+        - 字段名不在 field_definitions.yaml 中 → 整体返回空
+        - 字段有枚举约束且值（字符串）不在枚举中 → 整体返回空
+        """
+        if not self._valid_fields:
+            return conditions  # 未加载校验数据，跳过校验
+
+        for cond in conditions:
+            # 1. 校验字段名
+            if cond.field not in self._valid_fields:
+                logger.warning(
+                    f"条件校验失败：非法字段 '{cond.field}'（值={cond.value!r}），返回空条件"
+                )
+                return []
+
+            if cond.operator in {Operator.EXISTS, Operator.NOT_EXISTS}:
+                continue
+
+            # 2. 校验枚举值
+            enum_vals = self._enum_values.get(cond.field)
+            if enum_vals and isinstance(cond.value, str):
+                if cond.value not in enum_vals:
+                    logger.warning(
+                        f"条件校验失败：字段 '{cond.field}' 的值非法，"
+                        f"错误值={cond.value!r}，合法枚举={enum_vals!r}，返回空条件"
+                    )
+                    return []
+            elif enum_vals and isinstance(cond.value, list):
+                invalid_values = [value for value in cond.value if isinstance(value, str) and value not in enum_vals]
+                if invalid_values:
+                    logger.warning(
+                        f"条件校验失败：字段 '{cond.field}' 的列表值存在非法项，"
+                        f"错误值={invalid_values!r}，原始值={cond.value!r}，合法枚举={enum_vals!r}，返回空条件"
+                    )
+                    return []
+
+        return conditions
+
+    def _convert_age_to_birthday(self, conditions: List[Condition]) -> List[Condition]:
+        """
+        后处理：将年龄条件转换为出生日期范围条件。
+        clientAge       → clientBirthday
+        familyClientAge → familyClientBirthday
+
+        逻辑（当前年份 year）：
+        - GTE N  → birthday LTE {year-N}-12-31 00:00:00（年龄越大，出生越早）
+        - LTE N  → birthday GTE {year-N}-01-01 00:00:00
+        - RANGE [min_age, max_age] → birthday RANGE [{year-max_age}-01-01, {year-min_age}-12-31]
+        """
+        from datetime import date
+        year = date.today().year
+
+        age_field_map = {
+            'clientAge': 'clientBirthday',
+            'familyClientAge': 'familyClientBirthday',
+        }
+
+        result = []
+        for cond in conditions:
+            target_field = age_field_map.get(cond.field)
+            if target_field is None:
+                result.append(cond)
+                continue
+            v = cond.value
+            try:
+                if cond.operator == Operator.RANGE and isinstance(v, RangeValue):
+                    min_age = int(v.min) if v.min is not None else 0
+                    max_age = int(v.max) if v.max is not None else 120
+                    new_cond = Condition(
+                        field=target_field,
+                        operator=Operator.RANGE,
+                        value=RangeValue(
+                            min=f"{year - max_age}-01-01 00:00:00",
+                            max=f"{year - min_age}-12-31 00:00:00",
+                        ),
+                    )
+                elif cond.operator == Operator.GTE:
+                    new_cond = Condition(
+                        field=target_field,
+                        operator=Operator.LTE,
+                        value=f"{year - int(v)}-12-31 00:00:00",
+                    )
+                elif cond.operator == Operator.LTE:
+                    new_cond = Condition(
+                        field=target_field,
+                        operator=Operator.GTE,
+                        value=f"{year - int(v)}-01-01 00:00:00",
+                    )
+                else:
+                    result.append(cond)
+                    continue
+                logger.debug(
+                    f"年龄→出生日期: {cond.field}({cond.operator.value}, {v}) "
+                    f"→ {new_cond.field}({new_cond.operator.value}, {new_cond.value})"
+                )
+                result.append(new_cond)
+            except (TypeError, ValueError) as e:
+                logger.warning(f"年龄转换失败 {cond}: {e}")
+                result.append(cond)
+        return result

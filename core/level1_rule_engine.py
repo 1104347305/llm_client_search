@@ -24,6 +24,7 @@ class Level1RuleEngine:
         self.customer_pattern = re.compile(r'C\d{15}')
         # 姓名正则 (2-4个中文字符)
         self.name_pattern = re.compile(r'[\u4e00-\u9fa5]{2,4}')
+        self._last_matched_patterns = []
 
         logger.info("Level1RuleEngine initialized with Jieba")
 
@@ -34,7 +35,7 @@ class Level1RuleEngine:
         if len(words) == 1:
             for word, flag in words:
                 # nr: 人名, nrt: 人名(音译)
-                if flag in ['nr', 'nrt', 'nrfg'] and len(word) >= 2 and len(word) <= 3:
+                if flag in ['nr', 'nrt', 'nrfg'] and len(word) >= 2 and len(word) <= 4:
                     names.append(word)
                     logger.debug(f"Jieba extracted name: {word} (flag: {flag})")
         return names
@@ -51,13 +52,20 @@ class Level1RuleEngine:
         """
         conditions = []
         extracted_positions = set()
+        self._last_matched_patterns = []
 
         # 先提取客户号（C + 16位数字，优先级最高）
         customer_matches = self.customer_pattern.fullmatch(query)
         if customer_matches:
             customer_id = customer_matches.group()
+            self._last_matched_patterns.append({
+                "rule_name": "客户号",
+                "pattern": self.customer_pattern.pattern,
+                "matched_text": customer_id,
+                "match_type": "regex",
+            })
             conditions.append(Condition(
-                field="customer_id",
+                field="clientNo",
                 operator=Operator.MATCH,
                 value=customer_id
             ))
@@ -67,8 +75,14 @@ class Level1RuleEngine:
         policy_matches = self.policy_pattern.fullmatch(query)
         if policy_matches:
             policy_id = policy_matches.group()
+            self._last_matched_patterns.append({
+                "rule_name": "保单号",
+                "pattern": self.policy_pattern.pattern,
+                "matched_text": policy_id,
+                "match_type": "regex",
+            })
             conditions.append(Condition(
-                field="policies.policy_id",
+                field="policyNo",
                 operator=Operator.NESTED_MATCH,
                 value=policy_id
             ))
@@ -78,8 +92,14 @@ class Level1RuleEngine:
         id_matches = self.id_card_pattern.fullmatch(query)
         if id_matches:
             id_number = id_matches.group()
+            self._last_matched_patterns.append({
+                "rule_name": "身份证号",
+                "pattern": self.id_card_pattern.pattern,
+                "matched_text": id_number,
+                "match_type": "regex",
+            })
             conditions.append(Condition(
-                field="certificates.id_number",
+                field="idNo",
                 operator=Operator.NESTED_MATCH,
                 value=id_number
             ))
@@ -89,8 +109,14 @@ class Level1RuleEngine:
         phone_matches = self.phone_pattern.fullmatch(query)
         if phone_matches:
             mobile_phone = phone_matches.group()
+            self._last_matched_patterns.append({
+                "rule_name": "手机号",
+                "pattern": self.phone_pattern.pattern,
+                "matched_text": mobile_phone,
+                "match_type": "regex",
+            })
             conditions.append(Condition(
-                field="mobile_phone",
+                field="clientMobile",
                 operator=Operator.MATCH,
                 value=mobile_phone
             ))
@@ -99,8 +125,14 @@ class Level1RuleEngine:
         # 使用 Jieba 提取人名
         jieba_names = self._extract_names_with_jieba(query)
         for name in jieba_names:
+            self._last_matched_patterns.append({
+                "rule_name": "人名",
+                "pattern": "jieba:nr",
+                "matched_text": name,
+                "match_type": "jieba",
+            })
             conditions.append(Condition(
-                field="name",
+                field="clientName",
                 operator=Operator.MATCH,
                 value=name
             ))

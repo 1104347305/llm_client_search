@@ -11,7 +11,7 @@
 
 pattern_vars:
   CW: '[，,。\.？\?\！! ：\:\u4e00-\u9fa5]'
-  SEARCH: '(?:(?:查找|查询|查|找|找一下|查一下|检索|搜索|帮我查|帮我找|帮我搜索|给我看看)(?:一下|下)?(?:[，, ]{0,2}))?'
+  SEARCH: '(?:(?:查找|查询|查|找|找一下|查一下|检索|搜索|帮我查|帮我找|帮我搜索|给我看看|帮我看看|看看|哪些是|谁是)(?:一下|下)?(?:[，, ]{0,2}))?'
 
 
 rules:
@@ -22,6 +22,7 @@ rules:
     patterns:
       - '{SEARCH}(?:的客户|客户)?(?:叫|名叫|姓名是)(?!的客)([\u4e00-\u9fa5]{2,4})(?:的客户|客户)?'
       - '{SEARCH}(?:的客户|客户)?姓([\u4e00-\u9fa5])(?:的)?客户'
+      - '{SEARCH}(?:的客户|客户)?姓([\u4e00-\u9fa5])(?:的)?(?:[，,])?'
       - '{SEARCH}(?:的客户|客户)?名字(?:带|含|包含|有|里有|中有|里包含)([\u4e00-\u9fa5]{1,4})的客户'
     field: "clientName"
     operator: "MATCH"
@@ -61,8 +62,9 @@ rules:
 
   - name: "性别-简单"
     # 用于组合规则，只匹配"男"或"女"
-    patterns:
-      - '(男|女)'
+    enum_ref: "clientSex"
+    patterns_template:
+      - '{enum}'
     field: "clientSex"
     operator: "MATCH"
     value_type: "capture"
@@ -132,8 +134,8 @@ rules:
 
   - name: "年龄-精确"
     patterns:
-      - '{SEARCH}(\d+)周?岁(?:的客户|客户)?'
-      - '{SEARCH}(?<!子女)(?<!小孩)(?<!儿子)(?<!女儿)(?<!小朋友)(?<!孩子)(?<![-~到至])(\d+)周?岁(?:的客户|客户)?'
+      - '{SEARCH}(\d+)周?岁(?:的客户|客户|的人|人|名单|有哪些人|有哪些|的)?'
+      - '{SEARCH}(?<!子女)(?<!小孩)(?<!儿子)(?<!女儿)(?<!小朋友)(?<!孩子)(?<![-~到至])(\d+)周?岁(?:的客户|客户|的人|人|名单|有哪些人|有哪些|的)?'
     field: "clientAge"
     operator: "RANGE"
     value_type: "capture"
@@ -144,10 +146,10 @@ rules:
 
   - name: "年龄-以上"
     patterns:
-      - '{SEARCH}(\d+)岁?以上(?:的客户|客户|的人|人)?'
-      - '{SEARCH}(?<!不)超过(\d+)岁(?:的客户|客户|的人|人)?'
-      - '{SEARCH}大于(\d+)岁(?:的客户|客户|的人|人)?'
-      - '{SEARCH}高于(\d+)岁(?:的客户|客户|的人|人)?'
+      - '{SEARCH}(\d+)岁?以上(?:的客户|客户|的人|人|名单|有哪些人|有哪些|的)?'
+      - '{SEARCH}大于(\d+)岁(?:的客户|客户|的人|人|名单|有哪些人|有哪些|的)?'
+      - '{SEARCH}高于(\d+)岁(?:的客户|客户|的人|人|名单|有哪些人|有哪些|的)?'
+      - '{SEARCH}超过(\d+)岁(?:的客户|客户|的人|人|名单|有哪些人|有哪些|的)?'
     field: "clientAge"
     operator: "GTE"
     value_type: "capture"
@@ -158,10 +160,10 @@ rules:
 
   - name: "年龄-以下"
     patterns:
-      - '{SEARCH}(\d+)岁?以下(?:的客户|客户|的人|人)?'
-      - '{SEARCH}小于(\d+)岁(?:的客户|客户|的人|人)?'
-      - '{SEARCH}不超过(\d+)岁(?:的客户|客户|的人|人)?'
-      - '{SEARCH}低于(\d+)岁(?:的客户|客户|的人|人)?'
+      - '{SEARCH}(\d+)岁?以下(?:的客户|客户|的人|人|名单|有哪些人|有哪些|的)?'
+      - '{SEARCH}小于(\d+)岁(?:的客户|客户|的人|人|名单|有哪些人|有哪些|的)?'
+      - '{SEARCH}不超过(\d+)岁(?:的客户|客户|的人|人|名单|有哪些人|有哪些|的)?'
+      - '{SEARCH}低于(\d+)岁(?:的客户|客户|的人|人|名单|有哪些人|有哪些|的)?'
     field: "clientAge"
     operator: "LTE"
     value_type: "capture"
@@ -184,15 +186,15 @@ rules:
 
   - name: "年龄-左右"
     patterns:
-      - '{SEARCH}(\d+)岁左右(?:的客户|客户|的人|人)?'
+      - '{SEARCH}(\d+)岁左右(?:的客户|客户|的人|人|名单|有哪些人|有哪些|的)?'
       - '{SEARCH}(\d+)岁左右有哪些(?:客户|人)?'
     field: "clientAge"
     operator: "RANGE"
     value_type: "exact_range"
     value:
       group: 1
-      transform: "int"
-      range: 5
+      transform: "exact_range"
+      range: 2
     priority: 9
 
   - name: "年龄-多岁"
@@ -220,6 +222,7 @@ rules:
     value_type: "capture"
     value:
       group: 1
+      transform: "yyyymmdd_to_datetime"
     priority: 9
 
   - name: "出生年份-范围"
@@ -290,6 +293,20 @@ rules:
       format: "MM-dd"
     priority: 9
 
+  - name: "生日-近期"
+    patterns:
+      - '{SEARCH}生日(?:快到了|即将到来|快到|将到)(?:的客户|客户|的人)?'
+      - '{SEARCH}即将过生日(?:的客户|客户|的人)?'
+      - '{SEARCH}近期生日(?:的客户|客户|的人)?'
+    field: "birthdayMd"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "next_n_days"
+      days: 30
+      format: "MM-dd"
+    priority: 9
+
   - name: "生日-下周"
     patterns:
       - '{SEARCH}下周{CW}{0,2}生日(?:的客户|客户)?'
@@ -348,6 +365,7 @@ rules:
   - name: "学历"
     enum_ref: "education"
     patterns_template:
+      - '{SEARCH}{enum}(?:学历|毕业)?(?:的客户|客户|的人|人)?'
       - '{SEARCH}(?!{CW}{0,2}(?:以上|及以上|以下|及以下)){CW}{0,2}{enum}(?:学历|毕业)?(?:的客户|客户|的人|人)?'
       - '{SEARCH}(?!{CW}{0,2}(?:以上|及以上|以下|及以下)){CW}{0,2}(?:学历|毕业)[为是：:]{enum}(?:的客户|客户|的人|人)?'
       - '{SEARCH}(?!{CW}{0,2}(?:以上|及以上|以下|及以下)){CW}{0,2}(?:具有|拥有|获得|取得)[^，,。.]*?{enum}(?:学历|毕业)?(?:的客户|客户|的人|人)?'
@@ -361,8 +379,22 @@ rules:
   - name: "学历-以上"
     enum_ref: "education"
     patterns_template:
-      - '{SEARCH}{enum}(?:学历|毕业|及)?以上(?:的客户|客户)?'
-      - '{SEARCH}以上{CW}{0,2}{enum}(?:学历|毕业|及)?(?:的客户|客户)?'
+      - '{SEARCH}{enum}(?:学历|毕业)?以上(?:的客户|客户)?'
+      - '{SEARCH}以上{CW}{0,2}{enum}(?:学历|毕业)?(?:的客户|客户)?'
+    field: "education"
+    operator: "CONTAINS"
+    value_type: "enum_gt"
+    value:
+      group: 1
+    priority: 9
+
+  - name: "学历-及以上"
+    enum_ref: "education"
+    patterns_template:
+      - '{SEARCH}{enum}(?:学历|毕业)?及以上(?:的客户|客户)?'
+      - '{SEARCH}{enum}及以上(?:学历|毕业)?(?:的客户|客户)?'
+      - '{SEARCH}{enum}及(?:学历|毕业)?以上(?:的客户|客户)?'
+      - '{SEARCH}及以上{CW}{0,2}{enum}(?:学历|毕业)?(?:的客户|客户)?'
     field: "education"
     operator: "CONTAINS"
     value_type: "enum_gte"
@@ -414,9 +446,9 @@ rules:
   - name: "客户价值"
     enum_ref: "newValueLabel"
     patterns_template:
-      - '{SEARCH}{enum}(?!{CW}{0,2}(?:以上|及以上|更高|以下|及以下))(?:的客户|客户|有哪些客户)?'
+      - '{SEARCH}{enum}(?!{CW}{0,2}(?:以上|及以上|更高|以下|及以下))(?:的客户|客户|有哪些客户|有哪些人|名单|的人|人)?'
       - '{SEARCH}客户价值[为是：:]{enum}(?:的客户|客户)?'
-      - '{SEARCH}(?:谁是|哪些是){enum}(?:的客户|客户)?'
+      - '{SEARCH}(?:谁是|哪些是)?{enum}(?:的客户|客户)?'
       - '{SEARCH}{enum}有哪些(?:客户)?'
       - '{SEARCH}{enum}都有谁'
       - '{SEARCH}{enum}名单'
@@ -427,10 +459,36 @@ rules:
       group: 1
     priority: 8
 
+  - name: "客户价值-A类"
+    patterns:
+      - '{SEARCH}A类(?:的客户|客户|有哪些客户|名单)?'
+    field: "newValueLabel"
+    operator: "CONTAINS"
+    value_type: "static"
+    value:
+      - "A1"
+      - "A2"
+      - "A3"
+      - "A4"
+    priority: 8
+
   - name: "客户价值-以上"
     enum_ref: "newValueLabel"
     patterns_template:
-      - '{SEARCH}{enum}(?:以上|及以上|更高)(?:的客户|客户)?'
+      - '{SEARCH}{enum}(?:以上|更高)(?:的客户|客户)?'
+      - '{SEARCH}客户价值{CW}{0,2}{enum}(?:以上|更高)(?:的客户|客户)?'
+    field: "newValueLabel"
+    operator: "CONTAINS"
+    value_type: "enum_gt"
+    value:
+      group: 1
+    priority: 9
+
+  - name: "客户价值-及以上"
+    enum_ref: "newValueLabel"
+    patterns_template:
+      - '{SEARCH}{enum}及以上(?:的客户|客户)?'
+      - '{SEARCH}客户价值{CW}{0,2}{enum}及以上(?:的客户|客户)?'
     field: "newValueLabel"
     operator: "CONTAINS"
     value_type: "enum_gte"
@@ -441,7 +499,20 @@ rules:
   - name: "客户价值-以下"
     enum_ref: "newValueLabel"
     patterns_template:
-      - '{SEARCH}{enum}(?:以下|及以下)(?:的客户|客户)?'
+      - '{SEARCH}{enum}以下(?:的客户|客户)?'
+      - '{SEARCH}客户价值{CW}{0,2}{enum}以下(?:的客户|客户)?'
+    field: "newValueLabel"
+    operator: "CONTAINS"
+    value_type: "enum_lt"
+    value:
+      group: 1
+    priority: 9
+
+  - name: "客户价值-及以下"
+    enum_ref: "newValueLabel"
+    patterns_template:
+      - '{SEARCH}{enum}及以下(?:的客户|客户)?'
+      - '{SEARCH}客户价值{CW}{0,2}{enum}及以下(?:的客户|客户)?'
     field: "newValueLabel"
     operator: "CONTAINS"
     value_type: "enum_lte"
@@ -454,9 +525,9 @@ rules:
   - name: "客户温度"
     enum_ref: "clientTemperature"
     patterns_template:
-      - '{SEARCH}{enum}(?:客户)?(?!{CW}{0,2}(?:以上|及以上|更高|以下|及以下))(?:的客户|客户)?'
-      - '{SEARCH}客户温度{CW}{0,2}{enum}(?:客户)?(?!{CW}{0,2}(?:以上|及以上|更高|以下|及以下))(?:的客户|客户)?'
-      - '{SEARCH}客温{CW}{0,2}{enum}(?:客户)?(?!{CW}{0,2}(?:以上|及以上|更高|以下|及以下))(?:的客户|客户)?'
+      - '{SEARCH}{enum}(?:客户)?(?!{CW}{0,2}(?:以上|及以上|更高|以下|及以下))(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}客户温度{CW}{0,2}{enum}(?:客户)?(?!{CW}{0,2}(?:以上|及以上|更高|以下|及以下))(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}客温{CW}{0,2}{enum}(?:客户)?(?!{CW}{0,2}(?:以上|及以上|更高|以下|及以下))(?:的客户|客户|名单|的人|人)?'
     field: "clientTemperature"
     operator: "MATCH"
     value_type: "capture"
@@ -467,9 +538,22 @@ rules:
   - name: "客户温度-以上"
     enum_ref: "clientTemperature"
     patterns_template:
-      - '{SEARCH}{enum}(?:客户)?(?:以上|及以上|更高)(?:的客户|客户)?'
-      - '{SEARCH}客户温度{CW}{0,2}{enum}(?:以上|及以上|更高)(?:的客户|客户)?'
-      - '{SEARCH}客温{CW}{0,2}{enum}(?:以上|及以上|更高)(?:的客户|客户)?'
+      - '{SEARCH}{enum}(?:客户)?(?:以上|更高)(?:的客户|客户)?'
+      - '{SEARCH}客户温度{CW}{0,2}{enum}(?:以上|更高)(?:的客户|客户)?'
+      - '{SEARCH}客温{CW}{0,2}{enum}(?:以上|更高)(?:的客户|客户)?'
+    field: "clientTemperature"
+    operator: "CONTAINS"
+    value_type: "enum_gt"
+    value:
+      group: 1
+    priority: 8
+
+  - name: "客户温度-及以上"
+    enum_ref: "clientTemperature"
+    patterns_template:
+      - '{SEARCH}{enum}(?:客户)?及以上(?:的客户|客户)?'
+      - '{SEARCH}客户温度{CW}{0,2}{enum}及以上(?:的客户|客户)?'
+      - '{SEARCH}客温{CW}{0,2}{enum}及以上(?:的客户|客户)?'
     field: "clientTemperature"
     operator: "CONTAINS"
     value_type: "enum_gte"
@@ -480,9 +564,22 @@ rules:
   - name: "客户温度-以下"
     enum_ref: "clientTemperature"
     patterns_template:
-      - '{SEARCH}{enum}(?:客户)?(?:以下|及以下)(?:的客户|客户)?'
-      - '{SEARCH}客户温度{CW}{0,2}{enum}(?:以下|及以下)(?:的客户|客户)?'
-      - '{SEARCH}客温{CW}{0,2}{enum}(?:以下|及以下)(?:的客户|客户)?'
+      - '{SEARCH}{enum}(?:客户)?以下(?:的客户|客户)?'
+      - '{SEARCH}客户温度{CW}{0,2}{enum}以下(?:的客户|客户)?'
+      - '{SEARCH}客温{CW}{0,2}{enum}以下(?:的客户|客户)?'
+    field: "clientTemperature"
+    operator: "CONTAINS"
+    value_type: "enum_lt"
+    value:
+      group: 1
+    priority: 8
+
+  - name: "客户温度-及以下"
+    enum_ref: "clientTemperature"
+    patterns_template:
+      - '{SEARCH}{enum}(?:客户)?及以下(?:的客户|客户)?'
+      - '{SEARCH}客户温度{CW}{0,2}{enum}及以下(?:的客户|客户)?'
+      - '{SEARCH}客温{CW}{0,2}{enum}及以下(?:的客户|客户)?'
     field: "clientTemperature"
     operator: "CONTAINS"
     value_type: "enum_lte"
@@ -510,8 +607,8 @@ rules:
   - name: "寿险VIP"
     enum_ref: "vipType"
     patterns_template:
-      - '{SEARCH}{enum}(?:客户)?(?!{CW}{0,2}(?:以上|及以上|以下|及以下))(?:的客户|客户)?'
-      - '{SEARCH}寿险VIP{CW}{0,2}{enum}(?:的客户|客户)?'
+      - '{SEARCH}{enum}(?:客户)?(?!{CW}{0,2}(?:以上|及以上|以下|及以下))(?:的客户|客户|名单|的人|人|有哪些人|有哪些|的)?'
+      - '{SEARCH}寿险VIP{CW}{0,2}{enum}(?:的客户|客户|名单|的人|人|有哪些人|有哪些|的)?'
     field: "vipType"
     operator: "MATCH"
     value_type: "capture"
@@ -522,7 +619,18 @@ rules:
   - name: "寿险VIP-以上"
     enum_ref: "vipType"
     patterns_template:
-      - '{SEARCH}{enum}(?:以上|及以上)(?:的客户|客户)?'
+      - '{SEARCH}{enum}以上(?:的客户|客户)?'
+    field: "vipType"
+    operator: "CONTAINS"
+    value_type: "enum_gt"
+    value:
+      group: 1
+    priority: 9
+
+  - name: "寿险VIP-及以上"
+    enum_ref: "vipType"
+    patterns_template:
+      - '{SEARCH}{enum}及以上(?:的客户|客户)?'
     field: "vipType"
     operator: "CONTAINS"
     value_type: "enum_gte"
@@ -533,7 +641,18 @@ rules:
   - name: "寿险VIP-以下"
     enum_ref: "vipType"
     patterns_template:
-      - '{SEARCH}{enum}(?:以下|及以下)(?:的客户|客户)?'
+      - '{SEARCH}{enum}以下(?:的客户|客户)?'
+    field: "vipType"
+    operator: "CONTAINS"
+    value_type: "enum_lt"
+    value:
+      group: 1
+    priority: 9
+
+  - name: "寿险VIP-及以下"
+    enum_ref: "vipType"
+    patterns_template:
+      - '{SEARCH}{enum}及以下(?:的客户|客户)?'
     field: "vipType"
     operator: "CONTAINS"
     value_type: "enum_lte"
@@ -563,6 +682,7 @@ rules:
     patterns_template:
       - '{SEARCH}{enum}(?:的客户|客户)?'
       - '{SEARCH}{position}{enum}(?:的客户|客户)?'
+      - '{SEARCH}有哪些(?:的客户|客户)?{position}{enum}(?:的客户|客户)?'
     field: "productCode"
     operator: "CONTAINS"
     value_type: "capture"
@@ -581,6 +701,15 @@ rules:
     value:
       group: 1
     priority: 10
+
+  - name: "寿险产品-存在"
+    patterns:
+      - '{SEARCH}(?:寿险客户|寿险名单|购买过寿险的客户|买过寿险的客户|有寿险的客户|买过寿险的人|购买过寿险的人)'
+      - '{SEARCH}(?:寿险)(?:的客户|客户|有哪些人|有哪些客户|名单|的人|人)?'
+    field: "productCode"
+    operator: "EXISTS"
+    value_type: "static"
+    priority: 9
 
   # ==================== 持有产品类型 (pType) ====================
 
@@ -611,17 +740,26 @@ rules:
       group: 1
     priority: 11
 
+  - name: "持有产品类型-为空"
+    patterns:
+      - '{SEARCH}(?:没有买保险|没买保险|无保险|没有配置保险|未配置保险|没配置保险)(?:的客户|客户|名单|有哪些人|有哪些|的)?'
+      - '{SEARCH}(?:没有买过保险|没买过保险|没有保险)(?:的客户|客户|名单|有哪些人|有哪些|的)?'
+    field: "pType"
+    operator: "NOT_EXISTS"
+    value_type: "static"
+    priority: 12
+
   # ==================== 持有产品类别 (pcCategory) ====================
 
   - name: "险种-持有"
     enum_ref: "pcCategory"
     patterns_template:
-      - '{SEARCH}{position}{enum}(?:产品|保险)?(?:的客户|客户)?'
-      - '{SEARCH}{enum}(?:产品)?(?:的客户|客户)'
+      - '{SEARCH}{position}{enum}(?:产品|保险)?(?:的客户|客户|名单|有哪些人|有哪些|的人|人|的)?'
+      - '{SEARCH}{enum}(?:产品|保险)?(?:的客户|客户|的人|人|名单|有哪些人|有哪些|的)?'
       - '{SEARCH}{position}{enum}(?:产品|保险)?名单'
       - '{SEARCH}{enum}(?:产品)?名单'
       - '{SEARCH}{position}{enum}(?:产品|保险)?有哪些'
-      - '{SEARCH}{enum}(?:产品)?有哪些'
+      - '{SEARCH}{enum}(?:产品|保险)?有哪些'
     field: "pcCategory"
     operator: "CONTAINS"
     value_type: "capture"
@@ -708,10 +846,74 @@ rules:
       multiplier: 10000
     priority: 9
 
+  - name: "保额-以上"
+    patterns:
+      - '{SEARCH}总?保额{CW}{0,2}(\d+)万以上(?:的客户|客户|的人|人|名单|有哪些人|有哪些)?'
+      - '{SEARCH}总?保额{CW}{0,2}大于(\d+)万(?:的客户|客户|的人|人|名单|有哪些人|有哪些)?'
+      - '{SEARCH}总?保额{CW}{0,2}超过(\d+)万(?:的客户|客户|的人|人|名单|有哪些人|有哪些)?'
+      - '{SEARCH}保额{CW}{0,2}高于(\d+)万(?:的客户|客户|的人|人|名单|有哪些人|有哪些)?'
+      - '{SEARCH}客户总?保额{CW}{0,2}(\d+)万以上(?:的客户|客户|的人|人|名单|有哪些人|有哪些)?'
+      - '{SEARCH}总?保额{CW}{0,2}(\d+)万以上(?:的客户|客户|的人|人|名单|有哪些人|有哪些)?'
+      - '{SEARCH}总?保额{CW}{0,2}(?:在)?(\d+)万以上(?:的客户|客户|的人|人|名单|有哪些人|有哪些)?'
+      - '{SEARCH}总?保额{CW}{0,2}(一)万以上(?:的客户|客户|的人|人|名单|有哪些人|有哪些)?'
+    field: "insnoSumInsSeq"
+    operator: "GTE"
+    value_type: "capture"
+    value:
+      group: 1
+      transform: "multiply"
+      multiplier: 10000
+    priority: 9
+
+  - name: "保额-以上-非万"
+    patterns:
+      - '{SEARCH}总?保额{CW}{0,2}(\d{4,})以上(?:的客户|客户)?'
+      - '{SEARCH}总?保额{CW}{0,2}大于(\d{4,})(?:的客户|客户)?'
+      - '{SEARCH}总?保额{CW}{0,2}超过(\d{4,})(?:都有谁|的客户|客户)?'
+      - '{SEARCH}总?保额{CW}{0,2}高于(\d{4,})(?:的客户|客户)?'
+      - '{SEARCH}总?保额{CW}{0,2}(\d{4,})以上(?:的客户|客户)?'
+      - '{SEARCH}总?保额{CW}{0,2}超过(\d{4,})(?:都有谁|的客户|客户)?'
+    field: "insnoSumInsSeq"
+    operator: "GTE"
+    value_type: "capture"
+    value:
+      group: 1
+      transform: "int"
+    priority: 10
+
+  - name: "保额-以下"
+    patterns:
+      - '{SEARCH}总?保额{CW}{0,2}(\d+)万?以下(?:的客户|客户)?'
+      - '{SEARCH}总?保额{CW}{0,2}低于(\d+)万?(?:的客户|客户)?'
+      - '{SEARCH}总?保额{CW}{0,2}小于(\d+)万?(?:的客户|客户)?'
+      - '{SEARCH}总?保额{CW}{0,2}不超过(\d+)万?(?:的客户|客户)?'
+    field: "insnoSumInsSeq"
+    operator: "LTE"
+    value_type: "capture"
+    value:
+      group: 1
+      transform: "multiply"
+      multiplier: 10000
+    priority: 9
+
+  - name: "保额-范围"
+    patterns:
+      - '{SEARCH}(?:的客户|客户)?总?保额{CW}{0,2}(\d+)[-~到](\d+)万(?:的客户|客户)?'
+    field: "insnoSumInsSeq"
+    operator: "RANGE"
+    value_type: "range"
+    value:
+      min_group: 1
+      max_group: 2
+      transform: "multiply"
+      multiplier: 10000
+    priority: 9
+
   - name: "保单周年日-精确匹配"
     patterns:
-      - '{SEARCH}保单周年日[为是：:](\d{4}-\d{2}-\d{2})(?:的客户|客户)?'
+      - '{SEARCH}保单周年日[为是：:]?(\d{4}-\d{2}-\d{2})(?:的客户|客户)?'
       - '{SEARCH}保单周年日期(\d{4}-\d{2}-\d{2})(?:的客户|客户)?'
+      - '{SEARCH}保单周年日期[为是：:]?(\d+)(?:的客户|客户)?'
     field: "effAnniversaryDate"
     operator: "MATCH"
     value_type: "capture"
@@ -774,6 +976,21 @@ rules:
       format: "yyyy-MM-dd HH:mm:ss"
     priority: 9
 
+  - name: "证件到期时间-近期"
+    patterns:
+      - '{SEARCH}(?:身份证|证件)(?:有效期)?(?:快到期|即将到期|快过期|将到期)(?:的客户|客户)?'
+      - '{SEARCH}(?:身份证|证件){CW}{0,2}(?:有效期)?{CW}{0,2}(?:快到期|即将到期|快过期|将到期)(?:的客户|客户)?'
+      - '{SEARCH}(?:快到期|即将到期|快过期|将到期)的?(?:身份证|证件)(?:有效期)?(?:的客户|客户)?'
+      - '{SEARCH}(?:身份证|证件)(?:有效期)?近期到期(?:的客户|客户)?'
+    field: "idValidDate"
+    operator: "LTE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "today_plus_n_days"
+      days: 30
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+
   # ==================== 缴费期满 (effAppEndDate) ====================
 
   - name: "缴费期满-本年"
@@ -830,9 +1047,8 @@ rules:
   - name: "持有综拓产品类别"
     enum_ref: "agentPerspProductType"
     patterns_template:
-      - '{SEARCH}{enum}(?:的客户|客户)?'
+      - '{SEARCH}{position}?{enum}(?:的客户|客户)?'
       - '{SEARCH}{position}{enum}产品?(?:的客户|客户)?'
-      - '{SEARCH}{position}{enum}'
     field: "agentPerspProductType"
     operator: "CONTAINS"
     value_type: "capture"
@@ -879,10 +1095,9 @@ rules:
   # ==================== 保单到期时间 (validSinsMatuDate) ====================
 
   - name: "保单到期时间"
-    enum_ref: "validSinsMatuDate"
-    patterns_template:
-      - '{SEARCH}{enum}到期(?:的)?(?:短期?保单|客户|保单)?'
-      - '{SEARCH}到期{CW}{0,2}{enum}'
+    patterns:
+      - '{SEARCH}(?:3-10天内|10-30天内|30-60天内)到期(?:的)?(?:短期?保单|客户|保单)?'
+      - '{SEARCH}到期{CW}{0,2}(?:3-10天内|10-30天内|30-60天内)'
     field: "validSinsMatuDate"
     operator: "MATCH"
     value_type: "capture"
@@ -933,8 +1148,20 @@ rules:
   - name: "居家达标客户等级-以上"
     enum_ref: "jujiaClientGrade"
     patterns_template:
-      - '{SEARCH}居家{CW}{0,2}{enum}(?:以上|及以上)(?:的客户|客户)?'
-      - '{SEARCH}{enum}居家(?:以上|及以上)(?:的客户|客户)?'
+      - '{SEARCH}居家{CW}{0,2}{enum}以上(?:的客户|客户)?'
+      - '{SEARCH}{enum}居家以上(?:的客户|客户)?'
+    field: "jujiaClientGrade"
+    operator: "CONTAINS"
+    value_type: "enum_gt"
+    value:
+      group: 1
+    priority: 8
+
+  - name: "居家达标客户等级-及以上"
+    enum_ref: "jujiaClientGrade"
+    patterns_template:
+      - '{SEARCH}居家{CW}{0,2}{enum}及以上(?:的客户|客户)?'
+      - '{SEARCH}{enum}居家及以上(?:的客户|客户)?'
     field: "jujiaClientGrade"
     operator: "CONTAINS"
     value_type: "enum_gte"
@@ -945,13 +1172,39 @@ rules:
   - name: "居家达标客户等级-以下"
     enum_ref: "jujiaClientGrade"
     patterns_template:
-      - '{SEARCH}居家{CW}{0,2}{enum}(?:以下|及以下)(?:的客户|客户)?'
+      - '{SEARCH}居家{CW}{0,2}{enum}以下(?:的客户|客户)?'
+    field: "jujiaClientGrade"
+    operator: "CONTAINS"
+    value_type: "enum_lt"
+    value:
+      group: 1
+    priority: 8
+
+  - name: "居家达标客户等级-及以下"
+    enum_ref: "jujiaClientGrade"
+    patterns_template:
+      - '{SEARCH}居家{CW}{0,2}{enum}及以下(?:的客户|客户)?'
     field: "jujiaClientGrade"
     operator: "CONTAINS"
     value_type: "enum_lte"
     value:
       group: 1
     priority: 8
+
+  - name: "居家达标-泛称"
+    patterns:
+      - '{SEARCH}(?:居家达标|居家会员)(?:的客户|客户|有哪些|有哪些人)?'
+    field: "jujiaClientGrade"
+    operator: "CONTAINS"
+    value_type: "static"
+    value:
+      - "v0.5"
+      - "v1"
+      - "v1.5"
+      - "v2"
+      - "v2.5"
+      - "v3"
+    priority: 9
 
   # ==================== 康养达标客户等级 (kangyangClientGrade) ====================
 
@@ -970,8 +1223,20 @@ rules:
   - name: "康养达标客户等级-以上"
     enum_ref: "kangyangClientGrade"
     patterns_template:
-      - '{SEARCH}康养{CW}{0,2}{enum}(?:以上|及以上)(?:的客户|客户)?'
-      - '{SEARCH}{enum}(?:以上|及以上)(?:的客户|客户)?'
+      - '{SEARCH}康养{CW}{0,2}{enum}以上(?:的客户|客户)?'
+      - '{SEARCH}{enum}以上(?:的客户|客户)?'
+    field: "kangyangClientGrade"
+    operator: "CONTAINS"
+    value_type: "enum_gt"
+    value:
+      group: 1
+    priority: 8
+
+  - name: "康养达标客户等级-及以上"
+    enum_ref: "kangyangClientGrade"
+    patterns_template:
+      - '{SEARCH}康养{CW}{0,2}{enum}及以上(?:的客户|客户)?'
+      - '{SEARCH}{enum}及以上(?:的客户|客户)?'
     field: "kangyangClientGrade"
     operator: "CONTAINS"
     value_type: "enum_gte"
@@ -982,13 +1247,34 @@ rules:
   - name: "康养达标客户等级-以下"
     enum_ref: "kangyangClientGrade"
     patterns_template:
-      - '{SEARCH}康养{CW}{0,2}{enum}(?:以下|及以下)(?:的客户|客户)?'
+      - '{SEARCH}康养{CW}{0,2}{enum}以下(?:的客户|客户)?'
+    field: "kangyangClientGrade"
+    operator: "CONTAINS"
+    value_type: "enum_lt"
+    value:
+      group: 1
+    priority: 8
+
+  - name: "康养达标客户等级-及以下"
+    enum_ref: "kangyangClientGrade"
+    patterns_template:
+      - '{SEARCH}康养{CW}{0,2}{enum}及以下(?:的客户|客户)?'
+      - '{SEARCH}{enum}及以下(?:的客户|客户)?'
     field: "kangyangClientGrade"
     operator: "CONTAINS"
     value_type: "enum_lte"
     value:
       group: 1
     priority: 8
+
+  - name: "康养达标-泛称"
+    patterns:
+      - '{SEARCH}(?:康养达标|康养预达标会员|康养预达标|预达标康养|预达康养|预达标)(?:的客户|客户|会员|名单|有哪些人|有哪些)?'
+    field: "kangyangClientGrade"
+    operator: "MATCH"
+    value_type: "static"
+    value: "康养预达标会员"
+    priority: 9
 
   # ==================== 安有护等级 (zhenxiangRunEquityGrade) ====================
 
@@ -1117,8 +1403,195 @@ rules:
     value_type: "capture"
     value:
       group: 1
+      transform: "yyyymmdd_to_datetime"
     require_paired_field: "familyRelation"
     priority: 11
+
+  # ==================== 家庭成员年龄 (familyClientAge) ====================
+  # 注意：最终返回前会自动转换为 familyClientBirthday 日期范围
+
+  - name: "子女年龄-范围"
+    patterns:
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)(\d+)[-~到至](\d+)周?岁(?:的客户|客户)?'
+    field: "familyClientAge"
+    operator: "RANGE"
+    value_type: "range"
+    value:
+      min_group: 1
+      max_group: 2
+      transform: "int"
+    priority: 12
+    extra_conditions:
+      - field: "familyRelation"
+        operator: "CONTAINS"
+        value: "子女"
+
+  - name: "子女年龄-以上"
+    patterns:
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)(\d+)周?岁以上(?:的客户|客户)?'
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)超过(\d+)周?岁(?:的客户|客户)?'
+    field: "familyClientAge"
+    operator: "GTE"
+    value_type: "capture"
+    value:
+      group: 1
+      transform: "int"
+    priority: 12
+    extra_conditions:
+      - field: "familyRelation"
+        operator: "CONTAINS"
+        value: "子女"
+
+  - name: "子女年龄-以下"
+    patterns:
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)(\d+)周?岁以下(?:的客户|客户)?'
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)不超过(\d+)周?岁(?:的客户|客户)?'
+    field: "familyClientAge"
+    operator: "LTE"
+    value_type: "capture"
+    value:
+      group: 1
+      transform: "int"
+    priority: 12
+    extra_conditions:
+      - field: "familyRelation"
+        operator: "CONTAINS"
+        value: "子女"
+
+  - name: "子女年龄-精确"
+    patterns:
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)(\d+)周?岁(?:的客户|客户)?'
+    field: "familyClientAge"
+    operator: "RANGE"
+    value_type: "capture"
+    value:
+      group: 1
+      transform: "exact_range"
+    priority: 11
+    extra_conditions:
+      - field: "familyRelation"
+        operator: "CONTAINS"
+        value: "子女"
+
+  - name: "子女年龄-未成年"
+    patterns:
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)(?:未成年|没成年|未成年人)(?:的客户|客户)?'
+    field: "familyClientAge"
+    operator: "RANGE"
+    value_type: "static"
+    value:
+      min: 0
+      max: 17
+    priority: 12
+    extra_conditions:
+      - field: "familyRelation"
+        operator: "CONTAINS"
+        value: "子女"
+
+  - name: "子女年龄-青年"
+    patterns:
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)(?:已成年|成年了|成年)(?:的客户|客户)?'
+    field: "familyClientAge"
+    operator: "RANGE"
+    value_type: "static"
+    value:
+      min: 18
+      max: 35
+    priority: 12
+    extra_conditions:
+      - field: "familyRelation"
+        operator: "CONTAINS"
+        value: "子女"
+
+  - name: "子女教育阶段-幼儿园"
+    patterns:
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)(?:在[上读]?|上|读)?(?:幼儿园|学前班)(?:的客户|客户)?'
+    field: "familyClientAge"
+    operator: "RANGE"
+    value_type: "static"
+    value:
+      min: 3
+      max: 6
+    priority: 12
+    extra_conditions:
+      - field: "familyRelation"
+        operator: "CONTAINS"
+        value: "子女"
+
+  - name: "子女教育阶段-小学"
+    patterns:
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)(?:在[上读]?|上|读)?小学(?:的客户|客户)?'
+    field: "familyClientAge"
+    operator: "RANGE"
+    value_type: "static"
+    value:
+      min: 6
+      max: 12
+    priority: 12
+    extra_conditions:
+      - field: "familyRelation"
+        operator: "CONTAINS"
+        value: "子女"
+
+  - name: "子女教育阶段-初中"
+    patterns:
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)(?:在[上读]?|上|读)?初中(?:的客户|客户)?'
+    field: "familyClientAge"
+    operator: "RANGE"
+    value_type: "static"
+    value:
+      min: 12
+      max: 15
+    priority: 12
+    extra_conditions:
+      - field: "familyRelation"
+        operator: "CONTAINS"
+        value: "子女"
+
+  - name: "子女教育阶段-高中"
+    patterns:
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)(?:在[上读]?|上|读)?高中(?:的客户|客户)?'
+    field: "familyClientAge"
+    operator: "RANGE"
+    value_type: "static"
+    value:
+      min: 15
+      max: 18
+    priority: 12
+    extra_conditions:
+      - field: "familyRelation"
+        operator: "CONTAINS"
+        value: "子女"
+
+  - name: "子女教育阶段-初高中"
+    patterns:
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)(?:在[上读]?|上|读)?(?:初高中|初中或高中)(?:的客户|客户)?'
+    field: "familyClientAge"
+    operator: "RANGE"
+    value_type: "static"
+    value:
+      min: 12
+      max: 18
+    priority: 12
+    extra_conditions:
+      - field: "familyRelation"
+        operator: "CONTAINS"
+        value: "子女"
+
+  - name: "子女教育阶段-大学"
+    patterns:
+      - '{SEARCH}(?:子女|儿子|女儿|孩子|小孩|小朋友|娃|小娃)(?:在[上读]?|上|读)?(?:大学|本科|专科|大专)(?:的客户|客户)?'
+    field: "familyClientAge"
+    operator: "RANGE"
+    value_type: "static"
+    value:
+      min: 18
+      max: 22
+    priority: 12
+    extra_conditions:
+      - field: "familyRelation"
+        operator: "CONTAINS"
+        value: "子女"
 
   # ==================== 证件类型 (idType) ====================
   - name: "证件类型"
@@ -1151,6 +1624,21 @@ rules:
       group: 1
     priority: 9
 
+  - name: "保单到期时间-近期"
+    patterns:
+      - '{SEARCH}(?:保单|寿险)(?:即将到期|快到期|近期到期)(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单|寿险){CW}{0,2}(?:即将到期|快到期|近期到期)(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:即将到期|快到期|近期到期)的?(?:保单|寿险)(?:的客户|客户|保单)?'
+      - '{SEARCH}续保提醒(?:的客户|客户)?'
+    field: "validSinsMatuDate"
+    operator: "LTE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "today_plus_n_days"
+      days: 30
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+
   # ==================== 保单产品名称 (policies.product_name) ====================
 
   - name: "保单号-匹配"
@@ -1172,7 +1660,8 @@ rules:
     enum_ref: "profName"
     patterns_template:
       - '{SEARCH}{enum}职业(?:的客户|客户)?'
-      - '{SEARCH}{enum}客户?'
+      - '{SEARCH}做{enum}(?:的客户|客户|的人|人|名单|有哪些人|有哪些)?'
+      - '{SEARCH}{enum}(?:的客户|客户|的人|人|名单|有哪些人|有哪些)?'
     field: "profName"
     operator: "MATCH"
     value_type: "capture"
@@ -1197,8 +1686,8 @@ rules:
 
   - name: "产险产品-车险"
     patterns:
-      - '{SEARCH}(?:购买了?|有|持有|配置了?)车险(?:的客户|客户)?'
-      - '{SEARCH}车险(?:客户|的客户)?'
+      - '{SEARCH}(?:购买了?|有|持有|配置了?)车险(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}车险(?:客户|的客户|名单|有哪些人|的人|人)?'
     field: "isBuyPregnancyCar"
     operator: "MATCH"
     value_type: "static"
@@ -1215,12 +1704,88 @@ rules:
     value: "非车险"
     priority: 10
 
+  # ==================== 保单托管 (trusteeshipFlag) ====================
+
+  - name: "保单托管-是"
+    patterns:
+      - '{SEARCH}(?:已|有)?托管(?:的客户|客户)?'
+      - '{SEARCH}保单托管(?:的客户|客户)?'
+    field: "trusteeshipFlag"
+    operator: "MATCH"
+    value_type: "static"
+    value: "是"
+    priority: 10
+
+  - name: "保单托管-否"
+    patterns:
+      - '{SEARCH}(?:哪些客户|哪些人)?没有保单托管'
+      - '{SEARCH}(?:未|没有?|不)托管(?:的客户|客户|名单|有哪些人|的人|人)?'
+      - '{SEARCH}未托管保单(?:的客户|客户|名单|有哪些人|的人|人)?'
+    field: "trusteeshipFlag"
+    operator: "MATCH"
+    value_type: "static"
+    value: "否"
+    priority: 10
+
+  # ==================== 养老险/意外险产品 (gProductCode) ====================
+
+  - name: "养老险产品-持有"
+    enum_ref: "gProductCode"
+    patterns_template:
+      - '{SEARCH}{position}{enum}(?:的客户|客户)?'
+      - '{SEARCH}{enum}(?:的客户|客户)?'
+    field: "gProductCode"
+    operator: "CONTAINS"
+    value_type: "capture"
+    value:
+      group: 1
+    priority: 9
+    negation_support: true
+
+  - name: "养老险产品-未持有"
+    enum_ref: "gProductCode"
+    patterns_template:
+      - '{SEARCH}{negation}{enum}(?:的客户|客户)?'
+    field: "gProductCode"
+    operator: "NOT_CONTAINS"
+    value_type: "capture"
+    value:
+      group: 1
+    priority: 10
+
+  # ==================== 健康险产品 (hProductCode) ====================
+
+  - name: "健康险产品-持有"
+    enum_ref: "hProductCode"
+    patterns_template:
+      - '{SEARCH}{position}{enum}(?:的客户|客户)?'
+      - '{SEARCH}{enum}(?:的客户|客户)?'
+    field: "hProductCode"
+    operator: "CONTAINS"
+    value_type: "capture"
+    value:
+      group: 1
+    priority: 9
+    negation_support: true
+
+  - name: "健康险产品-未持有"
+    enum_ref: "hProductCode"
+    patterns_template:
+      - '{SEARCH}{negation}{enum}(?:的客户|客户)?'
+    field: "hProductCode"
+    operator: "NOT_CONTAINS"
+    value_type: "capture"
+    value:
+      group: 1
+    priority: 10
+
   # ==================== 家庭成员性别 (familyClientSex) ====================
 
   - name: "家庭成员性别"
-    patterns:
-      - '{SEARCH}(?:家庭成员|家属|成员){CW}{0,2}性别[为是：:]{0,1}(男|女)(?:的客户|客户)?'
-      - '{SEARCH}(男|女)性?(?:家庭成员|家属|成员)(?:的客户|客户)?'
+    enum_ref: "familyClientSex"
+    patterns_template:
+      - '{SEARCH}(?:家庭成员|家属|成员|子女|父母|儿子|女儿|小孩|娃|小朋友|爸爸|父亲|妈妈|母亲|外祖母|祖母|爷爷|奶奶|外公|外婆){CW}{0,2}性别[为是：:]{0,1}{enum}(?:的客户|客户)?'
+      - '{SEARCH}{enum}性?(?:家庭成员|家属|成员|子女|父母|儿子|女儿|小孩|娃|小朋友|爸爸|父亲|妈妈|母亲|外祖母|祖母|爷爷|奶奶|外公|外婆)?(?:的客户|客户)?'
     field: "familyClientSex"
     operator: "NESTED_MATCH"
     value_type: "capture"
@@ -1268,6 +1833,18 @@ composite_rules:
     patterns:
       - '{SEARCH}【年龄-精确】(?:[的、，, 还就也]{0,4})?【家庭成员关系-有】(?:[的、，, 还就也]{0,4})?【险种-未配置】(?:[的]{0,2})?(?:的客户|客户)?'
     priority: 30
+
+  - name: "年龄精确+有子女"
+    # 35岁有小朋友的客户（无险种条件）
+    patterns:
+      - '{SEARCH}【年龄-精确】(?:[的、，, 还就也]{0,4})?【家庭成员关系-有】(?:[的]{0,2})?(?:的客户|客户)?'
+    priority: 22
+
+  - name: "年龄GTE+有子女"
+    # 35岁以上有孩子的客户（无险种条件）
+    patterns:
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的]{0,2})?(?:的客户|客户)?'
+    priority: 22
 
   - name: "婚姻+有子女+未配置险种"
     # 已婚有小朋友未配置医疗险的客户
@@ -1444,6 +2021,12 @@ composite_rules:
       - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,3})?【险种-未配置】(?:的客户|客户)?'
     priority: 20
 
+  - name: "年龄GTE+无保险"
+    patterns:
+      - '{SEARCH}【年龄-以上】(?:[的、，, ]{0,4})?【持有产品类型-为空】(?:的客户|客户|名单|有哪些人|有哪些|的)?'
+      - '{SEARCH}【持有产品类型-为空】(?:[的、，, ]{0,4})?【年龄-以上】(?:的客户|客户|名单|有哪些人|有哪些|的)?'
+    priority: 20
+
   - name: "婚姻+未配置险种"
     # 已婚未配置医疗险的客户
     patterns:
@@ -1512,8 +2095,94 @@ composite_rules:
   - name: "年龄范围+寿险VIP"
     # 40岁左右黄金VIP有哪些人
     patterns:
-      - '{SEARCH}【年龄-左右】(?:[的、，, ]{0,3})?【寿险VIP】(?:有哪些人|的客户|客户)?'
+      - '{SEARCH}【年龄-左右】(?:[的、，, ]{0,4})?【寿险VIP】(?:有哪些人|有哪些|名单|的客户|客户|的人|人|的)?'
+      - '{SEARCH}【年龄-精确】(?:[的、，, ]{0,4})?【寿险VIP】(?:有哪些人|有哪些|名单|的客户|客户|的人|人|的)?'
     priority: 20
+
+  - name: "年龄范围+保额-以上"
+    # 40岁左右黄金VIP有哪些人
+    patterns:
+      - '{SEARCH}【年龄-左右】(?:[的、，, ]{0,3})?【保额-以上】(?:有哪些人|的客户|客户)?'
+      - '{SEARCH}【年龄-左右】(?:[的、，, ]{0,3})?【保额-以上-非万】(?:有哪些人|的客户|客户)?'
+      - '{SEARCH}【年龄-精确】(?:[的、，, ]{0,3})?【保额-以上】(?:有哪些人|的客户|客户)?'
+      - '{SEARCH}【年龄-精确】(?:[的、，, ]{0,3})?【保额-以上-非万】(?:有哪些人|的客户|客户)?'
+    priority: 20
+
+  - name: "年龄+产险产品"
+    patterns:
+      - '{SEARCH}【年龄-左右】(?:[的、，, ]{0,3})?【产险产品-车险】(?:的客户|客户)?'
+      - '{SEARCH}【年龄-精确】(?:[的、，, ]{0,3})?【产险产品-车险】(?:的客户|客户)?'
+      - '{SEARCH}【年龄-左右】(?:[的、，, ]{0,3})?【产险产品-非车险】(?:的客户|客户)?'
+      - '{SEARCH}【年龄-精确】(?:[的、，, ]{0,3})?【产险产品-非车险】(?:的客户|客户)?'
+    priority: 20
+
+  - name: "性别+年缴保费"
+    patterns:
+      - '{SEARCH}【性别-简单】(?:性)?(?:[的、，, ]{0,3})?【年缴保费-以上】(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}【性别-简单】(?:性)?(?:[的、，, ]{0,3})?【年缴保费-以上-非万】(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}【年缴保费-以上】(?:[的、，, ]{0,3})?【性别-简单】(?:性)?(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}【年缴保费-以上-非万】(?:[的、，, ]{0,3})?【性别-简单】(?:性)?(?:的客户|客户|名单|的人|人)?'
+    priority: 20
+
+  - name: "寿险VIP+险种"
+    patterns:
+      - '{SEARCH}【寿险VIP】(?:[的、，, ]{0,4})?【险种-持有】(?:的客户|客户|名单|的人|人|有哪些人|有哪些|的)?'
+      - '{SEARCH}【险种-持有】(?:[的、，, ]{0,4})?【寿险VIP】(?:的客户|客户|名单|的人|人|有哪些人|有哪些|的)?'
+    priority: 20
+
+  - name: "年龄+寿险VIP+寿险产品"
+    patterns:
+      - '{SEARCH}【年龄-精确】(?:[的、，, ]{0,4})?【寿险VIP】(?:[的、，, ]{0,4})?【寿险产品-存在】'
+      - '{SEARCH}【年龄-左右】(?:[的、，, ]{0,4})?【寿险VIP】(?:[的、，, ]{0,4})?【寿险产品-存在】'
+      - '{SEARCH}【寿险VIP】(?:[的、，, ]{0,4})?【年龄-精确】(?:[的、，, ]{0,4})?【寿险产品-存在】'
+      - '{SEARCH}【寿险VIP】(?:[的、，, ]{0,4})?【年龄-左右】(?:[的、，, ]{0,4})?【寿险产品-存在】'
+    priority: 22
+
+  - name: "客户价值+险种"
+    patterns:
+      - '{SEARCH}【客户价值】(?:[的、，, ]{0,3})?【险种-持有】(?:的客户|客户)?'
+      - '{SEARCH}【险种-持有】(?:[的、，, ]{0,3})?【客户价值】(?:的客户|客户)?'
+      - '{SEARCH}【客户价值-A类】(?:[的、，, ]{0,3})?【险种-持有】(?:的客户|客户)?'
+      - '{SEARCH}【险种-持有】(?:[的、，, ]{0,3})?【客户价值-A类】(?:的客户|客户)?'
+    priority: 20
+
+  - name: "年龄+客户价值+险种"
+    patterns:
+      - '{SEARCH}【年龄-精确】(?:[的、，, ]{0,3})?【客户价值】(?:[的、，, ]{0,3})?【险种-持有】(?:的客户|客户|名单|的人|人|有哪些人|有哪些)?'
+      - '{SEARCH}【年龄-精确】(?:[的、，, ]{0,3})?【客户价值-A类】(?:[的、，, ]{0,3})?【险种-持有】(?:的客户|客户|名单|的人|人|有哪些人|有哪些)?'
+      - '{SEARCH}【年龄-左右】(?:[的、，, ]{0,3})?【客户价值】(?:[的、，, ]{0,3})?【险种-持有】(?:的客户|客户|名单|的人|人|有哪些人|有哪些)?'
+      - '{SEARCH}【年龄-左右】(?:[的、，, ]{0,3})?【客户价值-A类】(?:[的、，, ]{0,3})?【险种-持有】(?:的客户|客户|名单|的人|人|有哪些人|有哪些)?'
+    priority: 22
+
+  - name: "年龄+客户温度+持有产品类型"
+    patterns:
+      - '{SEARCH}【年龄-精确】(?:[的、，, ]{0,3})?【客户温度】(?:[的、，, ]{0,3})?【持有产品类型-持有】(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}【年龄-左右】(?:[的、，, ]{0,3})?【客户温度】(?:[的、，, ]{0,3})?【持有产品类型-持有】(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}【客户温度】(?:[的、，, ]{0,3})?【年龄-精确】(?:[的、，, ]{0,3})?【持有产品类型-持有】(?:的客户|客户|名单|的人|人)?'
+    priority: 22
+
+  - name: "年龄+客户温度+寿险产品"
+    patterns:
+      - '{SEARCH}【年龄-精确】(?:[的、，, ]{0,4})?【客户温度】(?:[的、，, ]{0,4})?【寿险产品-存在】'
+      - '{SEARCH}【年龄-左右】(?:[的、，, ]{0,4})?【客户温度】(?:[的、，, ]{0,4})?【寿险产品-存在】'
+      - '{SEARCH}【客户温度】(?:[的、，, ]{0,4})?【年龄-精确】(?:[的、，, ]{0,4})?【寿险产品-存在】'
+      - '{SEARCH}【客户温度】(?:[的、，, ]{0,4})?【年龄-左右】(?:[的、，, ]{0,4})?【寿险产品-存在】'
+    priority: 22
+
+  - name: "年龄范围+婚姻+有子女+性别"
+    patterns:
+      - '{SEARCH}【年龄-范围】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【性别-枚举】(?:性)?(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}【年龄-精确】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?【性别-枚举】(?:性)?(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}【年龄-范围】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?姓?【性别-枚举】(?:性)?(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}【年龄-精确】(?:[的、，, ]{0,3})?【婚姻状况】(?:[的、，, ]{0,3})?【家庭成员关系-有】(?:[的、，, ]{0,3})?姓?【性别-枚举】(?:性)?(?:的客户|客户|名单|的人|人)?'
+    priority: 24
+
+  - name: "姓名+寿险产品"
+    patterns:
+      - '{SEARCH}【姓名-匹配】(?:[的、，, ]{0,3})?【寿险产品-持有】(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}【寿险产品-持有】(?:[的、，, ]{0,3})?【姓名-匹配】(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}【姓名-匹配】(?:[的、，, ]{0,3})?【寿险产品-存在】(?:的客户|客户|名单|的人|人)?'
+    priority: 22
 
   - name: "年龄GTE+学历"
     # 45岁以上的博士
@@ -1525,7 +2194,9 @@ composite_rules:
     # A类冷却客户 / A类中温客户 / A类低温名单
     patterns:
       - '{SEARCH}【客户价值】(?:[的、，, ]{0,3})?【客户温度】(?:的客户|客户|名单)?'
+      - '{SEARCH}【客户价值-A类】(?:[的、，, ]{0,3})?【客户温度】(?:的客户|客户|名单)?'
       - '{SEARCH}【客户温度】(?:[的、，, ]{0,3})?【客户价值】(?:的客户|客户|名单)?'
+      - '{SEARCH}【客户温度】(?:[的、，, ]{0,3})?【客户价值-A类】(?:的客户|客户|名单)?'
     priority: 20
 
   - name: "寿险VIP+客户温度"
@@ -1540,6 +2211,7 @@ composite_rules:
     patterns:
       - '{SEARCH}【寿险VIP】(?:[的、，, ]{0,3})?【客户温度】(?:[的、，, ]{0,3})?【持有综拓产品类别】(?:有哪些人|的客户|客户)?'
       - '{SEARCH}【客户价值】(?:[的、，, ]{0,3})?【客户温度】(?:[的、，, ]{0,3})?【持有综拓产品类别】(?:有哪些人|的客户|客户)?'
+      - '{SEARCH}【客户价值-A类】(?:[的、，, ]{0,3})?【客户温度】(?:[的、，, ]{0,3})?【持有综拓产品类别】(?:有哪些人|的客户|客户)?'
     priority: 25
 
   - name: "年龄+客户价值+客户温度"
@@ -1549,6 +2221,10 @@ composite_rules:
       - '{SEARCH}【年龄-范围】(?:[的、，, ]{0,3})?【客户价值】(?:[的、，, ]{0,3})?【客户温度】(?:有哪些人|的客户|客户)?'
       - '{SEARCH}【年龄-多岁】(?:[的、，, ]{0,3})?【客户温度】(?:[的、，, ]{0,3})?【客户价值】(?:有哪些人|的客户|客户)?'
       - '{SEARCH}【年龄-范围】(?:[的、，, ]{0,3})?【客户温度】(?:[的、，, ]{0,3})?【客户价值】(?:有哪些人|的客户|客户)?'
+      - '{SEARCH}【年龄-多岁】(?:[的、，, ]{0,3})?【客户价值-A类】(?:[的、，, ]{0,3})?【客户温度】(?:有哪些人|的客户|客户)?'
+      - '{SEARCH}【年龄-范围】(?:[的、，, ]{0,3})?【客户价值-A类】(?:[的、，, ]{0,3})?【客户温度】(?:有哪些人|的客户|客户)?'
+      - '{SEARCH}【年龄-多岁】(?:[的、，, ]{0,3})?【客户温度】(?:[的、，, ]{0,3})?【客户价值-A类】(?:有哪些人|的客户|客户)?'
+      - '{SEARCH}【年龄-范围】(?:[的、，, ]{0,3})?【客户温度】(?:[的、，, ]{0,3})?【客户价值-A类】(?:有哪些人|的客户|客户)?'
     priority: 25
 
   - name: "寿险VIP+年缴保费"
@@ -1579,215 +2255,11 @@ composite_rules:
       - '{SEARCH}【年龄-范围】(?:[的、，, ]{0,3})?【性别-简单】(?:性)?(?:[的、，, ]{0,3})?(?:投保)?【年缴保费-以上-非万】(?:的客户|客户)?'
     priority: 25
 
-  - name: "客户温度+客户价值组合"
-    # 中高温A类客户
-    patterns:
-      - '{SEARCH}(?:中高温|中温及以上|高温)(?:[的、，, ]{0,3})?【客户价值】(?:的客户|客户)?'
-      - '{SEARCH}【客户价值】(?:[的、，, ]{0,3})?(?:中高温|中温及以上|高温)(?:的客户|客户)?'
-    priority: 20
+# 枚举值通过 enum_files 引用外部 yaml 文件（路径相对于项目根目录）
+# __all__ 加载统一枚举配置（field_enums.yaml），其余为大量枚举的专项文件
 
-# ==================== 枚举值定义 ====================
-# 少量枚举值（< ~10 个）直接在 enum_values 中定义。
-# 大量枚举值通过 enum_files 引用外部 yaml 文件（返回列表格式）。
-# 规则中使用 enum_ref 引用字段名，patterns_template 中用 {enum} 作为占位符。
-# 新流程：value_mappings 先归一化查询文本 → 再用只含标准值的 pattern 匹配。
-
-enum_values:
-
-  # 是否有车
-  assetsCondition:
-    - "有车"
-    - "没车"
-
-  # 证件类型
-  idType:
-    - "出生证"
-    - "身份证"
-    - "户口本"
-    - "港澳台居住证"
-    - "军人证"
-    - "港澳台证"
-    - "护照"
-    - "外国人居留证"
-
-  # 客群标签
-  clientGroupLabel:
-    - "奋斗青年"
-    - "都市白领"
-    - "新晋父母"
-    - "社会中坚"
-    - "邻退天命"
-    - "慈爱祖辈"
-    - "创业新贵"
-    - "创富一代"
-    - "荣耀高堂"
-    - "承富二代"
-    - "已退小康"
-
-  # 存量客户类型
-  orphanType:
-    - "在职有效客户"
-    - "纯存续单客户"
-
-  # 保单托管
-  trusteeshipFlag:
-    - "是"
-    - "否"
-
-  # 综拓理赔
-  occurPassPayRegst:
-    - "统拓理赔报案"
-    - "统拓理赔结束"
-
-  # 安有护权益等级
-  zhenxiangRunEquityGrade:
-    - "国内版"
-    - "国际版"
-
-  # 臻享家医权益等级
-  zxjyEquityGrade:
-    - "预达标"
-    - "已达标"
-
-  # 家庭成员关系
-  familyRelation:
-    - "配偶"
-    - "父母"
-    - "子女"
-    - "兄弟姐妹"
-    - "法定"
-    - "（外）祖父母"
-    - "（外）孙子女"
-
-  # 家庭成员性别
-  familyClientSex:
-    - "男"
-    - "女"
-
-  # 产险产品
-  isBuyPregnancyCar:
-    - "车险"
-    - "非车险"
-
-  # 性别
-  clientSex:
-    - "男"
-    - "女"
-
-  # 婚姻状况（+未知，以官方文档为准）
-  marriSts:
-    - "未婚"
-    - "已婚"
-    - "离婚"
-    - "丧偶"
-    - "未知"
-
-  # 学历（低→高，与 enum_orders 保持一致）
-  education:
-    - "小学以下"
-    - "小学"
-    - "初中"
-    - "中专"
-    - "高中"
-    - "大学专科"
-    - "大学本科生"
-    - "硕士研究生"
-    - "博士研究生"
-    - "博士后"
-
-  # 客户价值（低→高，以Excel官方文档为准）
-  newValueLabel:
-    - "F"
-    - "E"
-    - "D"
-    - "C"
-    - "B"
-    - "A4"
-    - "A3"
-    - "A2"
-    - "A1"
-
-  # 客户温度（低→高）
-  clientTemperature:
-    - "冷却"
-    - "低温"
-    - "中温"
-    - "高温"
-
-  # 持有产品类型
-  pType:
-    - "普通型"
-    - "分红型"
-    - "投资连结型"
-    - "万能型"
-    - "其他"
-
-  # 持有产品品类（以Excel官方文档为准）
-  pcCategory:
-    - "意外伤害保险"
-    - "医疗保险"
-    - "护理保险"
-    - "疾病保险"
-    - "定期寿险"
-    - "两全保险"
-    - "年金保险"
-    - "终身寿险"
-
-  # 综拓产品类别（以Excel官方文档为准）
-  agentPerspProductType:
-    - "车辆交强险"
-    - "车辆商业险"
-    - "e生保"
-    - "中高端医疗"
-    - "合家欢"
-    - "家财险"
-    - "学平险"
-    - "财富"
-    - "健康"
-    - "生活"
-
-  # 有效短险保单
-  validSinsPol:
-    - "综拓"
-    - "O2O"
-    - "意健险"
-
-  # 寿险VIP等级（低→高，以Excel官方文档为准）
-  vipType:
-    - "黄金V1"
-    - "黄金V2"
-    - "黄金V3"
-    - "原黄金VIP"
-    - "铂金V1"
-    - "铂金V2"
-    - "原铂金VIP"
-    - "钻石VIP"
-    - "金钻VIP"
-    - "黑钻VIP"
-
-  # 居家达标客户等级（低→高，以Excel官方文档为准）
-  jujiaClientGrade:
-    - "居家潜客"
-    - "v0.5"
-    - "v1"
-    - "v1.5"
-    - "v2"
-    - "v2.5"
-    - "v3"
-
-  # 康养达标客户等级（低→高，以Excel官方文档为准）
-  kangyangClientGrade:
-    - "康养预达标会员"
-    - "逸享会员"
-    - "逸享PLUS会员"
-    - "颐享家会员"
-    - "臻享会员V1"
-    - "臻享会员V2"
-    - "臻享会员V3"
-
-
-# 大量枚举值通过 enum_files 引用外部 yaml 文件（路径相对于项目根目录）
 enum_files:
+  __all__: "config/enums/field_enums.yaml"
   productCode: "config/enums/productCode.yaml"
   profName: "config/enums/profName.yaml"
 
@@ -1814,10 +2286,15 @@ negation_words:
 # 按长度降序排列，确保较长词优先匹配
 
 position_words:
+  - "已配置"
+  - "已投保"
   - "购买了"
+  - "购买"
   - "配置了"
+  - "配置"
   - "配置有"
   - "投保了"
+  - "投保"
   - "购买过"
   - "买过"
   - "买了"
@@ -1828,198 +2305,5 @@ position_words:
   - "有"
 
 # ==================== 值映射 ====================
-# 标准枚举值以客户信息表格定义为准
-
-value_mappings:
-
-  # 性别
-  clientSex:
-    男性: "男"
-    女性: "女"
-
-  # 婚姻状况
-  marriSts:
-    刚结婚: "已婚"
-    新婚: "已婚"
-    结婚了: "已婚"
-    离异: "离婚"
-    丧配偶: "丧偶"
-
-  # 学历
-  education:
-    大专: "大学专科"
-    专科: "大学专科"
-    本科: "大学本科生"
-    大学: "大学本科生"
-    硕士: "硕士研究生"
-    研究生: "硕士研究生"
-    博士: "博士研究生"
-
-  # 客户价值
-  newValueLabel:
-    A1类: "A1"
-    A2类: "A2"
-    A3类: "A3"
-    A4类: "A4"
-    B类: "B"
-    C类: "C"
-    D类: "D"
-    高价值: "A1"
-    A1类客户: "A1"
-    A2类客户: "A2"
-    A3类客户: "A3"
-    A4类客户: "A4"
-    B类客户: "B"
-    C类客户: "C"
-    D类客户: "D"
-
-  # 客户温度
-  clientTemperature:
-    冷却: "冷却"
-    低温: "低温"
-    中温: "中温"
-    高温: "高温"
-
-  # 存量客户类型
-  orphanType:
-    在职有效: "在职有效客户"
-    纯存续单: "纯存续单客户"
-    非纯存续单: "非纯存续单客户"
-    孤儿单: "非纯存续单客户"
-    存续单: "纯存续单客户"
-    在职有效单: "在职有效客户"
-
-  # 持有产品类别
-  pcCategory:
-    百万医疗保险: "医疗保险"
-    百万医疗: "医疗保险"
-    医疗险: "医疗保险"
-    年金险: "年金保险"
-    年金: "年金保险"
-    教育金: "年金保险"
-    定期险: "定期寿险"
-    定寿: "定期寿险"
-    两全: "两全保险"
-    两全险: "两全保险"
-
-  # 寿险VIP
-  vipType:
-    原黄金VIP: "原黄金VIP"
-    原铂金VIP: "原铂金VIP"
-    黄金V1: "黄金V1"
-    黄金V2: "黄金V2"
-    黄金V3: "黄金V3"
-    铂金V1: "铂金V1"
-    铂金V2: "铂金V2"
-    铂金: "铂金V1"
-    黄金: "黄金V1"
-    黄金VIP: "原黄金VIP"
-    VIP: "原黄金VIP"
-
-  # 臻享家医权益等级
-  zxjyEquityGrade:
-    预达标臻享: "预达标"
-    已达标臻享: "已达标"
-
-  # 康养达标客户等级
-  kangyangClientGrade:
-    康养预达标: "康养预达标会员"
-    预达标康养: "康养预达标会员"
-    预达康养: "康养预达标会员"
-    预达标: "康养预达标会员"
-    逸享康养: "逸享会员"
-    颐享家: "颐享家会员"
-    颐享: "颐享家会员"
-
-  # 居家达标客户等级
-  jujiaClientGrade:
-    居家潜客: "居家潜客"
-    居家V1: "v1"
-    居家V2: "v2"
-    居家V3: "v3"
-
-  # 保单到期时间别名
-  validSinsMatuDate:
-    "10天内": "3-10天内"
-    "30天内": "10-30天内"
-    "一个月内": "10-30天内"
-    "两个月内": "30-60天内"
-    "60天内": "30-60天内"
-
-  # 车辆状况
-  assetsCondition:
-    无车: "没车"
-
-
-  # 客群标签
-  clientGroupLabel:
-    中年焦虑: "社会中坚"
-
-# ==================== 枚举顺序定义 ====================
-
-enum_orders:
-
-  # 学历（低→高）
-  education:
-    - "小学以下"
-    - "小学"
-    - "初中"
-    - "中专"
-    - "高中"
-    - "大学专科"
-    - "大学本科生"
-    - "硕士研究生"
-    - "博士研究生"
-    - "博士后"
-
-  # 客户价值（低→高，以Excel官方文档为准）
-  newValueLabel:
-    - "F"
-    - "E"
-    - "D"
-    - "C"
-    - "B"
-    - "A4"
-    - "A3"
-    - "A2"
-    - "A1"
-
-  # 客户温度（低→高）
-  clientTemperature:
-    - "冷却"
-    - "低温"
-    - "中温"
-    - "高温"
-
-  # 居家达标客户等级（低→高）
-  jujiaClientGrade:
-    - "居家潜客"
-    - "v0.5"
-    - "v1"
-    - "v1.5"
-    - "v2"
-    - "v2.5"
-    - "v3"
-
-  # 康养达标客户等级（低→高）
-  kangyangClientGrade:
-    - "康养预达标会员"
-    - "逸享会员"
-    - "逸享PLUS会员"
-    - "颐享家会员"
-    - "臻享会员V1"
-    - "臻享会员V2"
-    - "臻享会员V3"
-
-  # 寿险VIP等级（低→高）
-  vipType:
-    - "黄金V1"
-    - "黄金V2"
-    - "黄金V3"
-    - "原黄金VIP"
-    - "铂金V1"
-    - "铂金V2"
-    - "原铂金VIP"
-    - "钻石VIP"
-    - "金钻VIP"
-    - "黑钻VIP"
+# 通过外部文件引用，路径相对于项目根目录
+value_mappings_file: "config/value_mappings.yaml"
