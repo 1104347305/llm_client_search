@@ -109,7 +109,7 @@ def _reload_runtime_components(force_reindex_fields: bool = True) -> Dict[str, A
     return {
         "env": reload_meta["env"],
         "config_path": reload_meta["config_path"],
-        "field_definitions_path": str((Path(__file__).parent / settings.FIELD_DEFINITIONS_PATH).resolve()),
+        "field_definitions_path": str(Path(settings.FIELD_DEFINITIONS_PATH)),
         "force_reindex_fields": force_reindex_fields,
         "reloaded_yaml_files": reloaded_yaml_files,
         "field_intent_total": len(registry.intents),

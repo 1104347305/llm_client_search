@@ -44,16 +44,15 @@ class QueryRouter:
 
     def _load_validation_data(self):
         """从配置指定的 field_definitions 和 enums 目录加载校验基准"""
-        base = Path(__file__).parent.parent
         # 1. 从 field_definitions.yaml 收集合法字段名
-        fd_path = base / settings.FIELD_DEFINITIONS_PATH
+        fd_path = Path(settings.FIELD_DEFINITIONS_PATH)
         if fd_path.exists():
             data = yaml.safe_load(fd_path.read_text(encoding='utf-8')) or {}
             for intent in data.get('intents', []):
                 self._valid_fields.add(intent['field'])
         # 2. 从配置指定的 enums 目录收集枚举值
-        enums_dir = base / settings.ENUMS_DIR_PATH
-        value_mappings_path = (base / settings.VALUE_MAPPINGS_PATH).resolve()
+        enums_dir = Path(settings.ENUMS_DIR_PATH)
+        value_mappings_path = Path(settings.VALUE_MAPPINGS_PATH).resolve()
         for f in sorted(enums_dir.glob('*.yaml')):
             if f.resolve() == value_mappings_path:
                 continue
@@ -155,7 +154,7 @@ class QueryRouter:
                 logger.info("No conditions from L1+L2+L3, falling back to Level 4 (LLM)")
                 parsed = await self.level4.parse(query)
                 # parsed = await self.level4.agent_parse(query)
-                parsed.conditions = self._convert_age_to_birthday(parsed.conditions)
+                # parsed.conditions = self._convert_age_to_birthday(parsed.conditions)
                 parsed.conditions = self._validate_conditions(parsed.conditions)
                 parsed.rewritten_query = self._last_rewritten_query
                 parsed.matched_patterns = self._last_matched_patterns
@@ -175,7 +174,7 @@ class QueryRouter:
             matched_level, confidence = 1, 1.0
 
         # 后处理：将年龄条件转换为出生日期条件
-        all_conditions = self._convert_age_to_birthday(all_conditions)
+        # all_conditions = self._convert_age_to_birthday(all_conditions)
 
         # 后处理：校验所有条件（字段名+枚举值），有非法条件则返回空
         all_conditions = self._validate_conditions(all_conditions)

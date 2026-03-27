@@ -608,6 +608,8 @@ intents:
     operator: EXISTS
     value_type: exists
     description: "表示客户持有任意寿险产品，不要求具体寿险产品名"
+    show_enum_in_prompt: false
+    enum_candidate_limit_in_prompt: 2
     examples:
       - query: "寿险客户"
         output: {field: productCode, operator: EXISTS, value: ""}
@@ -622,6 +624,8 @@ intents:
     operator: NOT_EXISTS
     value_type: exists
     description: "表示客户未持有任何寿险产品，不表示车险/非车险，不表示寿险保单到期时间为空"
+    show_enum_in_prompt: false
+    enum_candidate_limit_in_prompt: 2
     examples:
       - query: "不是寿险客户"
         output: {field: productCode, operator: NOT_EXISTS, value: ""}

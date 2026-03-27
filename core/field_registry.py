@@ -102,9 +102,7 @@ class FieldRegistry:
         force_reindex: bool = False,
     ):
         if yaml_path is None:
-            yaml_path = str(
-                Path(__file__).parent.parent / settings.FIELD_DEFINITIONS_PATH
-            )
+            yaml_path = str(Path(settings.FIELD_DEFINITIONS_PATH))
         self.yaml_path = yaml_path
         self.index = settings.ES_FIELD_INDEX
 
@@ -210,8 +208,8 @@ class FieldRegistry:
 
         # 加载 config/enums/ 目录下所有 yaml 文件，用于展开 enum_ref
         enum_dict: Dict[str, List] = {}
-        enums_dir = Path(__file__).parent.parent / settings.ENUMS_DIR_PATH
-        value_mappings_path = (Path(__file__).parent.parent / settings.VALUE_MAPPINGS_PATH).resolve()
+        enums_dir = Path(settings.ENUMS_DIR_PATH)
+        value_mappings_path = Path(settings.VALUE_MAPPINGS_PATH).resolve()
         for enum_file in sorted(enums_dir.glob("*.yaml")):
             if enum_file.resolve() == value_mappings_path:
                 continue
@@ -320,7 +318,7 @@ class FieldRegistry:
 
     def _load_value_mappings(self):
         """加载口语别名 -> 标准枚举值映射。"""
-        mappings_path = Path(__file__).parent.parent / settings.VALUE_MAPPINGS_PATH
+        mappings_path = Path(settings.VALUE_MAPPINGS_PATH)
         if not mappings_path.exists():
             logger.warning(f"value_mappings.yaml not found: {mappings_path}")
             return

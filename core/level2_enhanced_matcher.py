@@ -81,18 +81,15 @@ class Level2EnhancedMatcher:
                 self.composite_rules = config.get('composite_rules', [])  # 提前加载，使 _expand_pattern_vars 能处理 composite 模板
                 self.negation_words = config.get('negation_words', NEGATION_WORDS)
                 self.position_words = config.get('position_words', [])
-                # 从外部文件加载 value_mappings
-                vm_file = config.get('value_mappings_file', '')
-                vm_path = self.config_path.parent.parent / vm_file
-                if not vm_path.exists():
-                    vm_path = Path(vm_file)
+                # 从外部文件加载 value_mappings（路径从 settings 获取）
+                vm_path = Path(settings.VALUE_MAPPINGS_PATH)
                 if vm_path.exists():
                     with open(vm_path, 'r', encoding='utf-8') as vf:
                         self.value_mappings = yaml.safe_load(vf) or {}
                     logger.debug(f"Loaded value_mappings from {vm_path}")
                 else:
                     self.value_mappings = {}
-                    logger.warning(f"value_mappings_file not found: {vm_file}")
+                    logger.warning(f"value_mappings_file not found: {vm_path}")
                 self.enum_orders = config.get('enum_orders', {})
 
                 # 1. 加载内联枚举值
@@ -100,11 +97,10 @@ class Level2EnhancedMatcher:
                     k: list(v) for k, v in config.get('enum_values', {}).items()
                 }
 
-                # 2. 加载外部枚举文件（大量枚举值）
+                # 2. 加载外部枚举文件（大量枚举值，路径基于 settings.ENUMS_DIR_PATH）
+                _enums_dir = Path(settings.ENUMS_DIR_PATH)
                 for field, rel_path in config.get('enum_files', {}).items():
-                    abs_path = self.config_path.parent.parent / rel_path
-                    if not abs_path.exists():
-                        abs_path = Path(rel_path)
+                    abs_path = Path(rel_path) if Path(rel_path).is_absolute() else _enums_dir / Path(rel_path).name
                     if not abs_path.exists():
                         logger.warning(f"Enum file not found: {rel_path}")
                         continue
