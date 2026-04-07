@@ -64,7 +64,7 @@ def test_gender_plus_premium():
     conditions = _match("男性年交保费30万以上")
     values = {(c.field, c.operator.value): c.value for c in conditions}
     assert values[("clientSex", "MATCH")] == "男"
-    assert values[("amPremSeg", "GTE")] == 300000
+    assert values[("annPremSeg", "GTE")] == 300000
 
 
 def test_age_vip_shouxian_combo():

@@ -57,6 +57,7 @@ class Level2EnhancedMatcher:
         self.value_mappings = {}
         self.enum_orders = {}
         self.enum_values: Dict[str, List[str]] = {}   # 各字段的标准枚举值列表
+        self.enum_files: Dict[str, str] = {}          # 枚举文件映射（从 ENUMS_DIR_PATH 自动构建）
         self._preprocess_map: List[tuple] = []         # 预归一化替换表 [(alias, std), ...]
         self._paired_requirements: Dict[str, str] = {} # field → 必须同时存在的 paired field
         self._last_matched_patterns: List[Dict[str, Any]] = []
@@ -90,41 +91,7 @@ class Level2EnhancedMatcher:
                 else:
                     self.value_mappings = {}
                     logger.warning(f"value_mappings_file not found: {vm_path}")
-                self.enum_orders = config.get('enum_orders', {})
-
-                # 1. 加载内联枚举值
-                self.enum_values = {
-                    k: list(v) for k, v in config.get('enum_values', {}).items()
-                }
-
-                # 2. 加载外部枚举文件（大量枚举值，路径基于 settings.ENUMS_DIR_PATH）
-                _enums_dir = Path(settings.ENUMS_DIR_PATH)
-                for field, rel_path in config.get('enum_files', {}).items():
-                    abs_path = Path(rel_path) if Path(rel_path).is_absolute() else _enums_dir / Path(rel_path).name
-                    if not abs_path.exists():
-                        logger.warning(f"Enum file not found: {rel_path}")
-                        continue
-                    with open(abs_path, 'r', encoding='utf-8') as ef:
-                        raw = yaml.safe_load(ef) or {}
-                    if field == '__all__':
-                        # 统一枚举文件：{fieldName: {values: [...], ordered: bool}}
-                        for k, entry in raw.items():
-                            vals = entry.get('values', []) if isinstance(entry, dict) else list(entry)
-                            self.enum_values[k] = [str(v) for v in vals]
-                            if isinstance(entry, dict) and entry.get('ordered'):
-                                self.enum_orders[k] = [str(v) for v in vals]
-                        logger.debug(f"Loaded __all__ enum file: {len(raw)} fields")
-                    else:
-                        # 单字段文件：支持列表格式 [...] 或字典格式 {field: {values: [...]}}
-                        if isinstance(raw, list):
-                            self.enum_values[field] = [str(v) for v in raw]
-                        elif isinstance(raw, dict):
-                            entry = raw.get(field, raw)
-                            vals = entry.get('values', []) if isinstance(entry, dict) else list(entry)
-                            self.enum_values[field] = [str(v) for v in vals]
-                            if isinstance(entry, dict) and entry.get('ordered'):
-                                self.enum_orders[field] = [str(v) for v in vals]
-                        logger.debug(f"Loaded enum file '{field}': {len(self.enum_values.get(field, []))} values")
+                self._load_enum_config()
 
                 # 3. 展开 pattern_vars 占位符（如 {CW}）
                 self._pattern_vars = config.get('pattern_vars', {})
@@ -155,6 +122,50 @@ class Level2EnhancedMatcher:
         except Exception as e:
             logger.error(f"Failed to load enhanced rules: {e}")
             self.rules = []
+
+    def _load_enum_config(self):
+        """从统一枚举配置和枚举目录加载 enum_values、enum_orders、enum_files。"""
+        enums_dir = Path(settings.ENUMS_DIR_PATH)
+        if not enums_dir.is_absolute():
+            enums_dir = Path(enums_dir)
+
+        self.enum_orders = {}
+        self.enum_values = {}
+        self.enum_files = {}
+
+        field_enums_path = enums_dir / "field_enums.yaml"
+        self.enum_files["__all__"] = str(field_enums_path)
+        if field_enums_path.exists():
+            with open(field_enums_path, 'r', encoding='utf-8') as ef:
+                raw = yaml.safe_load(ef) or {}
+            for field, entry in raw.items():
+                vals = entry.get('values', []) if isinstance(entry, dict) else list(entry)
+                self.enum_values[field] = [str(v) for v in vals]
+                if isinstance(entry, dict) and entry.get('ordered'):
+                    self.enum_orders[field] = [str(v) for v in vals]
+            logger.debug(f"Loaded field enums from {field_enums_path}: {len(self.enum_values)} fields")
+        else:
+            logger.warning(f"field_enums file not found: {field_enums_path}")
+
+        if enums_dir.exists():
+            for path in sorted(enums_dir.glob("*.yaml")):
+                if path.name == "field_enums.yaml":
+                    continue
+                field_name = path.stem
+                self.enum_files[field_name] = str(path)
+                with open(path, 'r', encoding='utf-8') as ef:
+                    raw = yaml.safe_load(ef) or {}
+                if isinstance(raw, list):
+                    self.enum_values[field_name] = [str(v) for v in raw]
+                elif isinstance(raw, dict):
+                    entry = raw.get(field_name, raw)
+                    vals = entry.get('values', []) if isinstance(entry, dict) else list(entry)
+                    self.enum_values[field_name] = [str(v) for v in vals]
+                    if isinstance(entry, dict) and entry.get('ordered'):
+                        self.enum_orders[field_name] = [str(v) for v in vals]
+                logger.debug(f"Loaded enum file '{field_name}': {len(self.enum_values.get(field_name, []))} values")
+        else:
+            logger.warning(f"Enums directory not found: {enums_dir}")
 
     def _expand_pattern_vars(self):
         """将 patterns 中的 {VAR} 占位符替换为 pattern_vars 中定义的字符集。

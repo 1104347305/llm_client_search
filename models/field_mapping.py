@@ -43,7 +43,7 @@ FIELD_TYPES = {
     "hProductCode": "text",
 
     # 长险保单事件
-    "amPremSeg": "number",
+    "annPremSeg": "number",
     "insnoSumInsSeq": "number",
     "effAppEndDate": "date",
 
@@ -103,7 +103,7 @@ CHINESE_TO_ENGLISH = {
     "客户价值": "newValueLabel",
     "寿险产品": "productCode",
     "持有产品类别": "pcCategory",
-    "年缴保费": "amPremSeg",
+    "年缴保费": "annPremSeg",
     "保单号": "policyNo",
     "身份证号": "idNo",
     "存量客户类型": "orphanType",

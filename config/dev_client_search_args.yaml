@@ -39,9 +39,9 @@ MAX_WORKERS: 4
 TIMEOUT_SECONDS: 30
 
 # 各层开关（默认全部开启）
-ENABLE_L1: false
-ENABLE_L2: false
-ENABLE_L3: false
+ENABLE_L1: true
+ENABLE_L2: true
+ENABLE_L3: true
 ENABLE_L4: true
 
 # L4 RAG 多路召回开关

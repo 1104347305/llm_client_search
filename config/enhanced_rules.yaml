@@ -744,10 +744,15 @@ rules:
     patterns:
       - '{SEARCH}(?:没有买保险|没买保险|无保险|没有配置保险|未配置保险|没配置保险)(?:的客户|客户|名单|有哪些人|有哪些|的)?'
       - '{SEARCH}(?:没有买过保险|没买过保险|没有保险)(?:的客户|客户|名单|有哪些人|有哪些|的)?'
-    field: "pType"
+    field: "productCode"
     operator: "NOT_EXISTS"
     value_type: "static"
     priority: 12
+    extra_conditions:
+      - field: "gProductCode"
+        operator: "NOT_EXISTS"
+      - field: "hProductCode"
+        operator: "NOT_EXISTS"
 
   # ==================== 持有产品类别 (pcCategory) ====================
 
@@ -791,7 +796,7 @@ rules:
       - '{SEARCH}(?:年交?|年缴)?保费{CW}{0,2}(\d+)万以上(?:的客户|客户)?'
       - '{SEARCH}(?:年交?|年缴)?保费{CW}{0,2}(?:在)?(\d+)万以上(?:的客户|客户)?'
       - '{SEARCH}(?:年交?|年缴)?保费{CW}{0,2}(一)万以上(?:的客户|客户|有哪些)?'
-    field: "amPremSeg"
+    field: "annPremSeg"
     operator: "GTE"
     value_type: "capture"
     value:
@@ -809,7 +814,7 @@ rules:
       - '{SEARCH}年缴{CW}{0,2}高于(\d{4,})(?:的客户|客户)?'
       - '{SEARCH}(?:年交?|年缴)?保费{CW}{0,2}(\d{4,})以上(?:的客户|客户)?'
       - '{SEARCH}(?:年交?|年缴)?保费{CW}{0,2}超过(\d{4,})(?:都有谁|的客户|客户)?'
-    field: "amPremSeg"
+    field: "annPremSeg"
     operator: "GTE"
     value_type: "capture"
     value:
@@ -823,7 +828,7 @@ rules:
       - '{SEARCH}年缴{CW}{0,2}(\d+)万?以下(?:的客户|客户)?'
       - '{SEARCH}年交?保费{CW}{0,2}低于(\d+)万?(?:的客户|客户)?'
       - '{SEARCH}年缴{CW}{0,2}小于(\d+)万?(?:的客户|客户)?'
-    field: "amPremSeg"
+    field: "annPremSeg"
     operator: "LTE"
     value_type: "capture"
     value:
@@ -836,7 +841,7 @@ rules:
     patterns:
       - '{SEARCH}(?:的客户|客户)?保费{CW}{0,2}(\d+)[-~到](\d+)万(?:的客户|客户)?'
       - '{SEARCH}(?:的客户|客户)?年缴保费{CW}{0,2}(\d+)[-~到](\d+)万(?:的客户|客户)?'
-    field: "amPremSeg"
+    field: "annPremSeg"
     operator: "RANGE"
     value_type: "range"
     value:
@@ -1639,7 +1644,7 @@ rules:
       format: "yyyy-MM-dd HH:mm:ss"
     priority: 9
 
-  # ==================== 保单产品名称 (policies.product_name) ====================
+  # ==================== 保单号 (policyNo) ====================
 
   - name: "保单号-匹配"
     patterns:
@@ -1654,7 +1659,7 @@ rules:
       group: 1
     priority: 10
 
-  # ==================== 保单状态 (policies.status) ====================
+  # ==================== 职业 (profName) ====================
 
   - name: "职业"
     enum_ref: "profName"
@@ -1669,7 +1674,7 @@ rules:
       group: 1
     priority: 7
 
-  # ==================== 年收入 (annual_income) ====================
+  # ==================== 车辆状况 (assetsCondition) ====================
 
   - name: "车辆状况"
     enum_ref: "assetsCondition"
@@ -2241,14 +2246,6 @@ composite_rules:
       - '{SEARCH}【年龄-范围】(?:[的、，, ]{0,3})?【性别-简单】(?:性)?(?:[的、，, ]{0,3})?(?:投保)?【年缴保费-以上-非万】(?:的客户|客户)?'
     priority: 25
 
-# 枚举值通过 enum_files 引用外部 yaml 文件（路径相对于项目根目录）
-# __all__ 加载统一枚举配置（field_enums.yaml），其余为大量枚举的专项文件
-
-enum_files:
-  __all__: "config/enums/field_enums.yaml"
-  productCode: "config/enums/productCode.yaml"
-  profName: "config/enums/profName.yaml"
-
 # ==================== 否定词列表 ====================
 
 negation_words:
@@ -2289,7 +2286,3 @@ position_words:
   - "有过"
   - "持有"
   - "有"
-
-# ==================== 值映射 ====================
-# 通过外部文件引用，路径相对于项目根目录
-value_mappings_file: "config/value_mappings.yaml"

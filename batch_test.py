@@ -32,15 +32,16 @@ class BatchTester:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
                     f"{self.base_url}/api/v1/parse",
-                    json={
-                        "query": query,
-                        "agent_id": agent_id,
-                        "page": 1,
-                        "size": 100  # 获取更多结果
-                    }
+                    json= {
+                        "user_text": query,
+                        "user_id": "A000001",
+                        "trace_id": "0090920020921920021e4u9ej9u9239",
+                        "session_id": "1298318939931983198",
+                        "source": "askbob"
+                      }
                 )
                 response.raise_for_status()
-                return response.json()
+                return response.json()['data']
         except Exception as e:
             return {
                 "success": False,
@@ -68,22 +69,32 @@ class BatchTester:
         for i, query in enumerate(queries, 1):
             print(f"\n[{i}/{len(queries)}] 测试: {query}")
             result = await self.test_query(query)
+            elapsed = result['extra_output_params'].get('last_tims', 0)
+            query_logic = result['extra_output_params'].get('query_logic', [])
+            conditions = result['extra_output_params'].get('conditions', [])
+            matched_level = result['extra_output_params'].get('matched_level', [])
+            intent = result.get('robot_text', [])
+
+            parseResult = {}
+            parseResult['matched_level'] = matched_level
+            parseResult['query_logic'] = query_logic
+            parseResult['conditions'] = conditions
+            parseResult['intent'] = intent
+            parseResult['elapsed'] = elapsed
 
             # 保存结果
             self.results.append({
                 "query": query,
-                "result": result
+                "parseResult": parseResult
             })
 
             # 打印简要信息
-            elapsed = result.get('last_times', 0)
-            cond_count = len(result.get('conditions', []))
-            print(f"  ✓ Level {result.get('matched_level')}, "
-                  f"置信度 {result.get('confidence')}, "
-                  f"条件数 {cond_count}, "
+            print(f"  ✓ Level {matched_level}, "
+                  f"条件数 {len(conditions)}, "
                   f"耗时 {elapsed*1000:.0f}ms",
-                  f"{result.get('query_logic')}"
-                  f"{result.get('conditions')}"
+                  f"{query_logic}"
+                  f"{conditions}",
+                  f"{intent}"
                   )
             # else:
             #     print(f"  ✗ 失败: {result.get('message')}")
@@ -106,7 +117,7 @@ class BatchTester:
         header_font = Font(color="FFFFFF", bold=True)
 
         # 表头
-        summary_headers = ["序号", "查询问题", "Level", "置信度", "耗时(ms)", "query_logic", "查询条件"]
+        summary_headers = ["序号", "查询问题", "Level", "意图", "耗时(ms)", "query_logic", "查询条件"]
         for col, header in enumerate(summary_headers, 1):
             cell = ws_summary.cell(1, col, header)
             cell.fill = header_fill
@@ -116,7 +127,7 @@ class BatchTester:
         # 填充数据
         for i, item in enumerate(self.results, 2):
             query = item["query"]
-            result = item["result"]
+            parseResult = item["parseResult"]
 
             # 序号
             ws_summary.cell(i, 1, i - 1)
@@ -125,20 +136,20 @@ class BatchTester:
             ws_summary.cell(i, 2, query)
 
             # Level
-            ws_summary.cell(i, 3, result.get("matched_level", 0))
+            ws_summary.cell(i, 3, parseResult.get("matched_level", 0))
 
             # 置信度
-            ws_summary.cell(i, 4, result.get("confidence", 0))
+            ws_summary.cell(i, 4, parseResult.get("intent", 0))
 
             # 耗时
-            elapsed_ms = round(result.get("last_times", 0) * 1000, 0)
+            elapsed_ms = round(parseResult.get("elapsed", 0) * 1000, 0)
             ws_summary.cell(i, 5, elapsed_ms)
 
             # query_logic
-            ws_summary.cell(i, 6, result.get("query_logic", "AND"))
+            ws_summary.cell(i, 6, parseResult.get("query_logic", "AND"))
 
             # 查询条件（单行JSON格式）
-            conditions = result.get("conditions") or []
+            conditions = parseResult.get("conditions") or []
             ws_summary.cell(i, 7, json.dumps(conditions, ensure_ascii=False))
 
         # 调整列宽

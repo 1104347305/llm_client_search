@@ -110,8 +110,9 @@ class ParseApiExtraOutput(BaseModel):
     conditions: List[Condition] = Field(default_factory=list)
     matched_level: int = 0
     rewritten_query: Optional[str] = None
-    matched_patterns: Optional[List[Dict[str, Any]]] = None
+    matched_patterns: Optional[str] = None
     last_tims: Optional[float] = None
+    intent_summary: Optional[str] = None  # 人类可读的查询意图摘要
 
 
 class ParseApiData(BaseModel):

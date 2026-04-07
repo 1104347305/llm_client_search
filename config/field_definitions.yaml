@@ -243,7 +243,7 @@ intents:
         output: {field: newValueLabel, operator: MATCH, value: "A1"}
     negative_examples:
       - query: "年缴保费10万以上的客户"
-        reason: "这是金额筛选，应映射到 amPremSeg，不是客户价值标签"
+        reason: "这是金额筛选，应映射到 annPremSeg，不是客户价值标签"
 
   - id: customer_value_group
     retrieval_text: >
@@ -718,33 +718,33 @@ intents:
     retrieval_text: >
       年缴保费 保费 年缴 缴费 年保费 保费以上 保费超过
       保费大于 高保费 缴费多少 保费金额
-    field: amPremSeg
+    field: annPremSeg
     operator: GTE
     value_type: numeric
     unit: "元，万=×10000，千=×1000"
     description: "表示年缴保费金额，不表示总保费、产品总保额"
     examples:
       - query: "年缴保费1万以上的客户"
-        output: {field: amPremSeg, operator: GTE, value: 10000}
+        output: {field: annPremSeg, operator: GTE, value: 10000}
       - query: "保费超过5万的客户"
-        output: {field: amPremSeg, operator: GTE, value: 50000}
+        output: {field: annPremSeg, operator: GTE, value: 50000}
     negative_examples:
       - query: "总保费为50万的客户"
-        reason: "这是总保费语义，不是年缴保费；当前不能映射到 amPremSeg"
+        reason: "这是总保费语义，不是年缴保费；当前不能映射到 annPremSeg"
       - query: "总保费90万以上"
-        reason: "这是总保费语义，不是年缴保费；当前不能映射到 amPremSeg"
+        reason: "这是总保费语义，不是年缴保费；当前不能映射到 annPremSeg"
 
   - id: annual_premium_range
     retrieval_text: >
       保费在 保费区间 保费范围 年缴保费在多少到多少之间
-    field: amPremSeg
+    field: annPremSeg
     operator: RANGE
     value_type: numeric
     unit: "元，万=×10000"
     description: "表示年缴保费区间，不表示总保费区间"
     examples:
       - query: "年缴保费1万到5万的客户"
-        output: {field: amPremSeg, operator: RANGE, value: {min: 10000, max: 50000}}
+        output: {field: annPremSeg, operator: RANGE, value: {min: 10000, max: 50000}}
 
   # ==================== 产品总保额 ====================
 
@@ -1361,3 +1361,554 @@ intents:
     examples:
       - query: "保单号为1234567890的客户"
         output: {field: policyNo, operator: MATCH, value: "1234567890"}
+
+  # ==================== 年收入 ====================
+
+  - id: annual_income_gte
+    is_supported: false
+    retrieval_text: >
+      年收入 年薪 年入 年收入以上 年薪超过 年收入大于
+    field: annual_income
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    description: "客户个人年收入，数值型，单位元"
+    examples:
+      - query: "年收入20万以上的客户"
+        output: {field: annual_income, operator: GTE, value: 200000}
+      - query: "年薪超过50万的客户"
+        output: {field: annual_income, operator: GTE, value: 500000}
+
+  - id: annual_income_lte
+    is_supported: false
+    retrieval_text: >
+      年收入以下 年薪不超过 年收入小于 年入低于
+    field: annual_income
+    operator: LTE
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    description: "客户个人年收入上限筛选"
+    examples:
+      - query: "年收入10万以下的客户"
+        output: {field: annual_income, operator: LTE, value: 100000}
+
+  - id: annual_income_range
+    is_supported: false
+    retrieval_text: >
+      年收入区间 年薪范围 年收入在XX到XX之间
+    field: annual_income
+    operator: RANGE
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    description: "客户个人年收入区间筛选"
+    examples:
+      - query: "年收入10到30万的客户"
+        output: {field: annual_income, operator: RANGE, value: {min: 100000, max: 300000}}
+
+  # ==================== 家庭收入 ====================
+
+  - id: household_income_gte
+    is_supported: false
+    retrieval_text: >
+      家庭收入 家庭年收入 家庭年入 家庭收入以上 家庭年收入超过
+    field: household_income
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    description: "家庭年收入，数值型，单位元"
+    examples:
+      - query: "家庭年收入30万以上的客户"
+        output: {field: household_income, operator: GTE, value: 300000}
+
+  - id: household_income_lte
+    is_supported: false
+    retrieval_text: >
+      家庭收入以下 家庭年收入不超过 家庭收入低于
+    field: household_income
+    operator: LTE
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    examples:
+      - query: "家庭收入20万以下的客户"
+        output: {field: household_income, operator: LTE, value: 200000}
+
+  # ==================== 房产情况 ====================
+
+  - id: real_estate_status
+    is_supported: false
+    retrieval_text: >
+      有房 没房 房产情况 有房产 没有房产 有自有住房 无住房
+    field: real_estate_status
+    operator: MATCH
+    value_type: enum
+    enum: ["有房", "没房"]
+    description: "客户房产情况，枚举值：有房、没房"
+    examples:
+      - query: "有房的客户"
+        output: {field: real_estate_status, operator: MATCH, value: "有房"}
+      - query: "没有房产的客户"
+        output: {field: real_estate_status, operator: MATCH, value: "没房"}
+
+  # ==================== 资产规模 ====================
+
+  - id: asset_scale_gte
+    is_supported: false
+    retrieval_text: >
+      资产规模 资产超过 资产大于 资产以上 净资产 资产量
+    field: asset_scale
+    operator: GTE
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    description: "客户资产规模，数值型，单位元"
+    examples:
+      - query: "资产规模100万以上的客户"
+        output: {field: asset_scale, operator: GTE, value: 1000000}
+
+  - id: asset_scale_lte
+    is_supported: false
+    retrieval_text: >
+      资产规模以下 资产不超过 资产低于
+    field: asset_scale
+    operator: LTE
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    examples:
+      - query: "资产规模50万以下的客户"
+        output: {field: asset_scale, operator: LTE, value: 500000}
+
+  # ==================== 保单产品名称 ====================
+
+  - id: policies_product_name
+    is_supported: false
+    retrieval_text: >
+      保单产品 保单产品名称 持有保单 保单里有 买了某某保单
+      e生保 安康 平安宝贝 i康保 i药保 海外 抗癌 尊享 尊优 舒享
+    field: policies_product_name
+    operator: NESTED_MATCH
+    value_type: enum
+    enum: ["e生保", "安康", "平安宝贝", "i康保", "i药保", "海外", "抗癌", "尊享", "尊优", "舒享", "其他"]
+    description: "客户保单对应的产品名称，嵌套字段"
+    examples:
+      - query: "持有e生保保单的客户"
+        output: {field: policies_product_name, operator: NESTED_MATCH, value: "e生保"}
+      - query: "买了尊享保单的客户"
+        output: {field: policies_product_name, operator: NESTED_MATCH, value: "尊享"}
+
+  # ==================== 保单生效日 ====================
+
+  - id: policies_effective_date
+    is_supported: false
+    retrieval_text: >
+      保单生效日 保单生效时间 保单什么时候生效 保单生效日期 本月生效保单 今年生效
+    field: policies_effective_date
+    operator: RANGE
+    value_type: date
+    format: "yyyy-MM-dd HH:mm:ss"
+    description: "保单生效日期，嵌套字段，格式 yyyy-MM-dd HH:mm:ss"
+    examples:
+      - query: "本月保单生效的客户"
+        output: {field: policies_effective_date, operator: RANGE, value: {min: "<current_month_start>", max: "<current_month_end>"}}
+      - query: "今年新生效保单的客户"
+        output: {field: policies_effective_date, operator: RANGE, value: {min: "<current_year_start>", max: "<current_year_end>"}}
+
+  # ==================== 保单状态 ====================
+
+  - id: policies_status
+    is_supported: false
+    retrieval_text: >
+      保单状态 有效保单 失效保单 退保 停效 缴费有效 犹豫期退保 到期终止
+      展期 交清 减额 转换终止 失效 死亡理赔 等待续保
+    field: policies_status
+    operator: MATCH
+    value_type: enum
+    enum: ["取消","死亡理赔","展期","缴费有效","停效","到期终止","犹豫期退保","交清","减额交情","退保","转换终止","失效","终止效率","免交","迁出","人为停效","效力终止","预收","拒保","贷款超停","死亡有效","贷款超失","自垫有效","自垫停效","自垫失效","自垫交清","等待续保"]
+    show_enum_in_prompt: true
+    description: "保单当前状态，嵌套字段"
+    examples:
+      - query: "保单状态为缴费有效的客户"
+        output: {field: policies_status, operator: MATCH, value: "缴费有效"}
+      - query: "有退保保单的客户"
+        output: {field: policies_status, operator: MATCH, value: "退保"}
+      - query: "停效保单的客户"
+        output: {field: policies_status, operator: MATCH, value: "停效"}
+
+  # ==================== 投保日期 ====================
+
+  - id: policies_insure_date
+    is_supported: false
+    retrieval_text: >
+      投保日期 投保时间 什么时候投保 投保年份 今年投保 去年投保 本月投保
+    field: policies_insure_date
+    operator: RANGE
+    value_type: date
+    format: "yyyy-MM-dd HH:mm:ss"
+    description: "保单投保日期，嵌套字段"
+    examples:
+      - query: "今年投保的客户"
+        output: {field: policies_insure_date, operator: RANGE, value: {min: "<current_year_start>", max: "<current_year_end>"}}
+      - query: "去年投保的客户"
+        output: {field: policies_insure_date, operator: RANGE, value: {min: "<last_year_start>", max: "<last_year_end>"}}
+
+  # ==================== 承保日期 ====================
+
+  - id: policies_undwrt_date
+    is_supported: false
+    retrieval_text: >
+      承保日期 承保时间 何时承保 承保年份 今年承保 本月承保
+    field: policies_undwrt_date
+    operator: RANGE
+    value_type: date
+    format: "yyyy-MM-dd HH:mm:ss"
+    description: "保单承保日期，嵌套字段"
+    examples:
+      - query: "本月承保的客户"
+        output: {field: policies_undwrt_date, operator: RANGE, value: {min: "<current_month_start>", max: "<current_month_end>"}}
+
+  # ==================== 应缴日 ====================
+
+  - id: policies_pay_date
+    is_supported: false
+    retrieval_text: >
+      应缴日 缴费日 应缴时间 缴费到期 本月应缴 下个月缴费 即将缴费
+    field: policies_pay_date
+    operator: RANGE
+    value_type: date
+    format: "yyyy-MM-dd HH:mm:ss"
+    description: "保单应缴费日期，嵌套字段"
+    examples:
+      - query: "本月应缴费的客户"
+        output: {field: policies_pay_date, operator: RANGE, value: {min: "<current_month_start>", max: "<current_month_end>"}}
+      - query: "下个月缴费日的客户"
+        output: {field: policies_pay_date, operator: RANGE, value: {min: "<next_month_start>", max: "<next_month_end>"}}
+
+  # ==================== 犹豫期时间 ====================
+
+  - id: policies_cooling_off
+    is_supported: false
+    retrieval_text: >
+      犹豫期 犹豫期到期 犹豫期退保 即将过犹豫期 犹豫期内 犹豫期时间
+    field: policies_cooling_off
+    operator: RANGE
+    value_type: date
+    format: "yyyy-MM-dd HH:mm:ss"
+    description: "保单犹豫期截止时间，嵌套字段"
+    examples:
+      - query: "本月犹豫期到期的客户"
+        output: {field: policies_cooling_off, operator: RANGE, value: {min: "<current_month_start>", max: "<current_month_end>"}}
+      - query: "7天内犹豫期到期的客户"
+        output: {field: policies_cooling_off, operator: LTE, value: "<today_plus_7_days>"}
+
+  # ==================== 投保险种名称 ====================
+
+  - id: policies_plan_fullname
+    is_supported: false
+    retrieval_text: >
+      投保险种名称 险种全称 保险险种名称 险种叫什么
+    field: policies_plan_fullname
+    operator: NESTED_MATCH
+    value_type: extract
+    description: "保单投保险种全称，嵌套字段，开放域文本"
+    examples:
+      - query: "险种名称为平安e生保医疗保险的客户"
+        output: {field: policies_plan_fullname, operator: NESTED_MATCH, value: "平安e生保医疗保险"}
+
+  # ==================== 投保险种简称 ====================
+
+  - id: policies_plan_abbr_name
+    is_supported: false
+    retrieval_text: >
+      投保险种简称 险种简称 e生保 安康 平安宝贝 i康保 i药保 海外 抗癌 尊享 尊优 舒享
+    field: policies_plan_abbr_name
+    operator: NESTED_MATCH
+    value_type: enum
+    enum: ["e生保", "安康", "平安宝贝", "i康保", "i药保", "海外", "抗癌", "尊享", "尊优", "舒享", "其他"]
+    description: "保单投保险种简称，嵌套字段"
+    examples:
+      - query: "投保了e生保的客户"
+        output: {field: policies_plan_abbr_name, operator: NESTED_MATCH, value: "e生保"}
+
+  # ==================== 投保险种类型 ====================
+
+  - id: policies_plan_type
+    is_supported: false
+    retrieval_text: >
+      投保险种类型 险种类型 寿险类型 医疗险类型
+    field: policies_plan_type
+    operator: NESTED_MATCH
+    value_type: extract
+    description: "保单投保险种类型，嵌套字段，开放域文本"
+    examples:
+      - query: "险种类型为医疗险的客户"
+        output: {field: policies_plan_type, operator: NESTED_MATCH, value: "医疗险"}
+
+  # ==================== 投保人姓名 ====================
+
+  - id: policies_applicant_name
+    is_supported: false
+    retrieval_text: >
+      投保人姓名 投保人叫 投保人名字 谁投保的 投保人是谁
+    field: policies_applicant_name
+    operator: NESTED_MATCH
+    value_type: extract
+    description: "保单投保人姓名，嵌套字段"
+    examples:
+      - query: "投保人叫张三的客户"
+        output: {field: policies_applicant_name, operator: NESTED_MATCH, value: "张三"}
+
+  # ==================== 投保人手机号 ====================
+
+  - id: policies_applicant_mobile
+    is_supported: false
+    retrieval_text: >
+      投保人手机号 投保人电话 投保人手机
+    field: policies_applicant_mobile
+    operator: NESTED_MATCH
+    value_type: extract
+    description: "保单投保人手机号，嵌套字段"
+    examples:
+      - query: "投保人手机号13800138000的客户"
+        output: {field: policies_applicant_mobile, operator: NESTED_MATCH, value: "13800138000"}
+
+  # ==================== 被保人姓名 ====================
+
+  - id: policies_insured_name
+    is_supported: false
+    retrieval_text: >
+      被保人姓名 被保人叫 被保险人姓名 被保人名字 谁是被保人
+    field: policies_insured_name
+    operator: NESTED_MATCH
+    value_type: extract
+    description: "保单被保人姓名，嵌套字段"
+    examples:
+      - query: "被保人叫李四的客户"
+        output: {field: policies_insured_name, operator: NESTED_MATCH, value: "李四"}
+
+  # ==================== 被保人手机号 ====================
+
+  - id: policies_insured_mobile
+    is_supported: false
+    retrieval_text: >
+      被保人手机号 被保人电话 被保险人手机
+    field: policies_insured_mobile
+    operator: NESTED_MATCH
+    value_type: extract
+    description: "保单被保人手机号，嵌套字段"
+    examples:
+      - query: "被保人手机号13900139000的客户"
+        output: {field: policies_insured_mobile, operator: NESTED_MATCH, value: "13900139000"}
+
+  # ==================== 受益人姓名 ====================
+
+  - id: policies_beneficiary_name
+    is_supported: false
+    retrieval_text: >
+      受益人姓名 受益人叫 受益人名字 谁是受益人
+    field: policies_beneficiary_name
+    operator: NESTED_MATCH
+    value_type: extract
+    description: "保单受益人姓名，嵌套字段"
+    examples:
+      - query: "受益人叫王五的客户"
+        output: {field: policies_beneficiary_name, operator: NESTED_MATCH, value: "王五"}
+
+  # ==================== 受益人手机号 ====================
+
+  - id: policies_beneficiary_mobile
+    is_supported: false
+    retrieval_text: >
+      受益人手机号 受益人电话 受益人手机
+    field: policies_beneficiary_mobile
+    operator: NESTED_MATCH
+    value_type: extract
+    description: "保单受益人手机号，嵌套字段"
+    examples:
+      - query: "受益人手机号13700137000的客户"
+        output: {field: policies_beneficiary_mobile, operator: NESTED_MATCH, value: "13700137000"}
+
+  # ==================== 生存金总金额 ====================
+
+  - id: policies_survival_total_amount_gte
+    is_supported: false
+    retrieval_text: >
+      生存金总金额 生存金总额 生存金超过 生存金大于
+    field: policies_survival_total_amount
+    operator: NESTED_MATCH
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    description: "保单生存金总金额，嵌套字段，数值型"
+    examples:
+      - query: "生存金总金额10万以上的客户"
+        output: {field: policies_survival_total_amount, operator: NESTED_MATCH, value: 100000}
+
+  # ==================== 生存金已领取金额 ====================
+
+  - id: policies_survival_claimed_amount
+    is_supported: false
+    retrieval_text: >
+      生存金已领取 已领取生存金 已领生存金 领取了生存金
+    field: policies_survival_claimed_amount
+    operator: NESTED_MATCH
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    description: "保单已领取生存金金额，嵌套字段"
+    examples:
+      - query: "已领取生存金超过5万的客户"
+        output: {field: policies_survival_claimed_amount, operator: NESTED_MATCH, value: 50000}
+
+  # ==================== 生存金未领取金额 ====================
+
+  - id: policies_survival_unclaimed_amount
+    is_supported: false
+    retrieval_text: >
+      生存金未领取 未领取生存金 生存金还没领 有未领生存金 生存金待领
+    field: policies_survival_unclaimed_amount
+    operator: NESTED_MATCH
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    description: "保单未领取生存金金额，嵌套字段；若仅判断是否存在未领取金额，用 EXISTS"
+    examples:
+      - query: "有未领取生存金的客户"
+        output: {field: policies_survival_unclaimed_amount, operator: EXISTS}
+      - query: "未领取生存金超过3万的客户"
+        output: {field: policies_survival_unclaimed_amount, operator: NESTED_MATCH, value: 30000}
+
+  # ==================== 生存金已转入万能账户金额 ====================
+
+  - id: policies_universal_acct_transfer
+    is_supported: false
+    retrieval_text: >
+      生存金转入万能账户 万能账户转入 生存金转万能 万能账户生存金
+    field: policies_universal_acct_transfer
+    operator: NESTED_MATCH
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    description: "生存金已转入万能账户金额，嵌套字段"
+    examples:
+      - query: "有生存金转入万能账户的客户"
+        output: {field: policies_universal_acct_transfer, operator: EXISTS}
+      - query: "生存金转入万能账户超过2万的客户"
+        output: {field: policies_universal_acct_transfer, operator: NESTED_MATCH, value: 20000}
+
+  # ==================== 生存金利息未领取总额 ====================
+
+  - id: policies_survival_interest_total
+    is_supported: false
+    retrieval_text: >
+      生存金利息 未领取生存金利息 生存金利息未领 生存金利息待领
+    field: policies_survival_interest_total
+    operator: NESTED_MATCH
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    description: "生存金利息未领取总额，嵌套字段"
+    examples:
+      - query: "有未领取生存金利息的客户"
+        output: {field: policies_survival_interest_total, operator: EXISTS}
+      - query: "生存金利息未领取超过1万的客户"
+        output: {field: policies_survival_interest_total, operator: NESTED_MATCH, value: 10000}
+
+  # ==================== 理赔时间 ====================
+
+  - id: policies_claim_time
+    is_supported: false
+    retrieval_text: >
+      理赔时间 理赔日期 何时理赔 理赔过 有理赔记录 本月理赔 今年理赔 近期理赔
+    field: policies_claim_records_time
+    operator: NESTED_MATCH
+    value_type: date
+    format: "yyyy-MM-dd HH:mm:ss"
+    description: "理赔记录中的理赔时间，嵌套字段；若仅判断是否有理赔记录，用 EXISTS"
+    examples:
+      - query: "今年有理赔的客户"
+        output: {field: policies_claim_records_time, operator: NESTED_MATCH, value: {min: "<current_year_start>", max: "<current_year_end>"}}
+      - query: "有理赔记录的客户"
+        output: {field: policies_claim_records_time, operator: EXISTS}
+      - query: "近30天理赔的客户"
+        output: {field: policies_claim_records_time, operator: NESTED_MATCH, value: {min: "<today_minus_30_days>", max: "<today>"}}
+
+  # ==================== 理赔案件号 ====================
+
+  - id: policies_claim_case_id
+    is_supported: false
+    retrieval_text: >
+      理赔案件号 理赔案号 理赔编号 案件号
+    field: policies_claim_records_case_id
+    operator: NESTED_MATCH
+    value_type: extract
+    description: "理赔案件号，嵌套字段"
+    examples:
+      - query: "理赔案件号为CL20240001的客户"
+        output: {field: policies_claim_records_case_id, operator: NESTED_MATCH, value: "CL20240001"}
+
+  # ==================== 理赔金额 ====================
+
+  - id: policies_claim_amount
+    is_supported: false
+    retrieval_text: >
+      理赔金额 理赔了多少钱 理赔超过 理赔大于 获赔金额
+    field: policies_claim_records_amount
+    operator: NESTED_MATCH
+    value_type: numeric
+    unit: "元，万=×10000，千=×1000"
+    description: "理赔金额，嵌套字段"
+    examples:
+      - query: "理赔金额超过10万的客户"
+        output: {field: policies_claim_records_amount, operator: NESTED_MATCH, value: 100000}
+      - query: "理赔5万以下的客户"
+        output: {field: policies_claim_records_amount, operator: NESTED_MATCH, value: 50000}
+
+  # ==================== 理赔险种 ====================
+
+  - id: policies_claim_coverage
+    is_supported: false
+    retrieval_text: >
+      理赔险种 理赔了什么险 理赔险种是 获赔险种
+    field: policies_claim_records_coverage
+    operator: NESTED_MATCH
+    value_type: extract
+    description: "理赔险种名称，嵌套字段，开放域文本"
+    examples:
+      - query: "理赔险种为医疗险的客户"
+        output: {field: policies_claim_records_coverage, operator: NESTED_MATCH, value: "医疗险"}
+      - query: "意外险理赔过的客户"
+        output: {field: policies_claim_records_coverage, operator: NESTED_MATCH, value: "意外险"}
+
+  # ==================== 是否买了保险 ====================
+
+  - id: has_insurance
+    retrieval_text: >
+      买了保险 买过保险 有保险 配置了保险 有投保 已买保险 持有保险 有保单 持有保单
+    field: productCode
+    operator: EXISTS
+    value_type: exists
+    description: >
+      判断客户是否持有任意保险。客户只要在 productCode（寿险产品）、
+      gProductCode（养老险/意外险产品）、hProductCode（健康险产品）
+      三个字段中任意一个有值，即认为"买了保险"。
+      需要使用 OR 逻辑：query_logic=OR，三个 EXISTS 条件。
+    notes: >
+      必须生成 query_logic=OR 的三个条件：
+        - {field: productCode, operator: EXISTS}
+        - {field: gProductCode, operator: EXISTS}
+        - {field: hProductCode, operator: EXISTS}
+    examples:
+      - query: "买了保险的客户"
+        output:
+          query_logic: OR
+          conditions:
+            - {field: productCode, operator: EXISTS}
+            - {field: gProductCode, operator: EXISTS}
+            - {field: hProductCode, operator: EXISTS}
+      - query: "有保险的客户"
+        output:
+          query_logic: OR
+          conditions:
+            - {field: productCode, operator: EXISTS}
+            - {field: gProductCode, operator: EXISTS}
+            - {field: hProductCode, operator: EXISTS}
+      - query: "配置了保险的客户"
+        output:
+          query_logic: OR
+          conditions:
+            - {field: productCode, operator: EXISTS}
+            - {field: gProductCode, operator: EXISTS}
+            - {field: hProductCode, operator: EXISTS}

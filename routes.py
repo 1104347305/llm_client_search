@@ -20,6 +20,11 @@ from models.schemas import (
 from services.search_service import SearchService
 from core.field_registry import get_field_registry
 from core.query_router import QueryRouter
+from core.intent_summary import (
+    build_intent_summary,
+    filter_supported_conditions,
+    reload_intent_summary_service,
+)
 from db.request_logger import get_request_logger
 from config.settings import settings
 
@@ -65,18 +70,17 @@ class ConfigReloadRequest(BaseModel):
     )
 
 
-def _build_debug_patterns(parsed) -> Optional[List[Dict[str, Any]]]:
-    """统一组装调试信息：规则层 matched_patterns + L4 prompt。"""
+def _build_debug_pattern_text(parsed) -> Optional[str]:
+    """/parse 接口调试文本：L4 返回 prompt，其他层返回首个 pattern。"""
+    if parsed.matched_level == 4:
+        return parsed.prompt
+
     patterns = list(parsed.matched_patterns or [])
-    if parsed.matched_level == 4 and parsed.prompt:
-        patterns.append({
-            "rule_name": "L4_PROMPT",
-            "pattern": None,
-            "matched_text": None,
-            "match_type": "llm_prompt",
-            "prompt": parsed.prompt,
-        })
-    return patterns or None
+    for item in patterns:
+        pattern = item.get("pattern")
+        if pattern:
+            return str(pattern)
+    return None
 
 
 def _collect_config_yaml_files() -> List[str]:
@@ -103,6 +107,7 @@ def _reload_runtime_components(force_reindex_fields: bool = True) -> Dict[str, A
 
     search_service = SearchService()
     _query_router = QueryRouter()
+    intent_summary_service = reload_intent_summary_service()
 
     search_service.router = _query_router
 
@@ -113,6 +118,7 @@ def _reload_runtime_components(force_reindex_fields: bool = True) -> Dict[str, A
         "force_reindex_fields": force_reindex_fields,
         "reloaded_yaml_files": reloaded_yaml_files,
         "field_intent_total": len(registry.intents),
+        "intent_summary_labels_path": str(intent_summary_service.labels_path),
     }
 
 
@@ -127,8 +133,10 @@ async def parse_query(request: ParseApiRequest):
         parsed = await _query_router.route_with_peeling(request.user_text)
         elapsed = time.perf_counter() - start_time
 
-        conditions = parsed.conditions or []
-        robot_text = f"已解析 {len(conditions)} 个查询条件" if conditions else "未能解析查询条件"
+        raw_conditions = parsed.conditions or []
+        intent_summary = build_intent_summary(raw_conditions, parsed.query_logic)
+        conditions = filter_supported_conditions(raw_conditions)
+        robot_text = intent_summary
 
         await get_request_logger().log(
             agent_id=request.user_id or "",
@@ -152,8 +160,9 @@ async def parse_query(request: ParseApiRequest):
                     conditions=conditions,
                     matched_level=parsed.matched_level,
                     rewritten_query=parsed.rewritten_query,
-                    matched_patterns=_build_debug_patterns(parsed),
+                    matched_patterns=_build_debug_pattern_text(parsed),
                     last_tims=round(elapsed, 6),
+                    intent_summary=intent_summary,
                 ),
             ),
         )
