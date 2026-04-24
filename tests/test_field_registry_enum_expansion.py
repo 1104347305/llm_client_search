@@ -19,6 +19,10 @@ def test_enum_ref_expansion_skips_value_mappings_yaml():
 
     assert "意外伤害保险" in by_id["held_product_category"]["enum"]
     assert "e生保" in by_id["h_product_code"]["enum"]
+    assert "平安e生保医疗保险" in by_id["policies_plan_fullname"]["enum"]
+    assert "e生保" in by_id["policies_plan_abbr_name"]["enum"]
+    assert "定期寿险" in by_id["policies_plan_type"]["enum"]
+    assert "平安e生保医疗保险" in by_id["policies_claim_coverage"]["enum"]
 
 
 def test_settings_exposes_configurable_path_locations():

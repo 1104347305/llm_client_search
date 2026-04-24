@@ -11,6 +11,7 @@ from typing import Any, Optional
 
 import yaml
 
+from config.settings import settings
 from models.schemas import Condition, Operator, QueryLogic, RangeValue
 
 
@@ -21,12 +22,16 @@ class IntentSummaryService:
         self,
         labels_path: Optional[str] = None,
         field_definitions_path: Optional[str] = None,
+        enhanced_rules_path: Optional[str] = None,
     ) -> None:
         self.labels_path = Path(
             labels_path or os.environ.get("INTENT_SUMMARY_LABELS_PATH", "config/intent_summary_labels.yaml")
         )
         self.field_definitions_path = Path(
             field_definitions_path or os.environ.get("FIELD_DEFINITIONS_PATH", "config/field_definitions.yaml")
+        )
+        self.enhanced_rules_path = Path(
+            enhanced_rules_path or os.environ.get("ENHANCED_RULES_PATH", settings.ENHANCED_RULES_PATH)
         )
         self._labels: dict[str, Any] = {}
         self.field_labels: dict[str, str] = {}
@@ -51,11 +56,73 @@ class IntentSummaryService:
     def filter_supported_conditions(self, conditions: list[Condition]) -> list[Condition]:
         return [cond for cond in conditions if cond.field not in self.unsupported_fields]
 
+    def normalize_conditions_for_summary(self, conditions: list[Condition]) -> list[Condition]:
+        """在意图摘要前做轻量归并，减少同字段区间条件的重复展示。"""
+        if not conditions:
+            return []
+
+        normalized = list(conditions)
+        range_fields = {
+            cond.field
+            for cond in normalized
+            if cond.operator == Operator.RANGE
+        }
+        if not range_fields:
+            range_fields = set()
+
+        grouped_bounds: dict[str, dict[str, tuple[int, Condition]]] = {}
+        for idx, cond in enumerate(normalized):
+            if cond.field in range_fields:
+                continue
+            if cond.operator not in (Operator.GTE, Operator.LTE):
+                continue
+            if cond.value is None or isinstance(cond.value, (list, dict, RangeValue)):
+                continue
+
+            bucket = grouped_bounds.setdefault(cond.field, {})
+            key = cond.operator.value
+            if key not in bucket:
+                bucket[key] = (idx, cond)
+
+        consumed_indices: set[int] = set()
+        replacements: dict[int, Condition] = {}
+
+        for field, bounds in grouped_bounds.items():
+            gte_item = bounds.get(Operator.GTE.value)
+            lte_item = bounds.get(Operator.LTE.value)
+            if not gte_item or not lte_item:
+                continue
+
+            gte_idx, gte_cond = gte_item
+            lte_idx, lte_cond = lte_item
+            start_idx = min(gte_idx, lte_idx)
+            replacements[start_idx] = Condition(
+                field=field,
+                operator=Operator.RANGE,
+                value=RangeValue(min=gte_cond.value, max=lte_cond.value),
+            )
+            consumed_indices.update({gte_idx, lte_idx})
+
+        if not replacements:
+            return normalized
+
+        merged: list[Condition] = []
+        for idx, cond in enumerate(normalized):
+            replacement = replacements.get(idx)
+            if replacement is not None:
+                merged.append(replacement)
+                continue
+            if idx in consumed_indices:
+                continue
+            merged.append(cond)
+        return merged
+
     def build_intent_summary(
         self,
         conditions: list[Condition],
         query_logic: QueryLogic = QueryLogic.AND,
     ) -> str:
+        conditions = self.normalize_conditions_for_summary(conditions)
         if not conditions:
             return self._message("no_conditions", "未识别到明确查询条件")
 
@@ -63,6 +130,7 @@ class IntentSummaryService:
         unsupported_labels: list[str] = []
         seen_unsupported: set[str] = set()
 
+        supported_conditions: list[Condition] = []
         for cond in conditions:
             if cond.field in self.unsupported_fields:
                 label = self._unsupported_display_text(cond)
@@ -70,24 +138,132 @@ class IntentSummaryService:
                     unsupported_labels.append(label)
                     seen_unsupported.add(label)
             else:
-                supported_parts.append(self._condition_to_text(cond, conditions))
+                supported_conditions.append(cond)
+
+        for group in self._group_conditions_for_display(supported_conditions):
+            if len(group) == 1:
+                supported_parts.append(self._condition_to_text(group[0], conditions))
+                continue
+
+            group_texts: list[str] = []
+            seen_texts: set[str] = set()
+            for cond in group:
+                text = self._condition_to_text(cond, conditions)
+                if text in seen_texts:
+                    continue
+                seen_texts.add(text)
+                group_texts.append(text)
+
+            if group_texts:
+                or_connector = self._message("connector_or", "\n或者")
+                supported_parts.append(or_connector.join(group_texts))
 
         connector = (
             self._message("connector_and", "\n并且")
             if query_logic == QueryLogic.AND
             else self._message("connector_or", "\n或者")
         )
-        parts = list(supported_parts)
+        if supported_parts:
+            supported_parts[-1] = self._append_customer_suffix(supported_parts[-1])
+
+        supported_summary = connector.join(supported_parts)
+        unsupported_summary = ""
         if unsupported_labels:
-            parts.append(
+            unsupported_suffix_key = (
+                "unsupported_suffix_with_supported"
+                if supported_summary
+                else "unsupported_suffix_without_supported"
+            )
+            unsupported_suffix_default = (
+                "暂不支持搜索，系统将按可支持字段搜索"
+                if supported_summary
+                else "暂不支持搜索，无法进行查询"
+            )
+            unsupported_summary = (
                 self._message("unsupported_prefix", "提示：")
                 + "、".join(unsupported_labels)
-                + self._message("unsupported_suffix", "暂不支持搜索，系统将按可支持字段搜索")
+                + self._message(unsupported_suffix_key, unsupported_suffix_default)
             )
-        if not parts:
+        if not supported_summary and not unsupported_summary:
             return self._message("no_conditions", "未识别到明确查询条件")
+        if not supported_summary and unsupported_summary:
+            return unsupported_summary
         summary_prefix = self._message("summary_prefix", "系统识别查询条件：\n")
-        return f"{summary_prefix}{connector.join(parts)}"
+        if supported_summary and unsupported_summary:
+            return f"{summary_prefix}{supported_summary}\n{unsupported_summary}"
+        return f"{summary_prefix}{supported_summary or unsupported_summary}"
+
+    def _group_conditions_for_display(self, conditions: list[Condition]) -> list[list[Condition]]:
+        """将“同值命中多个字段”的条件按 OR 分组，仅用于摘要展示。"""
+        groups: list[list[Condition]] = []
+        group_index_by_key: dict[str, int] = {}
+
+        for cond in self._reorder_family_conditions_for_display(conditions):
+            key = self._display_or_group_key(cond)
+            if key is None:
+                groups.append([cond])
+                continue
+
+            existing_index = group_index_by_key.get(key)
+            if existing_index is None:
+                groups.append([cond])
+                group_index_by_key[key] = len(groups) - 1
+                continue
+
+            existing_group = groups[existing_index]
+            existing_fields = {item.field for item in existing_group}
+            if cond.field in existing_fields:
+                groups.append([cond])
+                continue
+
+            existing_group.append(cond)
+
+        return groups
+
+    def _reorder_family_conditions_for_display(self, conditions: list[Condition]) -> list[Condition]:
+        ordered = list(conditions)
+        family_relation_indices = [idx for idx, cond in enumerate(ordered) if cond.field == "familyRelation"]
+        family_detail_indices = [
+            idx for idx, cond in enumerate(ordered)
+            if cond.field.startswith("family") and cond.field != "familyRelation"
+        ]
+        if not family_relation_indices or not family_detail_indices:
+            return ordered
+
+        first_relation_idx = family_relation_indices[0]
+        first_detail_idx = family_detail_indices[0]
+        if first_relation_idx < first_detail_idx:
+            return ordered
+
+        relation_cond = ordered.pop(first_relation_idx)
+        ordered.insert(first_detail_idx, relation_cond)
+        return ordered
+
+    def _display_or_group_key(self, cond: Condition) -> Optional[str]:
+        op = cond.operator.value if hasattr(cond.operator, "value") else str(cond.operator)
+        if op not in {"MATCH", "CONTAINS", "NESTED_MATCH"}:
+            return None
+
+        value_signature = self._display_value_signature(cond.value)
+        if value_signature is None:
+            return None
+
+        return value_signature
+
+    def _display_value_signature(self, value: Any) -> Optional[str]:
+        if value is None:
+            return None
+        if isinstance(value, RangeValue):
+            return None
+        if isinstance(value, list):
+            if not value:
+                return None
+            if len(value) == 1:
+                return f"scalar:{value[0]}"
+            return "list:" + "|".join(str(v) for v in value)
+        if isinstance(value, dict):
+            return None
+        return f"scalar:{value}"
 
     def _load_labels(self) -> None:
         try:
@@ -104,16 +280,32 @@ class IntentSummaryService:
         self.profile_phrases = self._labels.get("profile_phrases", {})
 
     def _load_unsupported_fields(self) -> None:
+        unsupported_fields: set[str] = set()
         try:
             with open(self.field_definitions_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
-            self.unsupported_fields = frozenset(
+            unsupported_fields.update(
                 intent["field"]
                 for intent in data.get("intents", [])
                 if intent.get("is_supported") is False
             )
         except Exception:
-            self.unsupported_fields = frozenset()
+            pass
+
+        try:
+            with open(self.enhanced_rules_path, encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+            unsupported_fields.update(
+                rule["field"]
+                for rule in data.get("rules", [])
+                if isinstance(rule, dict)
+                and rule.get("is_supported") is False
+                and rule.get("field")
+            )
+        except Exception:
+            pass
+
+        self.unsupported_fields = frozenset(unsupported_fields)
 
     def _message(self, key: str, default: str) -> str:
         return self.messages.get(key, default)
@@ -195,6 +387,19 @@ class IntentSummaryService:
         max_d = parse_ymd(max_val)
         if not min_d or not max_d:
             return None
+
+        if (
+            min_d.year == max_d.year
+            and min_d.month == max_d.month
+            and min_d.day == 1
+            and max_d.day == calendar.monthrange(max_d.year, max_d.month)[1]
+        ):
+            return self._date_label(
+                "month_label",
+                "{year}年{month}月",
+                year=min_d.year,
+                month=min_d.month,
+            )
 
         if min_d.month == 1 and min_d.day == 1 and max_d.month == 12 and max_d.day == 31 and min_d.year == max_d.year:
             return self._date_label("year_label", "{year}年", year=min_d.year)
@@ -300,6 +505,12 @@ class IntentSummaryService:
     def _unsupported_display_text(self, cond: Condition) -> str:
         return self._profile_phrase(cond) or self.field_labels.get(cond.field, cond.field)
 
+    def _append_customer_suffix(self, text: str) -> str:
+        stripped = text.rstrip()
+        if not stripped or stripped.endswith("客户"):
+            return text
+        return f"{stripped}的客户"
+
     def _condition_to_text(self, cond: Condition, all_conditions: Optional[list[Condition]] = None) -> str:
         relation = self._get_family_relation(all_conditions or [])
         family_field_label = self._family_field_label(cond.field, relation)
@@ -338,6 +549,8 @@ class IntentSummaryService:
                     float(min_v)
                     if cond.field == "familyClientAge" and family_field_label:
                         return self._family_template("age_exact", "{label}{value}岁", label=family_field_label, value=min_v)
+                    if cond.field == "clientAge":
+                        return f"{field_label}={min_v}"
                     return f"{field_label}{self._message('range_equal', '等于')}{min_v}"
             except ValueError:
                 pass
@@ -399,6 +612,10 @@ def get_unsupported_fields() -> frozenset[str]:
 
 def filter_supported_conditions(conditions: list[Condition]) -> list[Condition]:
     return get_intent_summary_service().filter_supported_conditions(conditions)
+
+
+def normalize_conditions_for_summary(conditions: list[Condition]) -> list[Condition]:
+    return get_intent_summary_service().normalize_conditions_for_summary(conditions)
 
 
 def build_intent_summary(

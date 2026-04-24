@@ -57,11 +57,15 @@ class BatchTester:
         """批量测试"""
         # 读取测试问题
         queries = []
+        count = 0
         with open(queries_file, 'r', encoding='utf-8') as f:
             for line in f:
+                # if count >= 2:
+                #     continue
                 line = line.strip()
                 if line and not line.startswith('#'):
                     queries.append(line)
+                    count += 1
 
         print(f"共加载 {len(queries)} 个测试问题")
 
@@ -189,15 +193,15 @@ async def main():
 
     print("\n测试统计:")
     total = len(tester.results)
-    success = sum(1 for r in tester.results if r["result"].get("success"))
+    # success = sum(1 for r in tester.results if r["code"]==0)
     print(f"  总数: {total}")
-    print(f"  成功: {success}")
-    print(f"  失败: {total - success}")
+    # print(f"  成功: {success}")
+    # print(f"  失败: {total - success}")
 
     # 按层级统计
     level_stats = {}
     for r in tester.results:
-        level = r["result"].get("matched_level", 0)
+        level = r["parseResult"].get("matched_level", 0)
         level_stats[level] = level_stats.get(level, 0) + 1
 
     print("\n层级分布:")

@@ -1,5 +1,5 @@
 # 寿险产品（常见产品代码/名称，供LLM参考）
-productCode:
+planAbbrNames:
   values:
     - "生财宝"
     - "智能星"
@@ -7,3 +7,5 @@ productCode:
     - "平安永福"
     - "平安康泰"
     - "盛世金越"
+    - "e生保"
+    - "颐享天年分红"

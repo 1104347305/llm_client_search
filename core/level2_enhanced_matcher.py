@@ -19,13 +19,15 @@ from core.time_range_resolver import resolve_dynamic_date_range
 class RuleMatch:
     """规则匹配结果"""
     def __init__(self, rule_name: str, condition: Condition,
-                 start: int, end: int, priority: int):
+                 start: int, end: int, priority: int, is_extra: bool = False):
         self.rule_name = rule_name
         self.condition = condition
         self.start = start
         self.end = end
         self.priority = priority
+        self.is_extra = is_extra
         self.matched_text = ""
+        self.debug_info: Optional[Dict[str, Any]] = None
 
 
 class Level2EnhancedMatcher:
@@ -79,7 +81,8 @@ class Level2EnhancedMatcher:
                     return
 
                 self.rules = config.get('rules', [])
-                self.composite_rules = config.get('composite_rules', [])  # 提前加载，使 _expand_pattern_vars 能处理 composite 模板
+                # 提前加载，使 _expand_pattern_vars 能处理 composite 模板
+                self.composite_rules = config.get('composite_rules', [])
                 self.negation_words = config.get('negation_words', NEGATION_WORDS)
                 self.position_words = config.get('position_words', [])
                 # 从外部文件加载 value_mappings（路径从 settings 获取）
@@ -242,6 +245,7 @@ class Level2EnhancedMatcher:
                 # 包含自映射（alias == std）：自映射在正则交替中占位，防止短别名匹配其前缀
                 # 例：黄金V1→黄金V1 使 "黄金V1" 优先于 "黄金"→"黄金V1" 被替换，避免残留 "V1"
                 lookup[alias] = std
+                lookup.setdefault(std, std)
         # 按长度降序构建交替正则，长串优先避免短串先匹配（如"医疗险"优先于"医疗"）
         sorted_aliases = sorted(lookup.keys(), key=len, reverse=True)
         if sorted_aliases:
@@ -414,11 +418,12 @@ class Level2EnhancedMatcher:
         for spec in comp_rule.get('extra_conditions', []):
             field = spec.get('field')
             operator_str = spec.get('operator', 'MATCH')
-            value = spec.get('value')
+            operator = self._get_operator(operator_str, False)
+            value = self._normalize_condition_value(field, operator, spec.get('value'))
             if field and value is not None:
                 conditions.append(
                     Condition(field=field,
-                              operator=self._get_operator(operator_str, False),
+                              operator=operator,
                               value=value)
                 )
 
@@ -505,10 +510,16 @@ class Level2EnhancedMatcher:
 
                             # 处理普通规则的 extra_conditions（静态附加条件）
                             for extra in rule.get('extra_conditions', []):
+                                extra_operator = self._get_operator(extra['operator'], False)
+                                extra_value = self._normalize_condition_value(
+                                    extra['field'], extra_operator, extra.get('value')
+                                )
+                                if extra_value is None:
+                                    continue
                                 extra_cond = Condition(
                                     field=extra['field'],
-                                    operator=self._get_operator(extra['operator'], False),
-                                    value=extra.get('value'),
+                                    operator=extra_operator,
+                                    value=extra_value,
                                 )
                                 extra_match = RuleMatch(
                                     rule_name=f"{rule_name}[extra]",
@@ -516,6 +527,7 @@ class Level2EnhancedMatcher:
                                     start=start,
                                     end=end,
                                     priority=priority,
+                                    is_extra=True,
                                 )
                                 extra_match.matched_text = match.group(0)
                                 all_matches.append(extra_match)
@@ -530,26 +542,250 @@ class Level2EnhancedMatcher:
         # 第三步: 提取条件
         conditions = [m.condition for m in final_matches]
 
-        # 第三步（补充）: 验证 require_paired_field 约束
-        # 若某字段要求成对出现的字段不存在，则丢弃该条件（让查询降级到 LLM）
-        if self._paired_requirements:
-            condition_fields = {c.field for c in conditions}
-            valid_matches = []
-            for m in final_matches:
-                paired = self._paired_requirements.get(m.condition.field)
-                if paired and paired not in condition_fields:
-                    logger.info(
-                        f"Dropping condition '{m.condition.field}={m.condition.value}' — "
-                        f"required paired field '{paired}' not found in conditions"
-                    )
-                else:
-                    valid_matches.append(m)
-            if len(valid_matches) != len(final_matches):
-                final_matches = valid_matches
-                conditions = [m.condition for m in final_matches]
+        final_matches = self._filter_paired_matches(final_matches)
+        conditions = [m.condition for m in final_matches]
 
         logger.info(f"Level 2 Enhanced matched {len(conditions)} conditions")
         return conditions
+
+    def _match_split_clauses(self, normalized_query: str) -> List[Condition]:
+        clauses = self._split_query_clauses(normalized_query)
+        if len(clauses) <= 1:
+            return []
+
+        all_matches: List[RuleMatch] = []
+        for idx, clause in enumerate(clauses):
+            clause_matches = self._collect_rule_matches(clause, base_offset=idx * 10000)
+            if not clause_matches:
+                return []
+            all_matches.extend(clause_matches)
+
+        final_matches = self._resolve_conflicts(all_matches)
+        final_matches = self._filter_paired_matches(final_matches)
+        self._append_debug_patterns(final_matches)
+        return [m.condition for m in final_matches]
+
+    def _append_debug_patterns(self, matches: List[RuleMatch]) -> None:
+        """将最终命中的规则调试信息写入 _last_matched_patterns。"""
+        seen = {
+            (
+                item.get("rule_name"),
+                item.get("pattern"),
+                item.get("matched_text"),
+                item.get("match_type"),
+                item.get("clause"),
+            )
+            for item in self._last_matched_patterns
+        }
+
+        for match in matches:
+            info = match.debug_info
+            if not info:
+                continue
+            key = (
+                info.get("rule_name"),
+                info.get("pattern"),
+                info.get("matched_text"),
+                info.get("match_type"),
+                info.get("clause"),
+            )
+            if key in seen:
+                continue
+            self._last_matched_patterns.append(info)
+            seen.add(key)
+
+    def _split_query_clauses(self, query: str) -> List[str]:
+        text = query.strip()
+        if not text:
+            return []
+
+        text = re.sub(
+            r'(?<!^)(?=(?:手机号|手机号码)|客户号|客户价值|客户温度|客户分组|客户VIP等级|婚姻状况|职业|学历|证件类型|证件有效期|保单号|寿险产品|综拓产品类别|综拓理赔状态|有效短险保单|居家等级|康养等级|安有护权益|臻享家医权益|家医权益|车险|托管标志|家庭成员关系|家庭成员姓名|家庭成员手机号|家庭成员性别|家庭成员年龄|家庭成员出生日期)',
+            '，',
+            text,
+        )
+
+        parts = re.split(r'(?:、|，|,|；|;|并且|而且|但是|不过|但|且)', text)
+        clauses: List[str] = []
+        for part in parts:
+            clause = part.strip()
+            if not clause:
+                continue
+            clause = re.sub(r'^(?:同时|另外|还有)', '', clause).strip()
+            if clause:
+                clauses.append(clause)
+        return clauses
+
+    def _collect_rule_matches(self, normalized_query: str, base_offset: int = 0) -> List[RuleMatch]:
+        all_matches: List[RuleMatch] = []
+
+        for rule in self.rules:
+            rule_name = rule.get('name', 'unknown')
+            compiled_patterns = rule.get('_compiled_patterns', [])
+            priority = rule.get('priority', 0)
+
+            for compiled_pattern in compiled_patterns:
+                try:
+                    match = compiled_pattern.fullmatch(normalized_query)
+                except re.error as e:
+                    logger.warning(f"Invalid regex pattern in split clause match '{rule_name}': {e}")
+                    continue
+
+                if not match:
+                    continue
+
+                condition = self._build_condition(rule, match, normalized_query)
+                if not condition:
+                    continue
+
+                if match.lastindex and match.lastindex >= 1:
+                    start = base_offset + match.start(1)
+                    end = base_offset + match.end(match.lastindex)
+                else:
+                    start = base_offset + match.start()
+                    end = base_offset + match.end()
+
+                rule_match = RuleMatch(
+                    rule_name=rule_name,
+                    condition=condition,
+                    start=start,
+                    end=end,
+                    priority=priority
+                )
+                rule_match.matched_text = match.group(0)
+                rule_match.debug_info = {
+                    "rule_name": rule_name,
+                    "pattern": compiled_pattern.pattern,
+                    "matched_text": match.group(0),
+                    "match_type": "split_regular",
+                    "clause": normalized_query,
+                }
+                all_matches.append(rule_match)
+
+                for extra in rule.get('extra_conditions', []):
+                    extra_operator = self._get_operator(extra['operator'], False)
+                    extra_value = self._normalize_condition_value(
+                        extra['field'], extra_operator, extra.get('value')
+                    )
+                    if extra_value is None:
+                        continue
+                    extra_cond = Condition(
+                        field=extra['field'],
+                        operator=extra_operator,
+                        value=extra_value,
+                    )
+                    extra_match = RuleMatch(
+                        rule_name=f"{rule_name}[extra]",
+                        condition=extra_cond,
+                        start=start,
+                        end=end,
+                        priority=priority,
+                        is_extra=True,
+                    )
+                    extra_match.matched_text = match.group(0)
+                    extra_match.debug_info = {
+                        "rule_name": f"{rule_name}[extra]",
+                        "pattern": compiled_pattern.pattern,
+                        "matched_text": match.group(0),
+                        "match_type": "split_regular",
+                        "clause": normalized_query,
+                    }
+                    all_matches.append(extra_match)
+
+        return all_matches
+
+    def _filter_paired_matches(self, matches: List[RuleMatch]) -> List[RuleMatch]:
+        """过滤 require_paired_field 约束不满足的匹配。"""
+        if not self._paired_requirements or not matches:
+            return matches
+
+        condition_fields = {m.condition.field for m in matches}
+        valid_matches: List[RuleMatch] = []
+        for match in matches:
+            paired = self._paired_requirements.get(match.condition.field)
+            if paired and paired not in condition_fields:
+                logger.info(
+                    f"Dropping condition '{match.condition.field}={match.condition.value}' — "
+                    f"required paired field '{paired}' not found in conditions"
+                )
+                continue
+            valid_matches.append(match)
+        return valid_matches
+
+    def _filter_paired_recalled_fields(self, recalled: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """过滤字段级召回中 require_paired_field 不满足的结果。"""
+        if not self._paired_requirements or not recalled:
+            return recalled
+
+        fields = {str(item.get("field", "")).strip() for item in recalled if str(item.get("field", "")).strip()}
+        valid: List[Dict[str, Any]] = []
+        for item in recalled:
+            field = str(item.get("field", "")).strip()
+            paired = self._paired_requirements.get(field)
+            if paired and paired not in fields:
+                logger.info(
+                    f"Dropping recalled field '{field}' — required paired field '{paired}' not found in recall results"
+                )
+                continue
+            valid.append(item)
+        return valid
+
+    def _filter_paired_recalled_conditions(self, conditions: List[Condition]) -> List[Condition]:
+        """过滤条件级召回中 require_paired_field 不满足的结果。"""
+        if not self._paired_requirements or not conditions:
+            return conditions
+
+        fields = {cond.field for cond in conditions}
+        valid: List[Condition] = []
+        for cond in conditions:
+            paired = self._paired_requirements.get(cond.field)
+            if paired and paired not in fields:
+                logger.info(
+                    f"Dropping recalled condition '{cond.field}={cond.value}' — "
+                    f"required paired field '{paired}' not found in recalled conditions"
+                )
+                continue
+            valid.append(cond)
+        return valid
+
+    @staticmethod
+    def _filter_recalled_condition_items_by_value_priority(
+        items: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """同一条件值命中多个字段时，仅保留优先级最高的候选条件。"""
+        if not items:
+            return items
+
+        winners: Dict[str, Dict[str, Any]] = {}
+        ordered_keys: List[str] = []
+
+        for index, item in enumerate(items):
+            condition = item.get("condition")
+            value = getattr(condition, "value", None)
+
+            if isinstance(value, list):
+                key = "list:" + "|".join(str(v) for v in value)
+            elif isinstance(value, RangeValue):
+                key = f"range:{value.min}|{value.max}"
+            elif isinstance(value, dict):
+                key = "dict:" + json.dumps(value, ensure_ascii=False, sort_keys=True)
+            elif value is None:
+                key = f"__no_value__::{index}"
+            else:
+                key = f"scalar:{value}"
+
+            current = winners.get(key)
+            if current is None:
+                winners[key] = item
+                ordered_keys.append(key)
+                continue
+
+            current_priority = int(current.get("priority", 0))
+            item_priority = int(item.get("priority", 0))
+            if item_priority > current_priority:
+                winners[key] = item
+
+        return [winners[key] for key in ordered_keys]
 
     def recall_fields(self, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
         """
@@ -613,9 +849,159 @@ class Level2EnhancedMatcher:
             recalled.values(),
             key=lambda item: (-item["priority"], item["field"])
         )[:top_k]
+        results = self._filter_paired_recalled_fields(results)
         logger.debug(
             f"L2 field recall matched {len(results)} fields for query '{query}': "
             f"{[item['field'] for item in results]}"
+        )
+        return results
+
+    def recall_candidates(self, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
+        """
+        基于 L2 规则做语义级召回。
+
+        与 recall_fields() 相比：
+        - 保留 field + operator 粒度
+        - 保留 matched_text 与 rule_name，方便 L4 做更精确的 RAG 注入
+        - 每个 field+operator 仅保留优先级最高的一条候选
+        """
+        normalized_query = self._preprocess_query(query)
+        recalled: Dict[tuple[str, str], Dict[str, Any]] = {}
+
+        for rule in self.rules:
+            field = rule.get("field")
+            operator_str = rule.get("operator")
+            if not field or not operator_str:
+                continue
+
+            compiled_patterns = rule.get("_compiled_patterns", [])
+            priority = int(rule.get("priority", 0))
+            rule_name = rule.get("name", "unknown")
+            operator = self._get_operator(operator_str, False).value
+
+            for compiled_pattern in compiled_patterns:
+                try:
+                    match = compiled_pattern.search(normalized_query)
+                except re.error as e:
+                    logger.warning(f"Invalid regex pattern in recall candidate '{rule_name}': {e}")
+                    continue
+
+                if not match:
+                    continue
+
+                key = (field, operator)
+                candidate = {
+                    "source": "l2",
+                    "field": field,
+                    "operator": operator,
+                    "rule_name": rule_name,
+                    "matched_text": match.group(0),
+                    "priority": priority,
+                }
+                current = recalled.get(key)
+                if current is None or priority > current["priority"]:
+                    recalled[key] = candidate
+
+                for extra in rule.get("extra_conditions", []):
+                    extra_field = extra.get("field")
+                    extra_operator_str = extra.get("operator")
+                    if not extra_field or not extra_operator_str:
+                        continue
+                    extra_operator = self._get_operator(extra_operator_str, False).value
+                    extra_key = (extra_field, extra_operator)
+                    extra_candidate = {
+                        "source": "l2",
+                        "field": extra_field,
+                        "operator": extra_operator,
+                        "rule_name": f"{rule_name}[extra]",
+                        "matched_text": match.group(0),
+                        "priority": priority,
+                    }
+                    extra_current = recalled.get(extra_key)
+                    if extra_current is None or priority > extra_current["priority"]:
+                        recalled[extra_key] = extra_candidate
+
+        results = sorted(
+            recalled.values(),
+            key=lambda item: (-item["priority"], item["field"], item["operator"])
+        )[:top_k]
+        results = self._filter_paired_recalled_fields(results)
+        logger.debug(
+            f"L2 candidate recall matched {len(results)} candidates for query '{query}': "
+            f"{[item['field'] + ':' + item['operator'] for item in results]}"
+        )
+        return results
+
+    def recall_candidate_conditions(self, query: str, top_k: int = 10) -> List[Condition]:
+        """
+        召回 L2 候选条件，并直接物化为 Condition。
+
+        用途：
+        - 作为 L4 输出后的候选覆盖层
+        - 同 field+operator 仅保留优先级最高的一条
+        """
+        normalized_query = self._preprocess_query(query)
+        recalled: Dict[tuple[str, str], Dict[str, Any]] = {}
+
+        for rule in self.rules:
+            field = rule.get("field")
+            operator_str = rule.get("operator")
+            if not field or not operator_str:
+                continue
+
+            compiled_patterns = rule.get("_compiled_patterns", [])
+            priority = int(rule.get("priority", 0))
+
+            for compiled_pattern in compiled_patterns:
+                try:
+                    match = compiled_pattern.search(normalized_query)
+                except re.error as e:
+                    logger.warning(f"Invalid regex pattern in recall candidate condition '{rule.get('name', 'unknown')}': {e}")
+                    continue
+
+                if not match:
+                    continue
+
+                condition = self._build_condition(rule, match, normalized_query)
+                if condition is not None:
+                    key = (condition.field, condition.operator.value)
+                    current = recalled.get(key)
+                    candidate = {"priority": priority, "condition": condition}
+                    if current is None or priority > current["priority"]:
+                        recalled[key] = candidate
+
+                for extra in rule.get("extra_conditions", []):
+                    extra_field = extra.get("field")
+                    extra_operator_str = extra.get("operator")
+                    if not extra_field or not extra_operator_str:
+                        continue
+                    extra_operator = self._get_operator(extra_operator_str, False)
+                    extra_value = self._normalize_condition_value(
+                        extra_field,
+                        extra_operator,
+                        extra.get("value"),
+                    )
+                    extra_condition = Condition(
+                        field=extra_field,
+                        operator=extra_operator,
+                        value=extra_value,
+                    )
+                    key = (extra_condition.field, extra_condition.operator.value)
+                    current = recalled.get(key)
+                    candidate = {"priority": priority, "condition": extra_condition}
+                    if current is None or priority > current["priority"]:
+                        recalled[key] = candidate
+
+        recalled_items = sorted(
+            recalled.values(),
+            key=lambda item: (-item["priority"], item["condition"].field, item["condition"].operator.value),
+        )[:top_k]
+        recalled_items = self._filter_recalled_condition_items_by_value_priority(recalled_items)
+        results = [item["condition"] for item in recalled_items]
+        results = self._filter_paired_recalled_conditions(results)
+        logger.debug(
+            f"L2 candidate conditions matched {len(results)} conditions for query '{query}': "
+            f"{[item.field + ':' + item.operator.value for item in results]}"
         )
         return results
 
@@ -670,6 +1056,14 @@ class Level2EnhancedMatcher:
         if isinstance(value, str) and field in self.value_mappings and not rule.get('enum_ref'):
             value = self.value_mappings[field].get(value, value)
 
+        # 对枚举字段做一次轻量兜底标准化：
+        # 若捕获值不是合法枚举，但明显包含某个标准枚举词，则回收为该枚举值。
+        if isinstance(value, str) and field in self.enum_values and value not in self.enum_values[field]:
+            enum_hits = [enum for enum in self.enum_values[field] if enum and enum in value]
+            if enum_hits:
+                enum_hits.sort(key=len, reverse=True)
+                value = enum_hits[0]
+
         # enum_gte / enum_gt / enum_lte / enum_lt value_type：
         # 按 enum_orders 展开为有序列表（operator 已是 CONTAINS）
         if value_type in ("enum_gte", "enum_gt", "enum_lte", "enum_lt") and isinstance(value, str):
@@ -689,7 +1083,36 @@ class Level2EnhancedMatcher:
                 operator = Operator.MATCH
                 logger.warning(f"{value_type} fallback to MATCH for field='{field}' value='{value}'")
 
+        value = self._normalize_condition_value(field, operator, value)
+        if value is None:
+            return None
+
         return Condition(field=field, operator=operator, value=value)
+
+    def _normalize_condition_value(self, field: str, operator: Operator, value: Any) -> Any:
+        """统一约束 Level2 输出的 value 结构。"""
+        if value is None:
+            return None
+
+        if operator in (Operator.CONTAINS, Operator.NOT_CONTAINS):
+            if isinstance(value, list):
+                return value
+            return [value]
+
+        if isinstance(value, list):
+            if not value:
+                logger.warning(
+                    f"Level2 produced empty list for field='{field}' operator='{operator.value}', dropping condition"
+                )
+                return None
+            if len(value) > 1:
+                logger.warning(
+                    f"Level2 produced list value for field='{field}' operator='{operator.value}', "
+                    f"using first item only: {value!r}"
+                )
+            return value[0]
+
+        return value
 
     def _get_operator(self, operator_str: str, has_negation: bool) -> Operator:
         """获取操作符"""
@@ -718,6 +1141,20 @@ class Level2EnhancedMatcher:
         if value_type == "static":
             # 静态值
             return value_config
+
+        elif value_type == "enum_values":
+            # 直接从枚举配置读取整组值
+            enum_ref = None
+            if isinstance(value_config, dict):
+                enum_ref = value_config.get("enum_ref")
+            elif isinstance(value_config, str):
+                enum_ref = value_config
+
+            if not enum_ref:
+                return None
+
+            values = self.enum_values.get(str(enum_ref), [])
+            return list(values) if values else None
 
         elif value_type == "capture":
             # 从正则捕获组提取
@@ -856,6 +1293,17 @@ class Level2EnhancedMatcher:
         logger.warning(f"Unknown date_range type: '{date_range}'")
         return None
 
+    @staticmethod
+    def _format_date_by_config(year: int, month: int, day: int, config: Optional[Dict] = None) -> str:
+        """按规则配置输出日期字符串，支持 MM-dd、yyyy-MM-dd 与 yyyy-MM-dd HH:mm:ss。"""
+        fmt_str = str((config or {}).get("format", "yyyy-MM-dd HH:mm:ss"))
+        if fmt_str.upper() == "MM-DD":
+            return f"{month:02d}-{day:02d}"
+        rendered = f"{year:04d}-{month:02d}-{day:02d}"
+        if "HH:mm:ss" in fmt_str or "HH:MM:SS" in fmt_str.upper():
+            return f"{rendered} 00:00:00"
+        return rendered
+
     def _apply_transform(self, value: str, transform: Optional[str], config: Dict) -> Any:
         """应用值转换"""
         if not transform:
@@ -896,17 +1344,90 @@ class Level2EnhancedMatcher:
             return RangeValue(min=n, max=n)
 
         elif transform == "yyyymmdd_to_datetime":
-            # 将 8 位日期转为接口要求的日期时间格式
+            # 将 8 位日期转为规则要求的日期格式
             if len(value) != 8 or not value.isdigit():
                 return value
-            return f"{value[:4]}-{value[4:6]}-{value[6:8]} 00:00:00"
+            return self._format_date_by_config(
+                int(value[:4]), int(value[4:6]), int(value[6:8]), config
+            )
 
         elif transform == "year_to_birth_range":
-            # 将出生年份转为接口要求的出生日期范围
+            # 将出生年份转为规则要求的出生日期范围
             year = int(value)
             return RangeValue(
-                min=f"{year}-01-01 00:00:00",
-                max=f"{year}-12-31 00:00:00",
+                min=self._format_date_by_config(year, 1, 1, config),
+                max=self._format_date_by_config(year, 12, 31, config),
+            )
+
+        elif transform == "year_start_datetime":
+            year = int(value)
+            return self._format_date_by_config(year, 1, 1, config)
+
+        elif transform == "year_end_datetime":
+            year = int(value)
+            fmt_str = str(config.get("format", "yyyy-MM-dd HH:mm:ss"))
+            if "HH:mm:ss" in fmt_str or "HH:MM:SS" in fmt_str.upper():
+                return f"{year:04d}-12-31 23:59:59"
+            return f"{year:04d}-12-31"
+
+        elif transform == "year_month_range":
+            parts = re.split(r'[-/]', value)
+            if len(parts) != 2:
+                return value
+            year = int(parts[0])
+            month = int(parts[1])
+            if month < 1 or month > 12:
+                return value
+            from calendar import monthrange
+            last_day = monthrange(year, month)[1]
+            if str(config.get("format", "yyyy-MM-dd HH:mm:ss")).upper() == "MM-DD":
+                return RangeValue(
+                    min=f"{month:02d}-01",
+                    max=f"{month:02d}-{last_day:02d}",
+                )
+            return RangeValue(
+                min=f"{year:04d}-{month:02d}-01 00:00:00",
+                max=f"{year:04d}-{month:02d}-{last_day:02d} 23:59:59",
+            )
+
+        elif transform == "month_day_to_md":
+            parts = re.split(r'[-/]', value)
+            if len(parts) != 2:
+                return value
+            month = int(parts[0])
+            day = int(parts[1])
+            return RangeValue(
+                min=f"{month:02d}-{day:02d}",
+                max=f"{month:02d}-{day:02d}",
+            )
+
+        elif transform == "month_day_cn_to_md":
+            matched = re.match(r'(\d{1,2})月(\d{1,2})', value)
+            if not matched:
+                return value
+            month = int(matched.group(1))
+            day = int(matched.group(2))
+            return RangeValue(
+                min=f"{month:02d}-{day:02d}",
+                max=f"{month:02d}-{day:02d}",
+            )
+
+        elif transform == "year_month_cn_range":
+            matched = re.match(r'(\d{4})年(\d{1,2})月', value)
+            if not matched:
+                return value
+            year = int(matched.group(1))
+            month = int(matched.group(2))
+            from calendar import monthrange
+            last_day = monthrange(year, month)[1]
+            if str(config.get("format", "yyyy-MM-dd HH:mm:ss")).upper() == "MM-DD":
+                return RangeValue(
+                    min=f"{month:02d}-01",
+                    max=f"{month:02d}-{last_day:02d}",
+                )
+            return RangeValue(
+                min=f"{year:04d}-{month:02d}-01 00:00:00",
+                max=f"{year:04d}-{month:02d}-{last_day:02d} 23:59:59",
             )
 
         elif transform == "chinese_decade_plus_range":
@@ -997,12 +1518,13 @@ class Level2EnhancedMatcher:
 
             # 检查位置是否与已选中的匹配有重叠
             has_overlap = False
-            for used_start, used_end in used_positions:
-                # 检查是否有重叠：[start, end) 与 [used_start, used_end) 有交集
-                if not (match.end <= used_start or match.start >= used_end):
-                    has_overlap = True
-                    logger.debug(f"Skipped overlapping match '{match.rule_name}' at [{match.start}:{match.end}]")
-                    break
+            if not match.is_extra:
+                for used_start, used_end in used_positions:
+                    # 检查是否有重叠：[start, end) 与 [used_start, used_end) 有交集
+                    if not (match.end <= used_start or match.start >= used_end):
+                        has_overlap = True
+                        logger.debug(f"Skipped overlapping match '{match.rule_name}' at [{match.start}:{match.end}]")
+                        break
 
             if has_overlap:
                 continue

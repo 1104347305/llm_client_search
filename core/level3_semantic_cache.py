@@ -8,6 +8,7 @@ from loguru import logger
 import redis
 from config.settings import settings
 from models.schemas import ParsedQuery, Condition, QueryLogic, Sort, SortOrder, Operator, RangeValue
+from utils.sensitive_masking import mask_for_log
 
 
 class Level3SemanticCache:
@@ -25,6 +26,12 @@ class Level3SemanticCache:
             )
             self.redis_client.ping()
             logger.info("Redis cache initialized successfully")
+        except redis.AuthenticationError:
+            logger.warning(
+                "Redis authentication failed, cache disabled. "
+                f"Please verify REDIS_PASSWORD for {settings.REDIS_HOST}:{settings.REDIS_PORT}/{settings.REDIS_DB}."
+            )
+            self.redis_client = None
         except Exception as e:
             logger.warning(f"Redis connection failed: {e}, cache disabled")
             self.redis_client = None
@@ -53,10 +60,10 @@ class Level3SemanticCache:
             if cached:
                 data = json.loads(cached)
                 parsed_query = self._deserialize(data)
-                logger.info(f"Cache hit for query: {query}")
+                logger.info(f"Cache hit for query: {mask_for_log(query)}")
                 return parsed_query
 
-            logger.debug(f"Cache miss for query: {query}")
+            logger.debug(f"Cache miss for query: {mask_for_log(query)}")
             return None
 
         except Exception as e:
@@ -85,7 +92,7 @@ class Level3SemanticCache:
                 settings.CACHE_TTL,
                 json.dumps(data, ensure_ascii=False)
             )
-            logger.info(f"Cached query: {query}")
+            logger.info(f"Cached query: {mask_for_log(query)}")
             return True
 
         except Exception as e:

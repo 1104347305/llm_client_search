@@ -48,3 +48,33 @@ def test_validate_conditions_skips_enum_check_for_exists_operators():
 
     assert len(exists_result) == 1
     assert len(not_exists_result) == 1
+
+
+def test_validate_conditions_drops_exists_when_same_field_has_specific_operator():
+    router = QueryRouter.__new__(QueryRouter)
+    router._valid_fields = {"planAbbrNames"}
+    router._enum_values = {"planAbbrNames": ["智能星", "颐享天年分红"]}
+
+    result = router._validate_conditions([
+        Condition(field="planAbbrNames", operator=Operator.EXISTS, value=None),
+        Condition(field="planAbbrNames", operator=Operator.CONTAINS, value=["智能星"]),
+    ])
+
+    assert result == [
+        Condition(field="planAbbrNames", operator=Operator.CONTAINS, value=["智能星"])
+    ]
+
+
+def test_validate_conditions_drops_not_exists_when_same_field_has_specific_negative_operator():
+    router = QueryRouter.__new__(QueryRouter)
+    router._valid_fields = {"planAbbrNames"}
+    router._enum_values = {"planAbbrNames": ["智能星", "颐享天年分红"]}
+
+    result = router._validate_conditions([
+        Condition(field="planAbbrNames", operator=Operator.NOT_EXISTS, value=None),
+        Condition(field="planAbbrNames", operator=Operator.NOT_CONTAINS, value=["智能星"]),
+    ])
+
+    assert result == [
+        Condition(field="planAbbrNames", operator=Operator.NOT_CONTAINS, value=["智能星"])
+    ]

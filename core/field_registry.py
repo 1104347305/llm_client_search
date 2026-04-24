@@ -14,6 +14,7 @@ ES 索引设计：
 """
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -23,6 +24,7 @@ from elasticsearch.helpers import bulk
 from loguru import logger
 
 from config.settings import settings
+from models.field_mapping import get_field_context_group
 
 
 # ES 索引 Mapping
@@ -74,6 +76,16 @@ def _build_index_mapping(analyzer: str, fingerprint: str) -> Dict[str, Any]:
                     "analyzer": index_analyzer,
                     "search_analyzer": search_analyzer,
                 },
+                "examples_text": {
+                    "type": "text",
+                    "analyzer": index_analyzer,
+                    "search_analyzer": search_analyzer,
+                },
+                "negative_examples_text": {
+                    "type": "text",
+                    "analyzer": index_analyzer,
+                    "search_analyzer": search_analyzer,
+                },
                 "enum":     {"type": "keyword"},
                 "unit":     {"type": "keyword"},
                 "format":   {"type": "keyword"},
@@ -114,6 +126,11 @@ class FieldRegistry:
 
         # 加载意图数据
         self.intents: List[Dict[str, Any]] = self._load_yaml()
+        self._intents_by_id: Dict[str, Dict[str, Any]] = {
+            str(intent.get("id", "")).strip(): intent
+            for intent in self.intents
+            if str(intent.get("id", "")).strip()
+        }
         self._intents_fingerprint = self._compute_intents_fingerprint(self.intents)
         logger.info(f"Loaded {len(self.intents)} intents from {yaml_path}")
 
@@ -179,12 +196,38 @@ class FieldRegistry:
                         matched[iid] = intent
 
         results = list(matched.values())
+        results = self._filter_trie_intents_by_context(query, results)
         if results:
             logger.debug(
                 f"Trie matched {len(results)} intents for query '{query}': "
                 f"{[r.get('id') for r in results]}"
             )
         return results
+
+    def _filter_trie_intents_by_context(self, query: str, intents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        对高歧义的客户本人/家庭成员字段做最小上下文过滤。
+
+        第一阶段仅处理最容易串召回的几组字段：
+        - clientSex / familyClientSex
+        - clientAge / familyClientAge
+        - clientBirthday / familyClientBirthday
+        """
+        family_markers = ("家庭成员", "家里", "子女", "父母", "配偶", "儿子", "女儿", "孩子", "家属")
+        has_family_context = any(marker in query for marker in family_markers)
+
+        family_fields = get_field_context_group("family")
+        client_fields = get_field_context_group("client")
+
+        filtered: List[Dict[str, Any]] = []
+        for intent in intents:
+            field = str(intent.get("field", "")).strip()
+            if has_family_context and field in client_fields:
+                continue
+            if not has_family_context and field in family_fields:
+                continue
+            filtered.append(intent)
+        return filtered
 
     def retrieve_by_fields(self, fields: List[str]) -> List[Dict[str, Any]]:
         """按字段名直接返回对应的 intent 定义，保持 field_definitions 中的原始顺序。"""
@@ -199,6 +242,32 @@ class FieldRegistry:
             intent for intent in self.intents
             if str(intent.get("field", "")).strip() in wanted
         ]
+
+    def retrieve_by_field_operator_pairs(self, pairs: List[tuple[str, str]]) -> List[Dict[str, Any]]:
+        """按 field+operator 返回对应的 intent 定义，保持 field_definitions 中的原始顺序。"""
+        if not pairs:
+            return []
+
+        wanted = {
+            (str(field).strip(), str(operator).strip())
+            for field, operator in pairs
+            if str(field).strip() and str(operator).strip()
+        }
+        if not wanted:
+            return []
+
+        seen: set[tuple[str, str]] = set()
+        results: List[Dict[str, Any]] = []
+        for intent in self.intents:
+            key = (
+                str(intent.get("field", "")).strip(),
+                str(intent.get("operator", "")).strip(),
+            )
+            if key not in wanted or key in seen:
+                continue
+            results.append(intent)
+            seen.add(key)
+        return results
 
     # ==================== 初始化 ====================
 
@@ -287,9 +356,15 @@ class FieldRegistry:
                     "retrieval_text": intent.get("retrieval_text", ""),
                     "description":    intent.get("description", ""),
                     "notes":          intent.get("notes", ""),
+                    "examples_text":  self._flatten_examples_text(intent.get("examples", [])),
+                    "negative_examples_text": self._flatten_negative_examples_text(
+                        intent.get("negative_examples", [])
+                    ),
                     "enum":           intent.get("enum", []),
                     "unit":           intent.get("unit", ""),
                     "format":         intent.get("format", ""),
+                    "show_enum_in_prompt": intent.get("show_enum_in_prompt", True),
+                    "enum_candidate_limit_in_prompt": intent.get("enum_candidate_limit_in_prompt", 3),
                     "examples":       intent.get("examples", []),
                     "negative_examples": intent.get("negative_examples", []),
                 }
@@ -413,32 +488,117 @@ class FieldRegistry:
         if not query.strip():
             return []
 
-        body = {
-            "query": {
-                "multi_match": {
-                    "query": query,
-                    "fields": ["retrieval_text^3", "description^2", "notes^1"],
-                    "type": "best_fields",
-                    "operator": "or",
-                    "minimum_should_match": "1",
-                }
-            },
-            "size": top_k,
-            "_source": True,
-        }
+        normalized_query = self.normalize_query(query.strip())
+        clauses = self._split_query_clauses_for_retrieval(normalized_query)
+        retrieval_queries = [normalized_query]
+        retrieval_queries.extend(clause for clause in clauses if clause != normalized_query)
 
         try:
-            resp = self.es.search(index=self.index, body=body)
-            hits = resp["hits"]["hits"]
-            results = [hit["_source"] for hit in hits]
+            merged: Dict[str, Dict[str, Any]] = {}
+            ordered_ids: List[str] = []
+
+            for retrieval_query in retrieval_queries:
+                resp = self.es.search(index=self.index, body=self._build_retrieve_body(retrieval_query, top_k))
+                hits = resp["hits"]["hits"]
+                for hit in hits:
+                    source = hit["_source"]
+                    intent_id = str(source.get("id", "")).strip() or str(source.get("field", "")).strip()
+                    if intent_id in merged:
+                        continue
+                    merged[intent_id] = source
+                    ordered_ids.append(intent_id)
+                    if len(ordered_ids) >= top_k:
+                        break
+                if len(ordered_ids) >= top_k:
+                    break
+
+            results = [merged[intent_id] for intent_id in ordered_ids[:top_k]]
             logger.debug(
-                f"ES retrieved {len(results)} intents for query '{query}': "
+                f"ES retrieved {len(results)} intents for query '{normalized_query}': "
                 f"{[r['id'] for r in results]}"
             )
             return results
         except Exception as e:
             logger.error(f"ES retrieval failed: {e}")
             return []
+
+    def _build_retrieve_body(self, normalized_query: str, top_k: int) -> Dict[str, Any]:
+        return {
+            "query": {
+                "bool": {
+                    "should": [
+                        {
+                            "multi_match": {
+                                "query": normalized_query,
+                                "fields": [
+                                    "retrieval_text^5",
+                                    "description^2",
+                                    "notes^1",
+                                    "examples_text^4",
+                                    "negative_examples_text^0.5",
+                                ],
+                                "type": "best_fields",
+                                "operator": "or",
+                                "minimum_should_match": "1",
+                            }
+                        },
+                        {
+                            "match_phrase": {
+                                "retrieval_text": {
+                                    "query": normalized_query,
+                                    "boost": 8,
+                                }
+                            }
+                        },
+                        {
+                            "match_phrase": {
+                                "examples_text": {
+                                    "query": normalized_query,
+                                    "boost": 6,
+                                }
+                            }
+                        },
+                    ],
+                    "minimum_should_match": 1,
+                }
+            },
+            "size": top_k,
+            "_source": True,
+        }
+
+    @staticmethod
+    def _split_query_clauses_for_retrieval(query: str) -> List[str]:
+        parts = [part.strip() for part in re.split(r"(?:、|，|,|；|;|并且|而且|且)", query) if part.strip()]
+        return parts
+
+    @staticmethod
+    def _flatten_examples_text(examples: Any) -> str:
+        if not isinstance(examples, list):
+            return ""
+        chunks: List[str] = []
+        for example in examples:
+            if not isinstance(example, dict):
+                continue
+            query = str(example.get("query", "")).strip()
+            if query:
+                chunks.append(query)
+        return " ".join(chunks)
+
+    @staticmethod
+    def _flatten_negative_examples_text(examples: Any) -> str:
+        if not isinstance(examples, list):
+            return ""
+        chunks: List[str] = []
+        for example in examples:
+            if not isinstance(example, dict):
+                continue
+            query = str(example.get("query", "")).strip()
+            reason = str(example.get("reason", "")).strip()
+            if query:
+                chunks.append(query)
+            if reason:
+                chunks.append(reason)
+        return " ".join(chunks)
 
     # ==================== 格式化 ====================
 
@@ -475,18 +635,23 @@ class FieldRegistry:
             return ""
 
         lines = ["### 相关字段参考（根据查询内容动态召回）\n"]
+        intents_by_id = getattr(self, "_intents_by_id", {})
         for intent in intents:
-            field = intent.get("field", "")
-            op = intent.get("operator", "")
-            vtype = intent.get("value_type", "")
-            description = intent.get("description", "")
-            notes = intent.get("notes", "")
+            source_intent = intents_by_id.get(str(intent.get("id", "")).strip(), {})
+            merged_intent = dict(source_intent)
+            merged_intent.update(intent)
+
+            field = merged_intent.get("field", "")
+            op = merged_intent.get("operator", "")
+            vtype = merged_intent.get("value_type", "")
+            description = merged_intent.get("description", "")
+            notes = merged_intent.get("notes", "")
             enum_values_by_field = getattr(self, "_enum_values_by_field", {})
-            enum_vals = intent.get("enum", []) or enum_values_by_field.get(field, [])
-            show_enum_in_prompt = intent.get("show_enum_in_prompt", True)
-            enum_candidate_limit = int(intent.get("enum_candidate_limit_in_prompt", 3))
-            unit = intent.get("unit", "")
-            fmt = intent.get("format", "")
+            enum_vals = merged_intent.get("enum", []) or enum_values_by_field.get(field, [])
+            show_enum_in_prompt = merged_intent.get("show_enum_in_prompt", True)
+            enum_candidate_limit = int(merged_intent.get("enum_candidate_limit_in_prompt", 3))
+            unit = merged_intent.get("unit", "")
+            fmt = merged_intent.get("format", "")
 
             parts = [f"- **{field}** | 操作符: {op} | 值类型: {vtype}"]
             if show_enum_in_prompt and enum_vals:
@@ -510,12 +675,12 @@ class FieldRegistry:
                 parts.append(f"| 说明: {notes}")
             lines.append(" ".join(parts))
 
-            for ex in (intent.get("examples") or [])[:2]:
+            for ex in (merged_intent.get("examples") or [])[:2]:
                 lines.append(
                     f"  示例: \"{ex.get('query','')}\" → "
                     f"{self._format_example_output(ex.get('output'))}"
                 )
-            for ex in (intent.get("negative_examples") or [])[:2]:
+            for ex in (merged_intent.get("negative_examples") or [])[:2]:
                 lines.append(
                     f"  反例: \"{ex.get('query','')}\" → 不输出该字段"
                     f"{'；原因: ' + ex.get('reason', '') if ex.get('reason') else ''}"
@@ -528,11 +693,31 @@ class FieldRegistry:
         if output is None:
             return ""
         if isinstance(output, str):
-            return output
+            return self._strip_time_from_intent_output(output)
         try:
-            return json.dumps(output, ensure_ascii=False, separators=(", ", ": "))
+            return json.dumps(
+                self._normalize_intent_output_dates(output),
+                ensure_ascii=False,
+                separators=(", ", ": "),
+            )
         except TypeError:
             return str(output)
+
+    @classmethod
+    def _strip_time_from_intent_output(cls, value: str) -> str:
+        if not isinstance(value, str):
+            return value
+        return re.sub(r"(\d{4}-\d{2}-\d{2})\s+\d{2}:\d{2}:\d{2}", r"\1", value)
+
+    @classmethod
+    def _normalize_intent_output_dates(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return cls._strip_time_from_intent_output(value)
+        if isinstance(value, list):
+            return [cls._normalize_intent_output_dates(item) for item in value]
+        if isinstance(value, dict):
+            return {key: cls._normalize_intent_output_dates(item) for key, item in value.items()}
+        return value
 
 
 # ==================== 全局单例 ====================

@@ -13,3 +13,7 @@ from core.level2_enhanced_matcher import Level2EnhancedMatcher
 def test_level2_defaults_to_settings_enhanced_rules_path():
     matcher = Level2EnhancedMatcher()
     assert str(matcher.config_path).endswith(settings.ENHANCED_RULES_PATH)
+
+
+def test_settings_exposes_field_mapping_path():
+    assert settings.FIELD_MAPPING_PATH.endswith("config/field_mapping.yaml")

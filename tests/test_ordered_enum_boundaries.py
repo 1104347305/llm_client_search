@@ -82,23 +82,23 @@ def test_vip_and_above_includes_boundary():
 
 def test_jujia_below_excludes_boundary():
     condition = _single("居家v2以下的客户")
-    assert condition.field == "jujiaClientGrade"
+    assert condition.field == "searchJujiaClientGrade"
     assert condition.value == ["居家潜客", "v0.5", "v1", "v1.5"]
 
 
 def test_jujia_and_below_includes_boundary():
     condition = _single("居家v2及以下的客户")
-    assert condition.field == "jujiaClientGrade"
+    assert condition.field == "searchJujiaClientGrade"
     assert condition.value == ["居家潜客", "v0.5", "v1", "v1.5", "v2"]
 
 
 def test_kangyang_above_excludes_boundary():
     condition = _single("逸享PLUS会员以上的客户")
-    assert condition.field == "kangyangClientGrade"
+    assert condition.field == "searchKangyangClientGrade"
     assert condition.value == ["颐享家会员", "臻享会员V1", "臻享会员V2", "臻享会员V3"]
 
 
 def test_kangyang_and_above_includes_boundary():
     condition = _single("逸享PLUS会员及以上的客户")
-    assert condition.field == "kangyangClientGrade"
+    assert condition.field == "searchKangyangClientGrade"
     assert condition.value == ["逸享PLUS会员", "颐享家会员", "臻享会员V1", "臻享会员V2", "臻享会员V3"]

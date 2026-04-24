@@ -23,14 +23,24 @@ from core.query_router import QueryRouter
 from core.intent_summary import (
     build_intent_summary,
     filter_supported_conditions,
+    normalize_conditions_for_summary,
     reload_intent_summary_service,
 )
 from db.request_logger import get_request_logger
 from config.settings import settings
+from utils.sensitive_masking import mask_for_log
+from utils.response_crypto import encrypt_parse_response_fields
 
 router = APIRouter()
 search_service = SearchService()
 _query_router = QueryRouter()
+
+
+def _get_parse_response_aes_key() -> bytes:
+    raw_key = settings.PARSE_RESPONSE_AES_KEY
+    if not raw_key:
+        raise ValueError("PARSE_RESPONSE_AES_KEY 未配置")
+    return raw_key.encode("utf-8")
 
 
 # ==================== RAG 检索接口 ====================
@@ -134,9 +144,20 @@ async def parse_query(request: ParseApiRequest):
         elapsed = time.perf_counter() - start_time
 
         raw_conditions = parsed.conditions or []
-        intent_summary = build_intent_summary(raw_conditions, parsed.query_logic)
-        conditions = filter_supported_conditions(raw_conditions)
+        summary_conditions = normalize_conditions_for_summary(raw_conditions)
+        intent_summary = build_intent_summary(summary_conditions, parsed.query_logic)
+        conditions = filter_supported_conditions(summary_conditions)
         robot_text = intent_summary
+        extra_output_payload = {
+            "query": request.user_text,
+            "query_logic": parsed.query_logic,
+            "conditions": [item.model_dump(mode="json") for item in conditions],
+            "matched_level": parsed.matched_level,
+            "rewritten_query": parsed.rewritten_query,
+            "matched_patterns": _build_debug_pattern_text(parsed),
+            "last_tims": round(elapsed, 6),
+            "intent_summary": intent_summary,
+        }
 
         await get_request_logger().log(
             agent_id=request.user_id or "",
@@ -147,6 +168,23 @@ async def parse_query(request: ParseApiRequest):
             confidence=parsed.confidence,
         )
 
+        if settings.ENABLE_PARSE_RESPONSE_AES:
+            encrypted_payload = encrypt_parse_response_fields(
+                robot_text=robot_text,
+                extra_output_params=extra_output_payload,
+                key=_get_parse_response_aes_key(),
+            )
+            return ParseApiResponse(
+                code=0,
+                msg="操作成功",
+                data=ParseApiData(
+                    robot_text=encrypted_payload["robot_text"],
+                    end_flag=1,
+                    trace_id=request.trace_id,
+                    extra_output_params=encrypted_payload["extra_output_params"],
+                ),
+            )
+
         return ParseApiResponse(
             code=0,
             msg="操作成功",
@@ -155,14 +193,7 @@ async def parse_query(request: ParseApiRequest):
                 end_flag=1,
                 trace_id=request.trace_id,
                 extra_output_params=ParseApiExtraOutput(
-                    query=request.user_text,
-                    query_logic=parsed.query_logic,
-                    conditions=conditions,
-                    matched_level=parsed.matched_level,
-                    rewritten_query=parsed.rewritten_query,
-                    matched_patterns=_build_debug_pattern_text(parsed),
-                    last_tims=round(elapsed, 6),
-                    intent_summary=intent_summary,
+                    **extra_output_payload,
                 ),
             ),
         )
@@ -265,7 +296,7 @@ async def natural_language_search(request: NaturalLanguageSearchRequest):
         搜索响应
     """
     try:
-        logger.info(f"Received natural language search request: {request.query}")
+        logger.info(f"Received natural language search request: {mask_for_log(request.query)}")
         response = await search_service.natural_language_search(request)
         await get_request_logger().log(
             agent_id=request.agent_id,

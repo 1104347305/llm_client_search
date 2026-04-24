@@ -113,9 +113,14 @@ class Settings:
         self.ENHANCED_RULES_PATH = _get("ENHANCED_RULES_PATH", "config/enhanced_rules.yaml")
         self.ENUMS_DIR_PATH = _get("ENUMS_DIR_PATH", "config/enums")
         self.VALUE_MAPPINGS_PATH = _get("VALUE_MAPPINGS_PATH", "config/value_mappings.yaml")
+        self.FIELD_MAPPING_PATH = _get("FIELD_MAPPING_PATH", "config/field_mapping.yaml")
 
         # agent instructions
         self.AGENT_INSTRUCTIONS_BASE = _get("AGENT_INSTRUCTIONS_BASE", "")
+
+        # parse 接口响应 AES 加密配置
+        self.ENABLE_PARSE_RESPONSE_AES = _bool(_get("ENABLE_PARSE_RESPONSE_AES", False))
+        self.PARSE_RESPONSE_AES_KEY = _get("PARSE_RESPONSE_AES_KEY", "")
 
     def reload(self) -> Dict[str, Any]:
         """从当前环境对应的 YAML 重新加载配置，并原地更新实例属性。"""

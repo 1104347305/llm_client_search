@@ -33,3 +33,12 @@ def test_education_and_above_includes_boundary():
     assert condition.field == "education"
     assert condition.operator == Operator.CONTAINS
     assert condition.value == ["大学本科生", "硕士研究生", "博士研究生", "博士后"]
+
+
+def test_education_exact_college_matches_level2():
+    conditions = _match("学历为大学专科的客户")
+    assert len(conditions) == 1
+    condition = conditions[0]
+    assert condition.field == "education"
+    assert condition.operator == Operator.MATCH
+    assert condition.value == "大学专科"

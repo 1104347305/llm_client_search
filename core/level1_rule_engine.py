@@ -6,7 +6,9 @@ import jieba
 import jieba.posseg as pseg
 from typing import List, Tuple
 from loguru import logger
+from models.field_mapping import get_query_field
 from models.schemas import Condition, Operator
+from utils.sensitive_masking import mask_for_log
 
 
 class Level1RuleEngine:
@@ -65,11 +67,11 @@ class Level1RuleEngine:
                 "match_type": "regex",
             })
             conditions.append(Condition(
-                field="clientNo",
+                field=get_query_field("customer_no"),
                 operator=Operator.MATCH,
                 value=customer_id
             ))
-            logger.info(f"Extracted customer ID: {customer_id}")
+            logger.info(f"Extracted customer ID: {mask_for_log(customer_id)}")
 
         # 提取保单号（P + 15位数字）
         policy_matches = self.policy_pattern.fullmatch(query)
@@ -82,11 +84,11 @@ class Level1RuleEngine:
                 "match_type": "regex",
             })
             conditions.append(Condition(
-                field="policyNo",
+                field=get_query_field("policy_no"),
                 operator=Operator.NESTED_MATCH,
                 value=policy_id
             ))
-            logger.info(f"Extracted policy ID: {policy_id}")
+            logger.info(f"Extracted policy ID: {mask_for_log(policy_id)}")
 
         # 提取身份证号（18位）
         id_matches = self.id_card_pattern.fullmatch(query)
@@ -99,11 +101,11 @@ class Level1RuleEngine:
                 "match_type": "regex",
             })
             conditions.append(Condition(
-                field="idNo",
+                field=get_query_field("customer_id_no"),
                 operator=Operator.NESTED_MATCH,
                 value=id_number
             ))
-            logger.info(f"Extracted ID card: {id_number}")
+            logger.info(f"Extracted ID card: {mask_for_log(id_number)}")
 
         # 提取手机号（11位，排除已提取的身份证号区域）
         phone_matches = self.phone_pattern.fullmatch(query)
@@ -116,11 +118,11 @@ class Level1RuleEngine:
                 "match_type": "regex",
             })
             conditions.append(Condition(
-                field="clientMobile",
+                field=get_query_field("customer_mobile"),
                 operator=Operator.MATCH,
                 value=mobile_phone
             ))
-            logger.info(f"Extracted phone: {mobile_phone}")
+            logger.info(f"Extracted phone: {mask_for_log(mobile_phone)}")
 
         # 使用 Jieba 提取人名
         jieba_names = self._extract_names_with_jieba(query)
@@ -132,13 +134,16 @@ class Level1RuleEngine:
                 "match_type": "jieba",
             })
             conditions.append(Condition(
-                field="clientName",
+                field=get_query_field("customer_name"),
                 operator=Operator.MATCH,
                 value=name
             ))
-            logger.info(f"Extracted name via Jieba: {name}")
+            logger.info(
+                f"Extracted name via Jieba: "
+                f"{mask_for_log({'field': get_query_field('customer_name'), 'value': name})['value']}"
+            )
 
-        logger.info(f"Level 1 extracted {conditions} conditions")
+        logger.info(f"Level 1 extracted {mask_for_log([c.model_dump() for c in conditions])} conditions")
         return conditions
 
 if __name__ == '__main__':

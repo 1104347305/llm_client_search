@@ -33,7 +33,7 @@ def test_age_around_plus_vip():
 def test_shouxian_exists():
     conditions = _match("帮我查寿险有哪些人")
     assert len(conditions) == 1
-    assert conditions[0].field == "productCode"
+    assert conditions[0].field == "planAbbrNames"
     assert conditions[0].operator.value == "EXISTS"
 
 
@@ -41,7 +41,7 @@ def test_no_insurance_maps_to_ptype_not_exists():
     conditions = _match("找45岁以上没有配置保险的")
     values = {(c.field, c.operator.value): c.value for c in conditions}
     assert ("clientAge", "GTE") in values
-    assert ("pType", "NOT_EXISTS") in values
+    assert ("pTypes", "NOT_EXISTS") in values
 
 
 def test_a1_medical_combo():
@@ -50,14 +50,14 @@ def test_a1_medical_combo():
     assert values[("clientAge", "RANGE")].min == 50
     assert values[("clientAge", "RANGE")].max == 50
     assert values[("newValueLabel", "MATCH")] == "A1"
-    assert values[("pcCategory", "CONTAINS")] == "医疗保险"
+    assert values[("pCategorys", "CONTAINS")] == ["医疗保险"]
 
 
 def test_vip_accident_combo():
     conditions = _match("哪些是黄金VIP意外险的人")
     values = {(c.field, c.operator.value): c.value for c in conditions}
     assert values[("vipType", "MATCH")] == "原黄金VIP"
-    assert values[("pcCategory", "CONTAINS")] == "意外伤害保险"
+    assert values[("pCategorys", "CONTAINS")] == ["意外伤害保险"]
 
 
 def test_gender_plus_premium():
@@ -73,7 +73,7 @@ def test_age_vip_shouxian_combo():
     assert values[("clientAge", "RANGE")].min == 40
     assert values[("clientAge", "RANGE")].max == 40
     assert values[("vipType", "MATCH")] == "原黄金VIP"
-    assert ("productCode", "EXISTS") in values
+    assert ("planAbbrNames", "EXISTS") in values
 
 
 def test_recently_not_contacted_shouxian_list():
@@ -82,13 +82,13 @@ def test_recently_not_contacted_shouxian_list():
     assert values[("clientAge", "RANGE")].min == 28
     assert values[("clientAge", "RANGE")].max == 32
     assert values[("clientTemperature", "MATCH")] == "低温"
-    assert ("productCode", "EXISTS") in values
+    assert ("planAbbrNames", "EXISTS") in values
 
 
 def test_kangyang_pre_member_alias():
     conditions = _match("康养预达标会员")
     assert len(conditions) == 1
-    assert conditions[0].field == "kangyangClientGrade"
+    assert conditions[0].field == "searchKangyangClientGrade"
     assert conditions[0].value == "康养预达标会员"
 
 
@@ -117,15 +117,15 @@ def test_no_trusteeship():
 def test_surname_plus_shouxian_exists():
     conditions = _match("姓张的，购买过寿险的客户")
     values = {(c.field, c.operator.value): c.value for c in conditions}
-    assert values[("clientName", "MATCH")] == "张"
-    assert ("productCode", "EXISTS") in values
+    assert values[("searchClientNameNew", "MATCH")] == "张"
+    assert ("planAbbrNames", "EXISTS") in values
 
 
 def test_surname_plus_product():
     conditions = _match("姓张，购买过盛世金越的客户")
     values = {(c.field, c.operator.value): c.value for c in conditions}
-    assert values[("clientName", "MATCH")] == "张"
-    assert values[("productCode", "CONTAINS")] == "盛世金越"
+    assert values[("searchClientNameNew", "MATCH")] == "张"
+    assert values[("planAbbrNames", "CONTAINS")] == ["盛世金越"]
 
 
 def test_age_range_married_child_female_typo_query():
@@ -133,6 +133,39 @@ def test_age_range_married_child_female_typo_query():
     values = {(c.field, c.operator.value): c.value for c in conditions}
     assert values[("clientAge", "RANGE")].min == 30
     assert values[("clientAge", "RANGE")].max == 40
-    assert values[("marriSts", "MATCH")] == "已婚"
-    assert values[("familyRelation", "CONTAINS")] == "子女"
+    assert values[("mariSts", "MATCH")] == "已婚"
+    assert values[("familyRelation", "CONTAINS")] == ["子女"]
     assert values[("clientSex", "MATCH")] == "女"
+
+
+def test_family_parent_age_adds_relation_extra_condition():
+    conditions = _match("父母70岁以上的客户")
+    values = {(c.field, c.operator.value): c.value for c in conditions}
+    assert values[("familyClientAge", "GTE")] == 70
+    assert values[("familyRelation", "CONTAINS")] == ["父母"]
+
+
+def test_explicit_family_relation_and_age_gte_combo():
+    conditions = _match("家庭成员关系包含子女且家庭成员年龄大于等于10岁的客户")
+    values = {(c.field, c.operator.value): c.value for c in conditions}
+    assert values[("familyRelation", "CONTAINS")] == ["子女"]
+    assert values[("familyClientAge", "GTE")] == 10
+
+
+def test_explicit_parent_relation_age_and_marriage_combo():
+    conditions = _match("家庭成员关系包含父母、家庭成员年龄大于等于70岁且客户婚姻状况为已婚的客户")
+    values = {(c.field, c.operator.value): c.value for c in conditions}
+    assert values[("familyRelation", "CONTAINS")] == ["父母"]
+    assert values[("familyClientAge", "GTE")] == 70
+    assert values[("mariSts", "MATCH")] == "已婚"
+
+
+def test_split_clause_records_matched_patterns():
+    matcher = Level2EnhancedMatcher("config/enhanced_rules.yaml")
+    conditions = asyncio.run(matcher.match("投保过合家欢产品，但是不是寿险客户"))
+    values = {(c.field, c.operator.value): c.value for c in conditions}
+    assert values[("agentPerspProductType", "CONTAINS")] == ["合家欢"]
+    assert ("planAbbrNames", "NOT_EXISTS") in values
+    assert matcher._last_matched_patterns
+    assert any(item["rule_name"] == "持有综拓产品类别" for item in matcher._last_matched_patterns)
+    assert any(item["rule_name"] == "寿险产品-不存在" for item in matcher._last_matched_patterns)

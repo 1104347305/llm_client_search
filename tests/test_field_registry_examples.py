@@ -105,6 +105,10 @@ def test_format_prompt_section_preserves_multiple_family_synonym_examples():
     assert '爱人1988年出生的客户' in prompt
     assert '"value": "父母"' in prompt
     assert '"value": "配偶"' in prompt
+    assert '1988-01-01 00:00:00' not in prompt
+    assert '1988-12-31 00:00:00' not in prompt
+    assert '"min": "1988-01-01"' in prompt
+    assert '"max": "1988-12-31"' in prompt
 
 
 def test_format_prompt_section_includes_description_and_negative_examples():
@@ -147,7 +151,7 @@ def test_format_prompt_section_preserves_family_negative_examples():
             "negative_examples": [
                 {
                     "query": "叫张三的客户",
-                    "reason": "这是客户本人姓名，应映射到 clientName，不是 familyClientName",
+                    "reason": "这是客户本人姓名，应映射到 searchClientNameNew，不是 familyClientName",
                 }
             ],
         }
@@ -155,7 +159,7 @@ def test_format_prompt_section_preserves_family_negative_examples():
 
     assert "定义: 表示家庭成员姓名，不表示客户本人姓名" in prompt
     assert "反例: \"叫张三的客户\" → 不输出该字段" in prompt
-    assert "原因: 这是客户本人姓名，应映射到 clientName" in prompt
+    assert "原因: 这是客户本人姓名，应映射到 searchClientNameNew" in prompt
 
 
 def test_format_prompt_section_preserves_client_family_boundary_examples():
@@ -197,7 +201,7 @@ def test_format_prompt_section_preserves_status_vs_existence_boundaries():
     registry = FieldRegistry.__new__(FieldRegistry)
     prompt = registry.format_prompt_section([
         {
-            "field": "zhenxiangRunEquityGrade",
+            "field": "searchZhenxiangRunEquityGrade",
             "operator": "MATCH",
             "value_type": "enum",
             "description": "表示安有护权益等级版本；也可用 EXISTS 表示是否持有该权益",
@@ -209,7 +213,7 @@ def test_format_prompt_section_preserves_status_vs_existence_boundaries():
             ],
         },
         {
-            "field": "zxjyEquityGrade",
+            "field": "searchZxjyEquityGrade",
             "operator": "MATCH",
             "value_type": "enum",
             "description": "表示臻享家医达标状态，不表示开通时间、使用次数",
@@ -255,11 +259,11 @@ def test_format_prompt_section_falls_back_to_registry_enum_values():
 def test_format_prompt_section_can_hide_large_enum_lists():
     registry = FieldRegistry.__new__(FieldRegistry)
     registry._enum_values_by_field = {
-        "productCode": ["生财宝", "智能星", "金利多"]
+        "planAbbrNames": ["生财宝", "智能星", "金利多"]
     }
     prompt = registry.format_prompt_section([
         {
-            "field": "productCode",
+            "field": "planAbbrNames",
             "operator": "CONTAINS",
             "value_type": "enum",
             "show_enum_in_prompt": False,
@@ -267,13 +271,13 @@ def test_format_prompt_section_can_hide_large_enum_lists():
             "examples": [
                 {
                     "query": "持有平安永福的客户",
-                    "output": {"field": "productCode", "operator": "CONTAINS", "value": "平安永福"},
+                    "output": {"field": "planAbbrNames", "operator": "CONTAINS", "value": "平安永福"},
                 }
             ],
         }
     ])
 
-    assert "**productCode**" in prompt
+    assert "**planAbbrNames**" in prompt
     assert "表示具体寿险产品名称" in prompt
     assert "枚举:" not in prompt
 
@@ -305,15 +309,15 @@ def test_format_prompt_section_still_shows_small_enums_by_default():
 def test_format_prompt_section_shows_candidate_enums_for_hidden_large_enum():
     registry = FieldRegistry.__new__(FieldRegistry)
     registry._enum_values_by_field = {
-        "productCode": ["生财宝", "智能星", "金利多", "平安永福", "盛世金越"]
+        "planAbbrNames": ["生财宝", "智能星", "金利多", "平安永福", "盛世金越"]
     }
     registry._value_mappings = {
-        "productCode": {"永福": "平安永福"}
+        "planAbbrNames": {"永福": "平安永福"}
     }
 
     prompt = registry.format_prompt_section([
         {
-            "field": "productCode",
+            "field": "planAbbrNames",
             "operator": "CONTAINS",
             "value_type": "enum",
             "show_enum_in_prompt": False,
@@ -329,13 +333,13 @@ def test_format_prompt_section_shows_candidate_enums_for_hidden_large_enum():
 def test_format_prompt_section_hides_large_enum_without_candidates():
     registry = FieldRegistry.__new__(FieldRegistry)
     registry._enum_values_by_field = {
-        "productCode": ["生财宝", "智能星", "金利多", "平安永福", "盛世金越"]
+        "planAbbrNames": ["生财宝", "智能星", "金利多", "平安永福", "盛世金越"]
     }
-    registry._value_mappings = {"productCode": {}}
+    registry._value_mappings = {"planAbbrNames": {}}
 
     prompt = registry.format_prompt_section([
         {
-            "field": "productCode",
+            "field": "planAbbrNames",
             "operator": "CONTAINS",
             "value_type": "enum",
             "show_enum_in_prompt": False,
@@ -350,10 +354,10 @@ def test_format_prompt_section_hides_large_enum_without_candidates():
 def test_format_prompt_section_respects_candidate_limit():
     registry = FieldRegistry.__new__(FieldRegistry)
     registry._enum_values_by_field = {
-        "productCode": ["平安永福", "金利多", "盛世金越", "智能星"]
+        "planAbbrNames": ["平安永福", "金利多", "盛世金越", "智能星"]
     }
     registry._value_mappings = {
-        "productCode": {
+        "planAbbrNames": {
             "永福": "平安永福",
             "金利": "金利多",
             "盛世": "盛世金越",
@@ -362,7 +366,7 @@ def test_format_prompt_section_respects_candidate_limit():
 
     prompt = registry.format_prompt_section([
         {
-            "field": "productCode",
+            "field": "planAbbrNames",
             "operator": "CONTAINS",
             "value_type": "enum",
             "show_enum_in_prompt": False,

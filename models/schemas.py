@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 from typing import List, Optional, Dict, Any, Union
 from enum import Enum
 
@@ -30,15 +30,28 @@ class Condition(BaseModel):
     operator: Operator
     value: Optional[Union[str, int, float, RangeValue, Dict[str, Any], List[str]]] = None
 
+    @model_validator(mode="after")
+    def normalize_value_shape(self):
+        """统一约束 condition.value 结构，避免不同层输出不一致。"""
+        if self.value is None:
+            return self
+
+        if self.operator in (Operator.CONTAINS, Operator.NOT_CONTAINS):
+            if not isinstance(self.value, list):
+                self.value = [self.value]
+            return self
+
+        if isinstance(self.value, list):
+            self.value = self.value[0] if self.value else None
+
+        return self
+
 
 class LogicNode(BaseModel):
     """逻辑树节点，支持嵌套的 AND/OR 逻辑"""
     operator: QueryLogic
     conditions: List[Union[Condition, 'LogicNode']]
-
-    class Config:
-        # 允许递归引用
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 # 更新递归引用
@@ -119,7 +132,7 @@ class ParseApiData(BaseModel):
     """响应 data 层"""
     robot_text: str
     end_flag: int = 1
-    extra_output_params: ParseApiExtraOutput
+    extra_output_params: Union[ParseApiExtraOutput, Dict[str, str]]
     trace_id: Optional[str] = None
 
 

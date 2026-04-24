@@ -67,6 +67,7 @@ stop_services() {
 
   # 按命令行特征杀（最可靠）
   pkill -f "uvicorn app.main"  2>/dev/null && ok "uvicorn 已停止"  || true
+  pkill -f "uvicorn main:app"  2>/dev/null && ok "uvicorn 已停止"  || true
   pkill -f "agent_os_app"      2>/dev/null && ok "AgentOS 已停止" || true
 
   # 按 PID 文件补充清理
@@ -178,10 +179,11 @@ stop_old() {
 if $START_API; then
   stop_old "$API_PID_FILE" "搜索 API"
   pkill -f "uvicorn app.main" 2>/dev/null || true
+  pkill -f "uvicorn main:app" 2>/dev/null || true
   sleep 1
 
   info "启动搜索 API（端口 ${API_PORT}）..."
-  nohup "$PYTHON" -m uvicorn app.main:app \
+  nohup "$PYTHON" -m uvicorn main:app \
     --host 0.0.0.0 \
     --port "$API_PORT" \
     --log-level info \

@@ -45,14 +45,26 @@ class _SlowFieldRegistry:
             "examples": [],
         }]
 
+    def retrieve_by_field_operator_pairs(self, pairs):
+        time.sleep(0.1)
+        if ("l2Field", "MATCH") not in set(pairs):
+            return []
+        return [{
+            "id": "l2_intent",
+            "field": "l2Field",
+            "operator": "MATCH",
+            "value_type": "string",
+            "examples": [],
+        }]
+
     def format_prompt_section(self, intents, query=""):
         return "FIELDS:" + ",".join(intent["field"] for intent in intents)
 
 
 class _SlowL2Recall:
-    def recall_fields(self, query, top_k=10):
+    def recall_candidates(self, query, top_k=10):
         time.sleep(0.1)
-        return [{"field": "l2Field"}]
+        return [{"field": "l2Field", "operator": "MATCH"}]
 
 
 def test_level4_rag_runs_in_parallel(monkeypatch):

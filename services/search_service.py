@@ -12,6 +12,7 @@ from models.schemas import (
 )
 from core.query_router import QueryRouter
 from services.search_api_client import SearchAPIClient
+from utils.sensitive_masking import mask_for_log
 
 
 class SearchService:
@@ -51,7 +52,7 @@ class SearchService:
         """
         _start = time.time()
         try:
-            logger.info(f"Processing natural language query: {request.query}")
+            logger.info(f"Processing natural language query: {mask_for_log(request.query)}")
 
             # 使用剥离式流水线路由
             parsed = await self.router.route_with_peeling(request.query)

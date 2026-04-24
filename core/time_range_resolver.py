@@ -90,6 +90,25 @@ def resolve_dynamic_date_range(config: Dict, match=None, now: Optional[Union[dat
         end = start + timedelta(days=n - 1)
         return _range(start, end)
 
+    if date_range == "future_day_window":
+        start_days = config.get("start_days", 1)
+        end_days = config.get("end_days", start_days)
+        start_days_group = config.get("start_days_group")
+        end_days_group = config.get("end_days_group")
+        if start_days_group and match:
+            try:
+                start_days = int(match.group(start_days_group))
+            except (IndexError, ValueError):
+                pass
+        if end_days_group and match:
+            try:
+                end_days = int(match.group(end_days_group))
+            except (IndexError, ValueError):
+                pass
+        start = today + timedelta(days=start_days)
+        end = today + timedelta(days=end_days)
+        return _range(start, end)
+
     if date_range == "today_plus_n_days":
         n = config.get("days", 30)
         days_group = config.get("days_group")

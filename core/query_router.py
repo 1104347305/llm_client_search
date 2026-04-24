@@ -10,19 +10,40 @@ from core.level3_semantic_cache import Level3SemanticCache
 from core.level4_llm_parser import Level4LLMParser
 from core.field_registry import get_field_registry
 from config.settings import settings
+from models.field_mapping import get_query_field
 from typing import List, Tuple, Optional, Set, Dict
 from pathlib import Path
 import re
 import yaml
+from utils.sensitive_masking import mask_for_log
+from utils.name_candidate import detect_name_candidate, looks_like_full_person_name, NameCandidate
 
 
 class QueryRouter:
     """查询路由器 - 四层串联漏斗"""
 
+    _SEARCH_PREFIX_PATTERN = (
+        r"(?:(?:查找|查询|查|找|找一下|查一下|检索|搜索|帮我查|帮我找|帮我搜索|"
+        r"给我看看|帮我看看|看看|哪些是|谁是)(?:一下|下)?(?:[，, ]{0,2}))?"
+    )
+    _CLIENT_FULL_NAME_PATTERNS = [
+        re.compile(
+            _SEARCH_PREFIX_PATTERN +
+            r"(?:的客户|客户)?(?:叫|名叫|叫做|姓名是|姓名为|名字是|客户叫)([^\W\d_的]{2,4})(?:的客户|客户)?$"
+        ),
+        re.compile(
+            _SEARCH_PREFIX_PATTERN +
+            r"([^\W\d_的]{2,4})(?:的客户|客户|本人)$"
+        ),
+    ]
+    _CLIENT_NAME_EXCLUDED_CONTEXTS = (
+        "家庭成员", "家属", "成员", "子女", "父母", "配偶", "儿子", "女儿", "孩子",
+        "投保人", "被保人", "被保险人", "受益人", "联系人",
+    )
     def __init__(self):
         self.level1 = Level1RuleEngine()
         self.level2 = Level2EnhancedMatcher()
-        self.level3 = Level3SemanticCache()
+        self.level3 = Level3SemanticCache() if settings.ENABLE_L3 else None
         self.level4 = Level4LLMParser()
         self.field_registry = get_field_registry()
 
@@ -41,6 +62,120 @@ class QueryRouter:
         )
         self._last_rewritten_query: Optional[str] = None
         self._last_matched_patterns: List[Dict[str, str]] = []
+        self._last_name_candidate: Optional[NameCandidate] = None
+
+    @staticmethod
+    def _condition_merge_key(condition: Condition) -> Tuple[str, str]:
+        return condition.field, condition.operator.value
+
+    def _merge_l2_candidate_conditions(
+        self,
+        conditions: List[Condition],
+        l2_candidate_conditions: List[Condition],
+    ) -> List[Condition]:
+        """
+        用 L2 候选条件覆盖同 field+operator 的结果，并补齐 L4 漏掉的条件。
+
+        只做字段级合并，不改变原有 query_logic。
+        """
+        if not l2_candidate_conditions:
+            return conditions
+
+        candidate_map = {
+            self._condition_merge_key(cond): cond
+            for cond in l2_candidate_conditions
+        }
+        merged: List[Condition] = []
+        used_keys: Set[Tuple[str, str]] = set()
+
+        for cond in conditions:
+            key = self._condition_merge_key(cond)
+            if key in candidate_map:
+                merged.append(candidate_map[key])
+                used_keys.add(key)
+                continue
+            merged.append(cond)
+
+        for key, candidate in candidate_map.items():
+            if key not in used_keys and key not in {self._condition_merge_key(cond) for cond in conditions}:
+                merged.append(candidate)
+
+        return merged
+
+    @classmethod
+    def _looks_like_full_person_name(cls, candidate: str) -> bool:
+        return looks_like_full_person_name(candidate)
+
+    @classmethod
+    def _extract_explicit_client_full_name(cls, query: str) -> Optional[str]:
+        if any(marker in query for marker in cls._CLIENT_NAME_EXCLUDED_CONTEXTS):
+            return None
+        if "姓" in query or "姓氏" in query:
+            return None
+
+        for pattern in cls._CLIENT_FULL_NAME_PATTERNS:
+            match = pattern.fullmatch(query)
+            if not match:
+                continue
+            candidate = match.group(1).strip()
+            if cls._looks_like_full_person_name(candidate):
+                return candidate
+        return None
+
+    def _enforce_explicit_client_full_name(self, query: str, conditions: List[Condition]) -> List[Condition]:
+        """显式客户全名查询命中时，强制保留完整姓名，防止 LLM/L2 退化成单姓或漏解析。"""
+        full_name = self._extract_explicit_client_full_name(query)
+        if not full_name:
+            return conditions
+
+        normalized_conditions: List[Condition] = []
+        has_exact_name = False
+        for cond in conditions:
+            if cond.field == get_query_field("customer_name") and cond.operator == Operator.MATCH:
+                if cond.value == full_name:
+                    has_exact_name = True
+                    normalized_conditions.append(cond)
+                continue
+            normalized_conditions.append(cond)
+
+        if not has_exact_name:
+            normalized_conditions.append(
+                Condition(
+                    field=get_query_field("customer_name"),
+                    operator=Operator.MATCH,
+                    value=full_name,
+                )
+            )
+        return normalized_conditions
+
+    def _record_bare_name_candidate(self, query: str) -> None:
+        candidate = detect_name_candidate(query)
+        self._last_name_candidate = candidate if candidate.is_candidate else None
+        if not candidate.is_candidate:
+            return
+        self._last_matched_patterns.append({
+            "rule_name": "疑似姓名候选",
+            "pattern": "surname+len(2-3|compound-4)",
+            "matched_text": candidate.text,
+            "match_type": "candidate",
+            "confidence": candidate.confidence,
+            "needs_verification": candidate.needs_verification,
+            "reason": candidate.reason,
+        })
+
+    def _materialize_name_candidate_if_needed(self, conditions: List[Condition]) -> List[Condition]:
+        """仅在最终无任何条件时，才把疑似姓名候选升级为正式姓名条件。"""
+        if conditions:
+            return conditions
+        if not self._last_name_candidate or not self._last_name_candidate.is_candidate:
+            return conditions
+        return [
+            Condition(
+                field=get_query_field("customer_name"),
+                operator=Operator.MATCH,
+                value=self._last_name_candidate.text,
+            )
+        ]
 
     def _load_validation_data(self):
         """从配置指定的 field_definitions 和 enums 目录加载校验基准"""
@@ -72,14 +207,16 @@ class QueryRouter:
         4. 若 L1+L2+L3 合计条件为空，则转至 L4 (LLM)
         """
         original_query = query
-        logger.info(f"Routing query: {original_query}")
+        logger.info(f"Routing query: {mask_for_log(original_query)}")
         query = query.replace(' ', '')
         normalized_query = self.field_registry.normalize_query(query)
         if normalized_query != query:
-            logger.info(f"Query normalized: '{query}' -> '{normalized_query}'")
+            logger.info(f"Query normalized: '{mask_for_log(query)}' -> '{mask_for_log(normalized_query)}'")
         query = normalized_query
         self._last_rewritten_query = query
         self._last_matched_patterns = []
+        self._last_name_candidate = None
+        self._record_bare_name_candidate(query)
 
         all_conditions = []
 
@@ -94,8 +231,10 @@ class QueryRouter:
 
         # Level 2: 增强模板匹配 - 使用原始查询
         l2_conditions = []
+        l2_candidate_conditions: List[Condition] = []
         if settings.ENABLE_L2:
             l2_conditions = await self.level2.match(query)
+            l2_candidate_conditions = self.level2.recall_candidate_conditions(query)
             self._last_matched_patterns.extend(list(getattr(self.level2, "_last_matched_patterns", [])))
             logger.info(f"Level 2 matched {len(l2_conditions)} conditions")
         else:
@@ -108,7 +247,7 @@ class QueryRouter:
         # L2 精确嵌套字段 → 覆盖 L1 通用字段映射
         # 当 L2 命中更精确的嵌套字段时，丢弃 L1 对应的通用字段（如家庭成员手机 > 客户手机）
         l2_supersedes_l1: dict[str, str] = {
-            "family_members.mobile": "mobile_phone",
+            get_query_field("family_mobile"): get_query_field("customer_mobile"),
         }
 
         # 收集 L2 匹配的所有字段
@@ -140,7 +279,7 @@ class QueryRouter:
 
         # Level 3: 语义缓存 - 始终对原始查询检索
         cached = None
-        if settings.ENABLE_L3:
+        if settings.ENABLE_L3 and self.level3 is not None:
             cached = await self.level3.get(query)
             if cached:
                 all_conditions.extend(cached.conditions)
@@ -155,10 +294,13 @@ class QueryRouter:
                 parsed = await self.level4.parse(query)
                 # parsed = await self.level4.agent_parse(query)
                 # parsed.conditions = self._convert_age_to_birthday(parsed.conditions)
+                parsed.conditions = self._merge_l2_candidate_conditions(parsed.conditions, l2_candidate_conditions)
+                parsed.conditions = self._enforce_explicit_client_full_name(query, parsed.conditions)
+                parsed.conditions = self._materialize_name_candidate_if_needed(parsed.conditions)
                 parsed.conditions = self._validate_conditions(parsed.conditions)
                 parsed.rewritten_query = self._last_rewritten_query
                 parsed.matched_patterns = self._last_matched_patterns
-                if settings.ENABLE_L3:
+                if settings.ENABLE_L3 and self.level3 is not None:
                     await self.level3.set(query, parsed)
                 return parsed
             else:
@@ -175,6 +317,8 @@ class QueryRouter:
 
         # 后处理：将年龄条件转换为出生日期条件
         # all_conditions = self._convert_age_to_birthday(all_conditions)
+        all_conditions = self._enforce_explicit_client_full_name(query, all_conditions)
+        all_conditions = self._materialize_name_candidate_if_needed(all_conditions)
 
         # 后处理：校验所有条件（字段名+枚举值），有非法条件则返回空
         all_conditions = self._validate_conditions(all_conditions)
@@ -198,6 +342,7 @@ class QueryRouter:
         校验规则：
         - 字段名不在 field_definitions.yaml 中 → 整体返回空
         - 字段有枚举约束且值（字符串）不在枚举中 → 整体返回空
+        - 同字段下若 EXISTS/NOT_EXISTS 与更具体条件共存，则移除 EXISTS/NOT_EXISTS
         """
         if not self._valid_fields:
             return conditions  # 未加载校验数据，跳过校验
@@ -231,7 +376,20 @@ class QueryRouter:
                     )
                     return []
 
-        return conditions
+        field_to_ops: Dict[str, set[Operator]] = {}
+        for cond in conditions:
+            field_to_ops.setdefault(cond.field, set()).add(cond.operator)
+
+        normalized_conditions: List[Condition] = []
+        for cond in conditions:
+            field_ops = field_to_ops.get(cond.field, set())
+            if cond.operator == Operator.EXISTS and any(op != Operator.EXISTS for op in field_ops):
+                continue
+            if cond.operator == Operator.NOT_EXISTS and any(op != Operator.NOT_EXISTS for op in field_ops):
+                continue
+            normalized_conditions.append(cond)
+
+        return normalized_conditions
 
     def _convert_age_to_birthday(self, conditions: List[Condition]) -> List[Condition]:
         """
@@ -248,8 +406,8 @@ class QueryRouter:
         year = date.today().year
 
         age_field_map = {
-            'clientAge': 'clientBirthday',
-            'familyClientAge': 'familyClientBirthday',
+            get_query_field("customer_age"): get_query_field("customer_birthday"),
+            get_query_field("family_age"): get_query_field("family_birthday"),
         }
 
         result = []

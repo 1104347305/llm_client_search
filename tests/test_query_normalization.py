@@ -14,7 +14,7 @@ def test_field_registry_normalizes_query_by_value_mappings():
         "vipType": {
             "黄金VIP": "原黄金VIP",
         },
-        "pcCategory": {
+        "pCategorys": {
             "意外险": "意外伤害保险",
         },
         "familyRelation": {

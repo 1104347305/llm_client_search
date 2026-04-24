@@ -19,7 +19,7 @@ familyClientSex:
     - "女"
 
 # 婚姻状况
-marriSts:
+mariSts:
   values:
     - "未婚"
     - "已婚"
@@ -105,14 +105,12 @@ vipType:
     - "钻石VIP"
     - "金钻VIP"
     - "黑钻VIP"
-  ordered: true
 
 # 存量客户类型
 orphanType:
   values:
     - "在职有效客户"
     - "纯存续单客户"
-    - "非纯存续单客户"
 
 # 保单托管
 trusteeshipFlag:
@@ -121,7 +119,7 @@ trusteeshipFlag:
     - "否"
 
 # 持有产品类型
-pType:
+pTypes:
   values:
     - "普通型"
     - "分红型"
@@ -130,7 +128,7 @@ pType:
     - "其他"
 
 # 持有产品品类（以Excel官方文档为准）
-pcCategory:
+pCategorys:
   values:
     - "意外伤害保险"
     - "医疗保险"
@@ -140,6 +138,54 @@ pcCategory:
     - "两全保险"
     - "年金保险"
     - "终身寿险"
+
+# 百万医疗产品集合
+millionMedicalProducts:
+  values:
+    - "百万任我行18"
+    - "倍享百万"
+    - "百万任我行"
+    - "百万任我行17"
+    - "百万随行"
+    - "百万任我行22"
+    - "百万任我行23"
+    - "百万任我行25"
+
+# 税优产品/税优养老产品集合
+taxPreferredPensionProducts:
+  values:
+    - "税优养老"
+    - "税优养老23"
+    - "税优养老24"
+    - "税优养老25"
+    - "智盈倍护"
+    - "智盈倍护23"
+    - "智盈倍护24"
+    - "智盈倍护25"
+    - "盛世优享"
+    - "盛世优享23"
+    - "盛世优享24"
+    - "盛世优享25"
+    - "盛世优享分红"
+    - "盛世优享分红23"
+    - "盛世优享分红24"
+    - "盛世优享分红25"
+    - "安颐尊享"
+    - "安颐尊享23"
+    - "安颐尊享24"
+    - "安颐尊享25"
+    - "颐享延年"
+    - "颐享延年23"
+    - "颐享延年24"
+    - "颐享延年25"
+    - "颐享延年分红"
+    - "颐享延年分红23"
+    - "颐享延年分红24"
+    - "颐享延年分红25"
+    - "金越养老年金（分红）"
+    - "金越养老年金（分红）23"
+    - "金越养老年金（分红）24"
+    - "金越养老年金（分红）25"
 
 # 综拓产品类别（以Excel官方文档为准）
 agentPerspProductType:
@@ -169,7 +215,7 @@ validSinsPol:
     - "意健险"
 
 # 居家达标客户等级（低→高，以Excel官方文档为准）
-jujiaClientGrade:
+searchJujiaClientGrade:
   values:
     - "居家潜客"
     - "v0.5"
@@ -181,7 +227,7 @@ jujiaClientGrade:
   ordered: true
 
 # 康养达标客户等级（低→高，以Excel官方文档为准）
-kangyangClientGrade:
+searchKangyangClientGrade:
   values:
     - "康养预达标会员"
     - "逸享会员"
@@ -193,49 +239,32 @@ kangyangClientGrade:
   ordered: true
 
 # 安有护权益等级
-zhenxiangRunEquityGrade:
+searchZhenxiangRunEquityGrade:
   values:
-    - "国内版"
-    - "国际版"
+    - "安有护(国内版)"
+    - "安有护(国际版)"
+  ordered: true
 
 # 臻享家医权益等级
-zxjyEquityGrade:
+searchZxjyEquityGrade:
   values:
     - "预达标"
     - "已达标"
+  ordered: true
 
-# 是否有车
+# 资产状况
 assetsCondition:
   values:
+    - "有房"
     - "有车"
-    - "没车"
+    - "有房有车"
+    - "无房无车"
 
 # 产险产品
 isBuyPregnancyCar:
   values:
     - "车险"
     - "非车险"
-
-# 养老险/意外险产品（以客户表格定义为准）
-gProductCode:
-  values:
-    - "一年期综合意外保险"
-    - "一年期交通意外保险"
-
-# 健康险产品（以客户表格定义为准）
-hProductCode:
-  values:
-    - "e生保"
-    - "安康"
-    - "平安宝贝"
-    - "i康保"
-    - "i药保"
-    - "海外"
-    - "抗癌"
-    - "尊享"
-    - "尊优"
-    - "舒享"
-    - "其他"
 
 # 家庭成员关系
 familyRelation:
@@ -256,6 +285,36 @@ real_estate_status:
 
 # 保单状态
 policies_status:
+  values:
+    - "取消"
+    - "死亡理赔"
+    - "展期"
+    - "缴费有效"
+    - "停效"
+    - "到期终止"
+    - "犹豫期退保"
+    - "交清"
+    - "减额交情"
+    - "退保"
+    - "转换终止"
+    - "失效"
+    - "终止效率"
+    - "免交"
+    - "迁出"
+    - "人为停效"
+    - "效力终止"
+    - "预收"
+    - "拒保"
+    - "贷款超停"
+    - "死亡有效"
+    - "贷款超失"
+    - "自垫有效"
+    - "自垫停效"
+    - "自垫失效"
+    - "自垫交清"
+    - "等待续保"
+
+polNoInfo.polStatus:
   values:
     - "取消"
     - "死亡理赔"
@@ -313,3 +372,30 @@ policies_plan_abbr_name:
     - "尊优"
     - "舒享"
     - "其他"
+
+policies_plan_type:
+  values:
+    - "主险"
+    - "附加险"
+
+polNoInfo.planTypeDesc:
+  values:
+    - "意外伤害保险"
+    - "医疗保险"
+    - "护理保险"
+    - "疾病保险"
+    - "定期寿险"
+    - "两全保险"
+    - "年金保险"
+    - "终身寿险"
+
+policies_claim_records_coverage:
+  values:
+    - "定期寿险"
+    - "护理保险"
+    - "疾病保险"
+    - "两全保险"
+    - "年金保险"
+    - "医疗保险"
+    - "意外伤害保险"
+    - "终身寿险"

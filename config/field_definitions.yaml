@@ -32,15 +32,24 @@ intents:
   - id: name_exact
     retrieval_text: >
       叫 名字是 姓名 名叫 叫做 名字叫 全名 客户叫
-    field: clientName
+    field: searchClientNameNew
     operator: MATCH
     value_type: extract
-    description: "表示客户本人姓名，不表示家庭成员、被保人、投保人姓名"
+    description: "表示客户本人完整姓名，不表示家庭成员、被保人、投保人姓名"
+    notes: '当查询直接出现完整中文姓名时，必须保留全名原样输出；如"陈成""李保""张无""金美"应输出完整姓名，不能截断为"陈""李""张""金"，也不能因为名字较少见而省略、跳过或判定为无效。只有明确出现"姓张""姓李"这类姓氏表达时，才可只取姓。'
     examples:
       - query: "叫张三的客户"
-        output: {field: clientName, operator: MATCH, value: "张三"}
+        output: {field: searchClientNameNew, operator: MATCH, value: "张三"}
       - query: "名字是李四的客户"
-        output: {field: clientName, operator: MATCH, value: "李四"}
+        output: {field: searchClientNameNew, operator: MATCH, value: "李四"}
+      - query: "陈成的客户"
+        output: {field: searchClientNameNew, operator: MATCH, value: "陈成"}
+      - query: "李保本人"
+        output: {field: searchClientNameNew, operator: MATCH, value: "李保"}
+      - query: "张无的客户"
+        output: {field: searchClientNameNew, operator: MATCH, value: "张无"}
+      - query: "金美本人"
+        output: {field: searchClientNameNew, operator: MATCH, value: "金美"}
     negative_examples:
       - query: "子女叫张三的客户"
         reason: "这是家庭成员姓名，应映射到 familyClientName 并组合 familyRelation"
@@ -48,26 +57,35 @@ intents:
   - id: name_surname
     retrieval_text: >
       姓 姓氏 百家姓 姓什么 姓张 姓李 姓王 姓陈
-    field: clientName
+    field: searchClientNameNew
     operator: MATCH
     value_type: extract
-    notes: '姓氏查询只取姓，如"姓张" → value="张"'
+    notes: '姓氏查询只在问句中明确出现"姓/姓氏"时成立，如"姓张" → value="张"；若查询只是完整姓名（如"陈成""李保""张无""金美"），不能按姓氏查询处理，也不能因为名字较少见就退化成单姓。'
     examples:
       - query: "姓张的客户"
-        output: {field: clientName, operator: MATCH, value: "张"}
+        output: {field: searchClientNameNew, operator: MATCH, value: "张"}
       - query: "姓李的客户"
-        output: {field: clientName, operator: MATCH, value: "李"}
+        output: {field: searchClientNameNew, operator: MATCH, value: "李"}
+    negative_examples:
+      - query: "陈成的客户"
+        reason: "这是完整姓名查询，应输出 value='陈成'，不能截断为姓氏'陈'"
+      - query: "李保本人"
+        reason: "这是完整姓名查询，应输出 value='李保'，不能截断为姓氏'李'"
+      - query: "张无的客户"
+        reason: "这是完整姓名查询，应输出 value='张无'，不能截断为姓氏'张'，也不能省略不解析"
+      - query: "金美本人"
+        reason: "这是完整姓名查询，应输出 value='金美'，不能截断为姓氏'金'，也不能省略不解析"
 
   - id: name_contains
     retrieval_text: >
       名字带 名字含 名字包含 名字里有 名字中有
-    field: clientName
+    field: searchClientNameNew
     operator: MATCH
     value_type: extract
     notes: '提取关键字，如"名字带伟" → value="伟"'
     examples:
       - query: "名字带伟的客户"
-        output: {field: clientName, operator: MATCH, value: "伟"}
+        output: {field: searchClientNameNew, operator: MATCH, value: "伟"}
 
   # ==================== 手机号 ====================
 
@@ -186,8 +204,40 @@ intents:
         output: {field: clientBirthday, operator: RANGE, value: {min: "1990-01-01 00:00:00", max: "1990-12-31 00:00:00"}}
       - query: "1985年5月出生的客户"
         output: {field: clientBirthday, operator: RANGE, value: {min: "1985-05-01 00:00:00", max: "1985-05-31 00:00:00"}}
+      - query: "90后客户"
+        output: {field: clientBirthday, operator: RANGE, value: {min: "1990-00-01 00:00:00", max: "1999-12-31 00:00:00"}}
     negative_examples:
       - query: "父母1956年出生的客户"
+        reason: "这是家庭成员出生日期，应映射到 familyClientBirthday 并组合 familyRelation"
+
+  - id: birthday_gte
+    retrieval_text: >
+      生日 出生日期 出生年月日 出生于 哪年之后出生 某年之后出生
+    field: clientBirthday
+    operator: GTE
+    value_type: date
+    format: "yyyy-MM-dd HH:mm:ss"
+    description: "表示客户本人出生日期晚于或等于某个日期"
+    examples:
+      - query: "1990年之后出生的客户"
+        output: {field: clientBirthday, operator: GTE, value: "1990-01-01 00:00:00"}
+    negative_examples:
+      - query: "父母1956年之后出生的客户"
+        reason: "这是家庭成员出生日期，应映射到 familyClientBirthday 并组合 familyRelation"
+
+  - id: birthday_lte
+    retrieval_text: >
+      生日 出生日期 出生年月日 出生于 哪年之前出生 某年之前出生
+    field: clientBirthday
+    operator: LTE
+    value_type: date
+    format: "yyyy-MM-dd HH:mm:ss"
+    description: "表示客户本人出生日期早于或等于某个日期"
+    examples:
+      - query: "1990年之前出生的客户"
+        output: {field: clientBirthday, operator: LTE, value: "1990-12-31 23:59:59"}
+    negative_examples:
+      - query: "父母1956年之前出生的客户"
         reason: "这是家庭成员出生日期，应映射到 familyClientBirthday 并组合 familyRelation"
 
   - id: birthday_month_day
@@ -228,36 +278,42 @@ intents:
 
   - id: customer_value_exact
     retrieval_text: >
-      客户价值 A类客户 B类客户 C类客户 D类客户
+      客户价值 A类客户 B类客户 C类客户 D类客户 AB类客户
       A1 A2 A3 A4 高价值客户 优质客户 价值等级
     field: newValueLabel
     operator: MATCH
     value_type: enum
     enum_ref: newValueLabel
-    description: "表示客户价值等级标签，如A1/A2/B等；不表示保费金额、保额、资产金额"
-    notes: "高价值→A1，排序：F<E<D<C<B<A4<A3<A2<A1"
+    description: "表示单个客户价值标签；A类、AB类、客户高价值等分组语义应优先映射到集合查询。排序：F<E<D<C<B<A4<A3<A2<A1。"
     examples:
       - query: "A1类客户"
-        output: {field: newValueLabel, operator: MATCH, value: "A1"}
-      - query: "高价值客户"
         output: {field: newValueLabel, operator: MATCH, value: "A1"}
     negative_examples:
       - query: "年缴保费10万以上的客户"
         reason: "这是金额筛选，应映射到 annPremSeg，不是客户价值标签"
+      - query: "黄金VIP客户"
+        reason: "这是 VIP 等级语义，应优先映射到 vipType，不是客户价值标签"
+      - query: "铂金会员客户"
+        reason: "这是 VIP 会员语义，不应直接映射到客户价值标签"
 
   - id: customer_value_group
     retrieval_text: >
-      A类客户 B类客户 AB类客户 A和B类客户 A类和B类客户
+      A类客户 B类客户 C类客户 AB类客户 A和B类客户 A类和B类客户
+      高价值客户 客户高价值
     field: newValueLabel
     operator: CONTAINS
     value_type: enum
     enum_ref: newValueLabel
-    description: "表示客户价值分组集合，如A类= A1/A2/A3/A4，AB类= A1/A2/A3/A4/B"
+    description: "表示客户价值分组集合，如A类= A1/A2/A3/A4，AB类= A1/A2/A3/A4/B；客户高价值= A1/A2/A3/A4/B/C。"
     examples:
       - query: "A类客户"
         output: { field: newValueLabel, operator: CONTAINS, value: ["A1", "A2", "A3", "A4"] }
       - query: "AB类客户"
         output: { field: newValueLabel, operator: CONTAINS, value: ["A1", "A2", "A3", "A4", "B"] }
+      - query: "客户高价值的客户"
+        output: { field: newValueLabel, operator: CONTAINS, value: ["A1", "A2", "A3", "A4", "B", "C"] }
+      - query: "客户价值A3以上的客户"
+        output: { field: newValueLabel, operator: CONTAINS, value: [ "A2", "A1" ] }
 
   - id: customer_value_gte
     retrieval_text: >
@@ -354,9 +410,13 @@ intents:
     operator: MATCH
     value_type: enum
     enum_ref: clientGroupLabel
+    description: "表示客户画像分群标签。年龄、资产等组合定义用于增强召回理解，不作为默认自动映射规则。"
+    notes: "例如：奋斗青年≈16-30岁且资产较低，创业新贵≈36-50岁且高净值；这些定义仅用于辅助理解，不应在缺少标签语境时直接替代为客群标签。"
     examples:
       - query: "都市白领客户"
         output: {field: clientGroupLabel, operator: MATCH, value: "都市白领"}
+      - query: "创业新贵客户"
+        output: {field: clientGroupLabel, operator: MATCH, value: "创业新贵"}
 
   # ==================== 寿险VIP ====================
 
@@ -370,7 +430,7 @@ intents:
     value_type: enum
     enum_ref: vipType
     description: "表示寿险VIP等级标签，不表示是否持有会员权益的开通时间或其他权益体系等级"
-    notes: "口语映射：黄金→黄金V1，铂金→铂金V1"
+    notes: "口语映射：黄金→黄金V1，铂金→铂金V1。当问句明确出现“客户价值”“价值等级”等语境时，应优先考虑 newValueLabel，而不是本字段。"
     examples:
       - query: "铂金V1会员"
         output: {field: vipType, operator: MATCH, value: "铂金V1"}
@@ -379,6 +439,8 @@ intents:
     negative_examples:
       - query: "VIP开通时间在2024年的客户"
         reason: "这是开通时间，不是 VIP 等级"
+      - query: "客户价值黄金档客户"
+        reason: "这里是客户价值语境，应优先映射到 newValueLabel，而不是 vipType"
 
   - id: life_insurance_vip_exists
     retrieval_text: >
@@ -391,29 +453,6 @@ intents:
       - query: "寿险VIP客户"
         output: { field: vipType, operator: EXISTS, value: "" }
 
-  - id: life_insurance_vip_gte
-    retrieval_text: >
-      VIP以上 VIP及以上 黄金以上 黄金及以上 铂金以上 铂金及以上 黄金V1以上 黄金V1及以上 黄金V2以上 黄金V2及以上
-      VIP等级以上 VIP等级及以上 高VIP 高级会员
-    field: vipType
-    operator: CONTAINS
-    value_type: enum
-    enum_ref: vipType
-    description: "表示寿险VIP等级范围，不表示一般的高价值客户标签；“以上”不含边界，“及以上”含边界"
-    notes: "例如“黄金V2以上”不含黄金V2；“黄金V2及以上”包含黄金V2"
-    examples:
-      - query: "铂金以上会员"
-        output:
-          conditions:
-            - {field: vipType, operator: CONTAINS, value: ["铂金V2", "原铂金VIP", "钻石VIP", "金钻VIP", "黑钻VIP"]}
-      - query: "铂金及以上会员"
-        output:
-          conditions:
-            - {field: vipType, operator: CONTAINS, value: ["铂金V1", "铂金V2", "原铂金VIP", "钻石VIP", "金钻VIP", "黑钻VIP"]}
-    negative_examples:
-      - query: "高价值客户"
-        reason: "这是客户价值标签，应映射到 newValueLabel，不是 vipType"
-
   # ==================== 孤儿单类型 ====================
 
   - id: stock_customer_type
@@ -423,9 +462,10 @@ intents:
     operator: MATCH
     value_type: enum
     enum_ref: orphanType
+    notes: "当前口径：孤儿单=在职有效客户；不再使用“非纯存续单客户”作为可查询枚举值。"
     examples:
       - query: "孤儿单客户"
-        output: {field: orphanType, operator: MATCH, value: "纯存续单客户"}
+        output: {field: orphanType, operator: MATCH, value: "在职有效客户"}
       - query: "在职有效客户"
         output: {field: orphanType, operator: MATCH, value: "在职有效客户"}
 
@@ -451,16 +491,16 @@ intents:
   - id: marital_status
     retrieval_text: >
       婚姻状况 婚姻 已婚 未婚 离婚 丧偶 单身 结婚
-    field: marriSts
+    field: mariSts
     operator: MATCH
     value_type: enum
-    enum_ref: marriSts
+    enum_ref: mariSts
     notes: "单身→未婚，结婚/已结婚→已婚"
     examples:
       - query: "已婚客户"
-        output: {field: marriSts, operator: MATCH, value: "已婚"}
+        output: {field: mariSts, operator: MATCH, value: "已婚"}
       - query: "单身客户"
-        output: {field: marriSts, operator: MATCH, value: "未婚"}
+        output: {field: mariSts, operator: MATCH, value: "未婚"}
 
   # ==================== 职业 ====================
 
@@ -550,61 +590,86 @@ intents:
       - query: "证件在2025年底前到期的客户"
         output: {field: idValidDate, operator: LTE, value: "2025-12-31 00:00:00"}
 
-  # ==================== 车辆信息 ====================
-
-  - id: vehicle_model
+  - id: asset_status
     retrieval_text: >
-      车辆品牌 车型 开什么车 车的品牌 汽车品牌 车品牌
-    field: carBrand
-    operator: MATCH
-    value_type: extract
-    examples:
-      - query: "开宝马的客户"
-        output: {field: carBrand, operator: MATCH, value: "宝马"}
-
-  - id: vehicle_plate_number
-    retrieval_text: >
-      车牌号 车辆号码 车牌 车牌号码 车辆车牌
-    field: carNumber
-    operator: MATCH
-    value_type: extract
-    examples:
-      - query: "车牌号为粤A12345的客户"
-        output: {field: carNumber, operator: MATCH, value: "粤A12345"}
-
-  - id: real_vehicle_status
-    retrieval_text: >
-      车子情况 有没有车 有车 没车 是否有车 车辆情况
+      资产状况 房车情况 有房 有车 有房有车 无房无车
+      有车有房 无车无房 有车无房 无车有房
     field: assetsCondition
-    operator: MATCH
+    operator: CONTAINS
     value_type: enum
     enum_ref: assetsCondition
+    description: "表示客户资产状况标签，不再只是是否有车。"
+    notes: "统一枚举为：有房、有车、有房有车、无房无车。口语归一：有车=有车/有房有车；有房=有房/有房有车；有车有房=有房有车；无车无房=无房无车；有车无房=有车；无车有房=有房。"
     examples:
       - query: "有车的客户"
-        output: {field: assetsCondition, operator: MATCH, value: "有车"}
-      - query: "没有车的客户"
-        output: {field: assetsCondition, operator: MATCH, value: "没车"}
+        output: {field: assetsCondition, operator: CONTAINS, value: ["有车", "有房有车"]}
+      - query: "有房的客户"
+        output: {field: assetsCondition, operator: CONTAINS, value: ["有房", "有房有车"]}
+      - query: "有车有房的客户"
+        output: {field: assetsCondition, operator: CONTAINS, value: ["有房有车"]}
+      - query: "无车无房的客户"
+        output: {field: assetsCondition, operator: CONTAINS, value: ["无房无车"]}
+      - query: "有车无房的客户"
+        output: {field: assetsCondition, operator: CONTAINS, value: ["有车"]}
+      - query: "无车有房的客户"
+        output: {field: assetsCondition, operator: CONTAINS, value: ["有房"]}
 
   # ==================== 寿险产品 ====================
+
+  - id: life_insurance_product_million_medical
+    retrieval_text: >
+      百万医疗 百万医疗产品 百万任我行 倍享百万 百万随行
+      百万任我行17 百万任我行18 百万任我行22 百万任我行23 百万任我行25
+    field: planAbbrNames
+    operator: CONTAINS
+    value_type: enum
+    enum_ref: millionMedicalProducts
+    show_enum_in_prompt: true
+    description: "表示百万医疗业务词对应的一组固定产品简称；输出值应限制在 millionMedicalProducts 枚举配置内。"
+    examples:
+      - query: "百万医疗的客户"
+        output: {field: planAbbrNames, operator: CONTAINS, value: ["百万任我行18", "倍享百万", "百万任我行", "百万任我行17", "百万随行", "百万任我行22", "百万任我行23", "百万任我行25"]}
+    negative_examples:
+      - query: "医疗险的客户"
+        reason: "这是险种大类语义，应优先映射到 pCategorys=医疗保险，不是百万医疗产品集合"
+
+  - id: life_insurance_product_tax_preferred
+    retrieval_text: >
+      税优产品 税优养老产品 税优养老 智盈倍护 盛世优享 盛世优享分红
+      安颐尊享 颐享延年 颐享延年分红 金越养老年金分红
+      智盈倍护23 盛世优享24 税优养老25
+    field: planAbbrNames
+    operator: CONTAINS
+    value_type: enum
+    enum_ref: taxPreferredPensionProducts
+    show_enum_in_prompt: true
+    description: "表示税优产品/税优养老产品业务词对应的一组固定产品简称；输出值应限制在 taxPreferredPensionProducts 枚举配置内。"
+    examples:
+      - query: "税优养老产品的客户"
+        output: {field: planAbbrNames, operator: CONTAINS, value: ["税优养老", "税优养老23", "税优养老24", "税优养老25", "智盈倍护", "智盈倍护23", "智盈倍护24", "智盈倍护25", "盛世优享", "盛世优享23", "盛世优享24", "盛世优享25", "盛世优享分红", "盛世优享分红23", "盛世优享分红24", "盛世优享分红25", "安颐尊享", "安颐尊享23", "安颐尊享24", "安颐尊享25", "颐享延年", "颐享延年23", "颐享延年24", "颐享延年25", "颐享延年分红", "颐享延年分红23", "颐享延年分红24", "颐享延年分红25", "金越养老年金（分红）", "金越养老年金（分红）23", "金越养老年金（分红）24", "金越养老年金（分红）25"]}
+    negative_examples:
+      - query: "年金保险的客户"
+        reason: "这是险种大类语义，应优先映射到 pCategorys=年金保险，不是税优产品集合"
 
   - id: life_insurance_product
     retrieval_text: >
       寿险产品 持有寿险 寿险产品代码 生财宝 智能星 金利多 平安永福 平安康泰 盛世金越
-    field: productCode
+    field: planAbbrNames
     operator: CONTAINS
     value_type: enum
-    enum_ref: productCode
+    enum_ref: planAbbrNames
     show_enum_in_prompt: false
     enum_candidate_limit_in_prompt: 2
+    description: "表示具体寿险产品简称；对于百万医疗、税优产品等业务词，应优先使用对应的产品集合 intent。"
     examples:
       - query: "持有平安永福的客户"
-        output: {field: productCode, operator: CONTAINS, value: "平安永福"}
+        output: {field: planAbbrNames, operator: CONTAINS, value: ["平安永福"]}
 
   - id: life_insurance_product_exists
     retrieval_text: >
       寿险客户 有寿险的客户 买过寿险的客户 购买过寿险的客户
       持有寿险产品 寿险保单客户 寿险名单
-    field: productCode
+    field: planAbbrNames
     operator: EXISTS
     value_type: exists
     description: "表示客户持有任意寿险产品，不要求具体寿险产品名"
@@ -612,15 +677,15 @@ intents:
     enum_candidate_limit_in_prompt: 2
     examples:
       - query: "寿险客户"
-        output: {field: productCode, operator: EXISTS, value: ""}
+        output: {field: planAbbrNames, operator: EXISTS, value: ""}
       - query: "买过寿险的客户"
-        output: {field: productCode, operator: EXISTS, value: ""}
+        output: {field: planAbbrNames, operator: EXISTS, value: ""}
 
   - id: life_insurance_product_not_exists
     retrieval_text: >
       没买寿险 没有寿险 没买寿险产品 没有寿险产品
       不是寿险客户 无寿险客户 没有寿险保单
-    field: productCode
+    field: planAbbrNames
     operator: NOT_EXISTS
     value_type: exists
     description: "表示客户未持有任何寿险产品，不表示车险/非车险，不表示寿险保单到期时间为空"
@@ -628,9 +693,9 @@ intents:
     enum_candidate_limit_in_prompt: 2
     examples:
       - query: "不是寿险客户"
-        output: {field: productCode, operator: NOT_EXISTS, value: ""}
+        output: {field: planAbbrNames, operator: NOT_EXISTS, value: ""}
       - query: "没有寿险保单的客户"
-        output: {field: productCode, operator: NOT_EXISTS, value: ""}
+        output: {field: planAbbrNames, operator: NOT_EXISTS, value: ""}
 
   # ==================== 持有险种类型 ====================
 
@@ -638,26 +703,26 @@ intents:
     retrieval_text: >
       险种类型 分红型 普通型 投连型 万能型 持有险种
       投资连结 投资型保险
-    field: pType
+    field: pTypes
     operator: MATCH
     value_type: enum
-    enum_ref: pType
+    enum_ref: pTypes
     description: "表示客户持有的保险类型枚举值，不表示是否存在任意保险"
     examples:
       - query: "持有分红型保险的客户"
-        output: {field: pType, operator: MATCH, value: "分红型"}
+        output: {field: pTypes, operator: MATCH, value: "分红型"}
 
   - id: held_product_type_exists
     retrieval_text: >
       买了保险 有保险 持有保险 配置了保险 购买了保险
       保险客户 有保单 有险种
-    field: pType
+    field: policyNo
     operator: EXISTS
     value_type: exists
-    description: "表示客户持有任意保险，不要求具体保险类型"
+    description: "表示客户存在保单号，即买过保险/有保单，不要求具体保险类型"
     examples:
       - query: "买了保险的客户"
-        output: { field: pType, operator: EXISTS, value: "" }
+        output: { field: policyNo, operator: EXISTS, value: "" }
     negative_examples:
       - query: "近一年买保险的客户"
         reason: "这里除了要求买了保险以后，还要查询买保险的时间是近一年内买的"
@@ -666,13 +731,13 @@ intents:
     retrieval_text: >
       没买保险 无保险 没有买保险 未配置保险 没配置保险
       没有保险 没有保单
-    field: pType
+    field: policyNo
     operator: NOT_EXISTS
     value_type: exists
-    description: "表示客户未持有任何保险，不要求具体保险类型"
+    description: "表示客户不存在保单号，即没有买过保险/没有保单"
     examples:
       - query: "没有买保险的客户"
-        output: { field: pType, operator: NOT_EXISTS, value: "" }
+        output: { field: policyNo, operator: NOT_EXISTS, value: "" }
 
   # ==================== 持有险种大类 ====================
 
@@ -681,43 +746,44 @@ intents:
       险种大类 保险大类 定期寿险 护理保险 疾病保险 两全保险
       年金保险 医疗保险 意外伤害保险 终身寿险
       年金险 医疗险 重疾险 意外险 医疗产品
-      买过年金险 未购买意外险 买了车险但没买意外险 车险但没有购买意外险
-    field: pcCategory
+      买过年金险
+    field: pCategorys
     operator: CONTAINS
     value_type: enum
-    enum_ref: pcCategory
+    enum_ref: pCategorys
     examples:
       - query: "持有年金保险的客户"
-        output: {field: pcCategory, operator: CONTAINS, value: ["年金保险"]}
+        output: {field: pCategorys, operator: CONTAINS, value: ["年金保险"]}
       - query: "买过终身寿险的客户"
-        output: {field: pcCategory, operator: CONTAINS, value: ["终身寿险"]}
+        output: {field: pCategorys, operator: CONTAINS, value: ["终身寿险"]}
       - query: "购买了医疗产品的客户"
-        output: {field: pcCategory, operator: CONTAINS, value: ["医疗保险"]}
+        output: {field: pCategorys, operator: CONTAINS, value: ["医疗保险"]}
       - query: "买了重疾险和医疗险的客户"
-        output: {field: pcCategory, operator: CONTAINS, value: ["疾病保险", "医疗保险"]}
-      - query: "买了车险，但没有购买意外险的客户"
-        output: {field: pcCategory, operator: NOT_CONTAINS, value: ["意外伤害保险"]}
+        output: {field: pCategorys, operator: CONTAINS, value: ["疾病保险", "医疗保险"]}
 
   # ==================== 未持有险种大类 ====================
 
   - id: held_product_category_gap
     retrieval_text: >
       险种大类 保险大类 定期寿险 护理保险 疾病保险 两全保险
+      未购买意外险 买了车险但没买意外险 车险但没有购买意外险
       年金保险 医疗保险 意外伤害保险 终身寿险
-    field: pcCategory
+    field: pCategorys
     operator: NOT_CONTAINS
     value_type: enum
-    enum_ref: pcCategory
+    enum_ref: pCategorys
     examples:
       - query: "没有买意外险的客户"
-        output: { field: pcCategory, operator: NOT_CONTAINS, value: ["意外伤害保险"] }
+        output: { field: pCategorys, operator: NOT_CONTAINS, value: ["意外伤害保险"] }
+      - query: "买了车险，但没有购买意外险的客户"
+        output: { field: pCategorys, operator: NOT_CONTAINS, value: ["意外伤害保险"] }
 
   # ==================== 年缴保费 ====================
 
   - id: annual_premium_gte
     retrieval_text: >
       年缴保费 保费 年缴 缴费 年保费 保费以上 保费超过
-      保费大于 高保费 缴费多少 保费金额
+      保费大于 高保费 缴费多少 保费金额 年交
     field: annPremSeg
     operator: GTE
     value_type: numeric
@@ -760,6 +826,8 @@ intents:
     examples:
       - query: "总保额50万以上的客户"
         output: {field: insnoSumInsSeq, operator: GTE, value: 500000}
+      - query: "高保额客户"
+        output: {field: insnoSumInsSeq, operator: GTE, value: 300000}
     negative_examples:
       - query: "总保费90万以上"
         reason: "这是总保费语义，不是产品总保额，不能映射到 insnoSumInsSeq"
@@ -784,16 +852,14 @@ intents:
     field: effAnniversaryDate
     operator: RANGE
     value_type: date
-    format: "yyyy-MM-dd HH:mm:ss"
+    format: "MM-dd"
     description: "表示保单周年日，不表示投保时间、投保日期、签单日期"
-    notes: "该字段表示保单周年日，不等于投保时间；若查询明确要求投保时间/投保日期，而系统无对应字段，不应映射到此字段"
+    notes: "该字段表示保单周年日的月日信息，按每年循环语义处理；若查询明确要求投保时间/投保日期，而系统无对应字段，不应映射到此字段"
     examples:
       - query: "保单周年日在2024-01-01的客户"
-        output: {field: effAnniversaryDate, operator: RANGE, value: {min: "2024-01-01 00:00:00", max: "2024-01-01 00:00:00"}}
+        output: {field: effAnniversaryDate, operator: RANGE, value: {min: "01-01", max: "01-01"}}
       - query: "2018年7月保单周年日的客户"
-        output: {field: effAnniversaryDate, operator: RANGE, value: {min: "2018-07-01 00:00:00", max: "2018-07-31 00:00:00"}}
-      - query: "2020年保单周年日的客户"
-        output: {field: effAnniversaryDate, operator: RANGE, value: {min: "2020-01-01 00:00:00", max: "2020-12-31 00:00:00"}}
+        output: {field: effAnniversaryDate, operator: RANGE, value: {min: "07-01", max: "07-31"}}
     negative_examples:
       - query: "2018年7月投保的客户"
         reason: "投保时间与保单周年日不是同一语义，不能映射到 effAnniversaryDate"
@@ -818,7 +884,7 @@ intents:
     enum_ref: agentPerspProductType
     examples:
       - query: "持有综拓e生保的客户"
-        output: {field: agentPerspProductType, operator: CONTAINS, value: "e生保"}
+        output: {field: agentPerspProductType, operator: CONTAINS, value: ["e生保"]}
 
   # ==================== 综拓理赔 ====================
 
@@ -855,11 +921,11 @@ intents:
     field: validSinsMatuDate
     operator: RANGE
     value_type: date
-    format: "yyyy-MM-dd HH:mm:ss"
+    format: "yyyy-MM-dd"
     description: "表示寿险保单到期时间，不表示缴费期满时间、证件有效期"
     examples:
       - query: "2025年寿险到期的客户"
-        output: {field: validSinsMatuDate, operator: RANGE, value: {min: "2025-01-01 00:00:00", max: "2025-12-31 00:00:00"}}
+        output: {field: validSinsMatuDate, operator: RANGE, value: {min: "2025-01-01", max: "2025-12-31"}}
     negative_examples:
       - query: "本月缴费期满的客户"
         reason: "这是缴费期满时间，应映射到 effAppEndDate，不是 validSinsMatuDate"
@@ -873,12 +939,12 @@ intents:
     field: validSinsMatuDate
     operator: LTE
     value_type: date
-    format: "yyyy-MM-dd HH:mm:ss"
+    format: "yyyy-MM-dd"
     description: "表示寿险保单即将到期时间，不表示缴费期满、证件到期"
     notes: "相对时间按当前日期展开为具体日期时间，不输出占位符"
     examples:
       - query: "30天内寿险到期的客户（当前2026-03-23）"
-        output: {field: validSinsMatuDate, operator: LTE, value: "2026-04-22 00:00:00"}
+        output: {field: validSinsMatuDate, operator: LTE, value: "2026-04-22"}
     negative_examples:
       - query: "近30天需要缴费的客户"
         reason: "这是缴费期满时间，应映射到 effAppEndDate，不是保单到期时间"
@@ -887,14 +953,17 @@ intents:
     retrieval_text: >
       未来一个月即将到期 未来30天即将到期 下个月即将到期
       一个⽉内到期 未来一个月到期 未来30天到期
+      3-10天内到期 10-30天内到期 30-60天内到期
     field: validSinsMatuDate
     operator: RANGE
     value_type: date
-    format: "yyyy-MM-dd HH:mm:ss"
+    format: "yyyy-MM-dd"
     description: "表示从当前时间起未来一段时间内的寿险保单到期区间，不使用单边 LTE 代替完整区间"
     examples:
       - query: "未来一个月即将到期的客户（当前2026-03-25）"
-        output: {field: validSinsMatuDate, operator: RANGE, value: {min: "2026-03-25 00:00:00", max: "2026-04-25 00:00:00"}}
+        output: {field: validSinsMatuDate, operator: RANGE, value: {min: "2026-03-25", max: "2026-04-25"}}
+      - query: "10-30天内到期的客户（当前2026-04-20）"
+        output: {field: validSinsMatuDate, operator: RANGE, value: {min: "2026-04-30", max: "2026-05-20"}}
 
   # ==================== 有效短险保单 ====================
 
@@ -907,27 +976,32 @@ intents:
     enum_ref: validSinsPol
     examples:
       - query: "有综拓有效短险的客户"
-        output: {field: validSinsPol, operator: CONTAINS, value: "综拓"}
+        output: {field: validSinsPol, operator: CONTAINS, value: ["综拓"]}
       - query: "购买了意健险的客户"
-        output: {field: validSinsPol, operator: CONTAINS, value: "意健险"}
+        output: {field: validSinsPol, operator: CONTAINS, value: ["意健险"]}
 
   # ==================== 居家达标客户等级 ====================
 
   - id: jujia_client_grade_exact
     retrieval_text: >
       居家达标等级 居家客户等级 居家V1 居家V2 居家V3 居家潜客
-      居家v1 居家v2 居家v3 居家等级
-    field: jujiaClientGrade
+      居家v1 居家v2 居家v3 居家V1优享 居家V2优享 居家意向客户
+      居家V1.5 居家V2.5 居家v1.5 居家v2.5 居家等级
+    field: searchJujiaClientGrade
     operator: MATCH
     value_type: enum
-    enum_ref: jujiaClientGrade
+    enum_ref: searchJujiaClientGrade
     description: "表示居家客户的单个等级标签，不表示会员范围，也不表示开通时间"
-    notes: "居家潜客不属于居家会员客户；居家客户包括v0.5、v1、v1.5、v2、v2.5、v3；等级排序：居家潜客<v0.5<v1<v1.5<v2<v2.5<v3"
+    notes: "居家潜客不属于居家会员客户；居家客户包括v0.5、v1、v1.5、v2、v2.5、v3；等级排序：居家潜客<v0.5<v1<v1.5<v2<v2.5<v3。预达标/已达标属于泛状态词，不能脱离居家语境单独映射到本字段。"
     examples:
       - query: "居家v1等级的客户"
-        output: {field: jujiaClientGrade, operator: MATCH, value: "v1"}
+        output: {field: searchJujiaClientGrade, operator: MATCH, value: "v1"}
       - query: "居家潜客"
-        output: {field: jujiaClientGrade, operator: MATCH, value: "居家潜客"}
+        output: {field: searchJujiaClientGrade, operator: MATCH, value: "居家潜客"}
+      - query: "居家V1优享客户"
+        output: {field: searchJujiaClientGrade, operator: MATCH, value: "v1.5"}
+      - query: "居家意向客户"
+        output: {field: searchJujiaClientGrade, operator: MATCH, value: "居家意向"}
     negative_examples:
       - query: "居家权益开通时间在今年的客户"
         reason: "这是开通时间，不是居家等级"
@@ -936,19 +1010,19 @@ intents:
     retrieval_text: >
       居家会员 居家会员客户 居家达标客户 居家v2以上 居家v2及以上
       居家等级以上 居家等级及以上 居家等级以下 居家等级及以下
-    field: jujiaClientGrade
+    field: searchJujiaClientGrade
     operator: CONTAINS
     value_type: enum
-    enum_ref: jujiaClientGrade
+    enum_ref: searchJujiaClientGrade
     description: "表示居家等级范围；“以上/以下”不含边界，“及以上/及以下”含边界"
     notes: "居家潜客不属于居家会员客户；等级排序：居家潜客<v0.5<v1<v1.5<v2<v2.5<v3"
     examples:
       - query: "居家会员客户"
-        output: { field: jujiaClientGrade, operator: CONTAINS, value: ["v0.5", "v1", "v1.5", "v2", "v2.5", "v3"] }
+        output: { field: searchJujiaClientGrade, operator: CONTAINS, value: ["v0.5", "v1", "v1.5", "v2", "v2.5", "v3"] }
       - query: "居家v2以上的客户"
-        output: { field: jujiaClientGrade, operator: CONTAINS, value: ["v2.5", "v3"] }
+        output: { field: searchJujiaClientGrade, operator: CONTAINS, value: ["v2.5", "v3"] }
       - query: "居家v2及以上的客户"
-        output: { field: jujiaClientGrade, operator: CONTAINS, value: ["v2", "v2.5", "v3"] }
+        output: { field: searchJujiaClientGrade, operator: CONTAINS, value: ["v2", "v2.5", "v3"] }
     negative_examples:
       - query: "居家权益开通时间在今年的客户"
         reason: "这是开通时间，不是居家等级范围"
@@ -959,17 +1033,21 @@ intents:
     retrieval_text: >
       康养等级 康养达标 逸享会员 逸享PLUS 颐享家会员 臻享会员
       康养预达标 康养会员等级 逸享 颐享
-    field: kangyangClientGrade
+      康养逸享达标客户 康养逸享PLUS达标客户 康养颐享家达标客户
+      康养臻享V1达标客户 康养臻享V2达标客户 康养臻享V3达标客户
+    field: searchKangyangClientGrade
     operator: MATCH
     value_type: enum
-    enum_ref: kangyangClientGrade
+    enum_ref: searchKangyangClientGrade
     description: "表示康养客户的单个等级标签，不表示会员范围，也不表示开通时间"
-    notes: "康养预达标会员不属于康养客户；康养客户包括逸享会员、逸享PLUS会员、颐享家会员、臻享会员V1、臻享会员V2、臻享会员V3；等级排序：康养预达标会员<逸享会员<逸享PLUS会员<颐享家会员<臻享会员V1<臻享会员V2<臻享会员V3"
+    notes: "康养预达标会员不属于康养客户；康养客户包括逸享会员、逸享PLUS会员、颐享家会员、臻享会员V1、臻享会员V2、臻享会员V3；等级排序：康养预达标会员<逸享会员<逸享PLUS会员<颐享家会员<臻享会员V1<臻享会员V2<臻享会员V3。预达标/已达标属于泛状态词，不能脱离康养语境单独映射到本字段。"
     examples:
       - query: "逸享会员客户"
-        output: {field: kangyangClientGrade, operator: MATCH, value: "逸享会员"}
+        output: {field: searchKangyangClientGrade, operator: MATCH, value: "逸享会员"}
       - query: "康养臻享V1的客户"
-        output: {field: kangyangClientGrade, operator: MATCH, value: "臻享会员V1"}
+        output: {field: searchKangyangClientGrade, operator: MATCH, value: "臻享会员V1"}
+      - query: "康养逸享PLUS达标客户"
+        output: {field: searchKangyangClientGrade, operator: MATCH, value: "逸享PLUS会员"}
     negative_examples:
       - query: "康养权益开通时间在今年的客户"
         reason: "这是开通时间，不是康养等级"
@@ -978,19 +1056,19 @@ intents:
     retrieval_text: >
       康养会员 康养会员客户 康养达标客户 逸享PLUS以上 逸享PLUS及以上
       康养等级以上 康养等级及以上 康养等级以下 康养等级及以下
-    field: kangyangClientGrade
+    field: searchKangyangClientGrade
     operator: CONTAINS
     value_type: enum
-    enum_ref: kangyangClientGrade
+    enum_ref: searchKangyangClientGrade
     description: "表示康养等级范围；“以上/以下”不含边界，“及以上/及以下”含边界"
     notes: "康养预达标会员不属于康养客户；康养客户包括逸享会员、逸享PLUS会员、颐享家会员、臻享会员V1、臻享会员V2、臻享会员V3；等级排序：康养预达标会员<逸享会员<逸享PLUS会员<颐享家会员<臻享会员V1<臻享会员V2<臻享会员V3"
     examples:
       - query: "逸享PLUS以上康养等级客户"
-        output: { field: kangyangClientGrade, operator: CONTAINS, value: ["颐享家会员", "臻享会员V1", "臻享会员V2", "臻享会员V3"]}
+        output: { field: searchKangyangClientGrade, operator: CONTAINS, value: ["颐享家会员", "臻享会员V1", "臻享会员V2", "臻享会员V3"]}
       - query: "逸享PLUS及以上康养等级客户"
-        output: { field: kangyangClientGrade, operator: CONTAINS, value: ["逸享PLUS会员", "颐享家会员", "臻享会员V1", "臻享会员V2", "臻享会员V3"]}
+        output: { field: searchKangyangClientGrade, operator: CONTAINS, value: ["逸享PLUS会员", "颐享家会员", "臻享会员V1", "臻享会员V2", "臻享会员V3"]}
       - query: "康养会员客户"
-        output: { field: kangyangClientGrade, operator: CONTAINS, value: ["逸享会员", "逸享PLUS会员", "颐享家会员", "臻享会员V1", "臻享会员V2", "臻享会员V3" ] }
+        output: { field: searchKangyangClientGrade, operator: CONTAINS, value: ["逸享会员", "逸享PLUS会员", "颐享家会员", "臻享会员V1", "臻享会员V2", "臻享会员V3" ] }
     negative_examples:
       - query: "康养权益开通时间在今年的客户"
         reason: "这是开通时间，不是康养等级范围"
@@ -1001,14 +1079,19 @@ intents:
   - id: zhenxiang_run_equity_grade
     retrieval_text: >
       安有护 安有护权益 安有护国内版 安有护国际版 安有护等级
-    field: zhenxiangRunEquityGrade
+      安有护国内版达标 安有护国际版达标 安有护（国内版）达标 安有护（国际版）达标
+    field: searchZhenxiangRunEquityGrade
     operator: MATCH
     value_type: enum
-    enum_ref: zhenxiangRunEquityGrade
-    description: "表示安有护权益等级版本，如国内版/国际版；也可用 EXISTS 表示是否持有该权益"
+    enum_ref: searchZhenxiangRunEquityGrade
+    description: "表示安有护权益等级版本，如安有护(国内版)/安有护(国际版)；也可用 EXISTS 表示是否持有该权益"
     examples:
       - query: "有安有护国际版的客户"
-        output: {field: zhenxiangRunEquityGrade, operator: MATCH, value: "国际版"}
+        output: {field: searchZhenxiangRunEquityGrade, operator: MATCH, value: "安有护(国际版)"}
+      - query: "安有护国际版达标客户"
+        output: {field: searchZhenxiangRunEquityGrade, operator: MATCH, value: "安有护(国际版)"}
+      - query: "安有护权益等级为安有护(国内版)的客户"
+        output: {field: searchZhenxiangRunEquityGrade, operator: MATCH, value: "安有护(国内版)"}
     negative_examples:
       - query: "安有护开通时间在2024年的客户"
         reason: "这是开通时间，不是权益等级"
@@ -1018,40 +1101,48 @@ intents:
   - id: zhenxiang_run_equity_exists
     retrieval_text: >
       持有安有护权益 有安有护权益 安有护客户 安有护会员
-    field: zhenxiangRunEquityGrade
+    field: searchZhenxiangRunEquityGrade
     operator: EXISTS
     value_type: exists
     description: "表示客户持有安有护权益，不要求具体国内版/国际版"
     examples:
       - query: "持有安有护权益的客户"
-        output: {field: zhenxiangRunEquityGrade, operator: EXISTS, value: ""}
+        output: {field: searchZhenxiangRunEquityGrade, operator: EXISTS, value: ""}
 
   - id: zhenxiang_run_equity_not_exists
     retrieval_text: >
       未持有安有护权益 没有安有护权益 不是安有护客户 不是安有护会员
-    field: zhenxiangRunEquityGrade
+    field: searchZhenxiangRunEquityGrade
     operator: NOT_EXISTS
     value_type: not_exists
     description: "表示客户未持有安有护权益，值为空"
     examples:
       - query: "不是安有护的客户"
-        output: { field: zhenxiangRunEquityGrade, operator: NOT_EXISTS, value: "" }
+        output: { field: searchZhenxiangRunEquityGrade, operator: NOT_EXISTS, value: "" }
 
   # ==================== 臻享家医权益等级 ====================
 
   - id: zxjy_equity_grade
     retrieval_text: >
       臻享家医 臻享家医等级 臻享家医预达标 臻享家医已达标 家医权益
-    field: zxjyEquityGrade
+      家医意向客户 家医V1达标客户 家医V2达标客户 家医v1达标客户 家医v2达标客户
+    field: searchZxjyEquityGrade
     operator: MATCH
     value_type: enum
-    enum_ref: zxjyEquityGrade
+    enum_ref: searchZxjyEquityGrade
     description: "表示臻享家医达标状态，如预达标/已达标；不表示开通时间、使用次数"
+    notes: "该字段只接受预达标/已达标两个标准值。家医V1达标客户、家医V2达标客户等说法都统一归一到已达标；“持有家医权益”不等于已达标。"
     examples:
       - query: "臻享家医已达标的客户"
-        output: {field: zxjyEquityGrade, operator: MATCH, value: "已达标"}
+        output: {field: searchZxjyEquityGrade, operator: MATCH, value: "已达标"}
       - query: "臻享家医客户"
-        output: { field: zxjyEquityGrade, operator: MATCH, value: "已达标" }
+        output: { field: searchZxjyEquityGrade, operator: MATCH, value: "已达标" }
+      - query: "臻享家医权益等级为预达标的客户"
+        output: { field: searchZxjyEquityGrade, operator: MATCH, value: "预达标" }
+      - query: "家医意向客户"
+        output: { field: searchZxjyEquityGrade, operator: MATCH, value: "预达标" }
+      - query: "家医V1达标客户"
+        output: { field: searchZxjyEquityGrade, operator: MATCH, value: "已达标" }
     negative_examples:
       - query: "臻享家医开通时间在今年的客户"
         reason: "这是开通时间，不是家医达标状态"
@@ -1078,6 +1169,27 @@ intents:
       - query: "车险即将到期"
         reason: "这里主要是查询车险到期的时间，并不是单纯的看是否有车险"
 
+  - id: car_insurance_expiry_date
+    is_supported: false
+    retrieval_text: >
+      车险到期 车险到期时间 车险到期日 车险快到期 车险即将到期
+      车险续保时间 车险哪天到期 车险什么时候到期
+    field: carInsuranceMatuDateTime
+    operator: RANGE
+    value_type: date
+    format: "yyyy-MM-dd"
+    description: "表示车险保单到期时间，不表示是否持有车险，也不表示寿险保单到期时间"
+    examples:
+      - query: "今年车险到期的客户"
+        output: {field: carInsuranceMatuDateTime, operator: RANGE, value: {min: "2026-01-01", max: "2026-12-31"}}
+      - query: "车险即将到期的客户（当前2026-04-20）"
+        output: {field: carInsuranceMatuDateTime, operator: RANGE, value: {min: "2026-04-20", max: "2026-05-20"}}
+    negative_examples:
+      - query: "持有车险的客户"
+        reason: "这是是否持有车险，应映射到 isBuyPregnancyCar，不是车险到期时间"
+      - query: "30天内寿险到期的客户"
+        reason: "这是寿险保单到期时间，应映射到 validSinsMatuDate，不是 carInsuranceMatuDateTime"
+
 
   # ==================== 家庭成员性别 ====================
 
@@ -1097,7 +1209,7 @@ intents:
         output:
           query_logic: AND
           conditions:
-            - {field: familyRelation, operator: CONTAINS, value: "子女"}
+            - {field: familyRelation, operator: CONTAINS, value: ["子女"]}
             - {field: familyClientSex, operator: NESTED_MATCH, value: "男"}
     negative_examples:
       - query: "男性客户"
@@ -1112,23 +1224,39 @@ intents:
     field: effAppEndDate
     operator: RANGE
     value_type: date
-    format: "yyyy-MM-dd HH:mm:ss"
+    format: "yyyy-MM-dd"
     description: "表示缴费期满时间，不表示保单到期时间、证件有效期"
-    notes: "该字段表示缴费期满时间，不等于应缴日/应缴时间；若查询明确要求应缴日、缴费日而系统无对应字段，不应映射到此字段。无具体年份时默认当年；时间部分默认00:00:00；本月/下月按月初到月末展开，近30天按当前日期到未来30天展开"
+    notes: "该字段表示缴费期满时间，不等于应缴日/应缴时间；若查询明确要求应缴日、缴费日而系统无对应字段，不应映射到此字段。无具体年份时默认当年；按日期粒度输出 yyyy-MM-dd。"
     examples:
       - query: "本月缴费期满的客户（当前2026年3月）"
-        output: {field: effAppEndDate, operator: RANGE, value: {min: "2026-03-01 00:00:00", max: "2026-03-31 00:00:00"}}
+        output: {field: effAppEndDate, operator: RANGE, value: {min: "2026-03-01", max: "2026-03-31"}}
       - query: "下个月缴费期满的客户（当前2026年3月）"
-        output: {field: effAppEndDate, operator: RANGE, value: {min: "2026-04-01 00:00:00", max: "2026-04-30 00:00:00"}}
+        output: {field: effAppEndDate, operator: RANGE, value: {min: "2026-04-01", max: "2026-04-30"}}
       - query: "近30天需要缴费的客户（当前2026-03-23）"
-        output: {field: effAppEndDate, operator: RANGE, value: {min: "2026-03-23 00:00:00", max: "2026-04-22 00:00:00"}}
+        output: {field: effAppEndDate, operator: RANGE, value: {min: "2026-03-23", max: "2026-04-22"}}
       - query: "今年缴费期满的客户（当前2026年）"
-        output: {field: effAppEndDate, operator: RANGE, value: {min: "2026-01-01 00:00:00", max: "2026-12-31 00:00:00"}}
+        output: {field: effAppEndDate, operator: RANGE, value: {min: "2026-01-01", max: "2026-12-31"}}
     negative_examples:
       - query: "30天内寿险到期的客户"
         reason: "这是保单到期时间，应映射到 validSinsMatuDate，不是 effAppEndDate"
       - query: "证件即将到期的客户"
         reason: "这是证件有效期，应映射到 idValidDate，不是 effAppEndDate"
+
+  - id: eff_app_end_date_gte
+    retrieval_text: >
+      缴费期未满 尚未缴费期满 还没缴费期满 缴费未结束 保费未缴清
+    field: effAppEndDate
+    operator: GTE
+    value_type: date
+    format: "yyyy-MM-dd"
+    description: "表示缴费期满时间晚于或等于当前日期"
+    notes: "无明确日期时默认以当前日期为阈值"
+    examples:
+      - query: "缴费期未满的客户（当前2026-04-12）"
+        output: { field: effAppEndDate, operator: GTE, value: "2026-04-12" }
+    negative_examples:
+      - query: "30天内寿险到期的客户"
+        reason: "这是保单到期时间，应映射到 validSinsMatuDate，不是 effAppEndDate"
 
   - id: eff_app_end_date_lte
     retrieval_text: >
@@ -1137,11 +1265,11 @@ intents:
     field: effAppEndDate
     operator: LTE
     value_type: date
-    format: "yyyy-MM-dd HH:mm:ss"
+    format: "yyyy-MM-dd"
     description: "表示缴费期满时间早于或等于当前日期，不表示今天当天的精确日期匹配"
     examples:
       - query: "客户缴费期已满（当前2026-03-25）"
-        output: {field: effAppEndDate, operator: LTE, value: "2026-03-25 23:59:59"}
+        output: {field: effAppEndDate, operator: LTE, value: "2026-03-25"}
 
   # ==================== 成员出生日期 ====================
 
@@ -1152,28 +1280,28 @@ intents:
     field: familyClientBirthday
     operator: NESTED_MATCH
     value_type: date
-    format: "yyyy-MM-dd HH:mm:ss"
+    format: "yyyy-MM-dd"
     description: "表示家庭成员出生日期，不表示客户本人出生日期；出现关系词时应与 familyRelation 组合"
-    notes: "无具体年份时默认当年；时间部分、默认 00:00:00"
+    notes: "无具体年份时默认当年"
     examples:
       - query: "子女1990年出生的客户"
         output:
           query_logic: AND
           conditions:
-            - {field: familyRelation, operator: CONTAINS, value: "子女"}
-            - {field: familyClientBirthday, operator: RANGE, value: {min: "1990-01-01 00:00:00", max: "1990-12-31 00:00:00"}}
-      - query: "父母1956年出生的客户"
+            - {field: familyRelation, operator: CONTAINS, value: ["子女"]}
+            - {field: familyClientBirthday, operator: RANGE, value: {min: "1990-01-01", max: "1990-12-31"}}
+      - query: "父母在1954年之后出生的客户"
         output:
           query_logic: AND
           conditions:
-            - {field: familyRelation, operator: CONTAINS, value: "父母"}
-            - {field: familyClientBirthday, operator: RANGE, value: {min: "1956-01-01 00:00:00", max: "1956-12-31 00:00:00"}}
-      - query: "爱人1988年出生的客户"
+            - {field: familyRelation, operator: CONTAINS, value: ["父母"]}
+            - {field: familyClientBirthday, operator: GTE, value: "1954-01-01"}
+      - query: "爱人在1991年之前出生的客户"
         output:
           query_logic: AND
           conditions:
-            - {field: familyRelation, operator: CONTAINS, value: "配偶"}
-            - {field: familyClientBirthday, operator: RANGE, value: {min: "1988-01-01 00:00:00", max: "1988-12-31 00:00:00"}}
+            - { field: familyRelation, operator: CONTAINS, value: ["配偶"]}
+            - { field: familyClientBirthday, operator: LTE, value: "1991-01-01" }
     negative_examples:
       - query: "1990年出生的客户"
         reason: "这是客户本人出生日期，应映射到 clientBirthday，不是 familyClientBirthday"
@@ -1182,7 +1310,7 @@ intents:
     retrieval_text: >
       家庭成员年龄 成员年龄 子女年龄 子女几岁 孩子几岁 儿子年龄 女儿年龄
       父母年龄 配偶年龄 成员多少岁 子女多大 孩子多大
-      子女5岁 孩子10岁 成员年龄范围 未成年子女 成年子女
+      子女5岁 成员年龄范围 未成年子女 成年子女
     field: familyClientAge
     operator: RANGE
     value_type: numeric
@@ -1194,37 +1322,52 @@ intents:
         output:
           query_logic: AND
           conditions:
-            - {field: familyRelation, operator: CONTAINS, value: "子女"}
+            - {field: familyRelation, operator: CONTAINS, value: ["子女"]}
             - {field: familyClientAge, operator: RANGE, value: {min: 5, max: 10}}
       - query: "子女未成年的客户"
         output:
           query_logic: AND
           conditions:
-            - {field: familyRelation, operator: CONTAINS, value: "子女"}
+            - {field: familyRelation, operator: CONTAINS, value: ["子女"]}
             - {field: familyClientAge, operator: RANGE, value: {min: 0, max: 18}}
+      - query: "配偶30到40岁的客户"
+        output:
+          query_logic: AND
+          conditions:
+            - {field: familyRelation, operator: CONTAINS, value: ["配偶"]}
+            - {field: familyClientAge, operator: RANGE, value: {min: 30, max: 40}}
+    negative_examples:
+      - query: "45岁以上的客户"
+        reason: "这是客户本人年龄，应映射到 clientAge，不是 familyClientAge"
+
+  - id: family_client_age_gte
+    retrieval_text: >
+      家庭成员年龄 成员年龄 子女年龄 父母年龄 配偶年龄
+      孩子10岁以上 子女10岁以上 父母70岁以上 成员年龄大于 成员年龄以上
+    field: familyClientAge
+    operator: GTE
+    value_type: numeric
+    unit: "岁，直接取数字；系统会自动将年龄转换为 familyClientBirthday 日期范围"
+    description: "表示家庭成员年龄下界，不表示客户本人年龄；出现关系词时应与 familyRelation 组合"
+    notes: "年龄会自动转换为出生日期范围（familyClientBirthday）；出现子女/父母/配偶等关系词时应同时输出familyRelation条件"
+    examples:
       - query: "孩子10岁以上的客户"
         output:
           query_logic: AND
           conditions:
-            - {field: familyRelation, operator: CONTAINS, value: "子女"}
+            - {field: familyRelation, operator: CONTAINS, value: ["子女"]}
             - {field: familyClientAge, operator: GTE, value: 10}
       - query: "父母70岁以上的客户"
         output:
           query_logic: AND
           conditions:
-            - {field: familyRelation, operator: CONTAINS, value: "父母"}
+            - {field: familyRelation, operator: CONTAINS, value: ["父母"]}
             - {field: familyClientAge, operator: GTE, value: 70}
-      - query: "配偶30到40岁的客户"
-        output:
-          query_logic: AND
-          conditions:
-            - {field: familyRelation, operator: CONTAINS, value: "配偶"}
-            - {field: familyClientAge, operator: RANGE, value: {min: 30, max: 40}}
       - query: "家里有孩子10岁以上的客户"
         output:
           query_logic: AND
           conditions:
-            - {field: familyRelation, operator: CONTAINS, value: "子女"}
+            - {field: familyRelation, operator: CONTAINS, value: ["子女"]}
             - {field: familyClientAge, operator: GTE, value: 10}
     negative_examples:
       - query: "45岁以上的客户"
@@ -1261,41 +1404,6 @@ intents:
       - query: "本科及以上学历客户"
         output: {field: education, operator: CONTAINS, value: ["大学本科生", "硕士研究生", "博士研究生", "博士后"]}
 
-  # ==================== 养老险产品 ====================
-
-  - id: g_product_code
-    retrieval_text: > 
-      一年期综合意外 一年期交通意外 一年期综合意外保险 一年期交通意外保险
-    field: gProductCode
-    operator: CONTAINS
-    value_type: enum
-    enum_ref: gProductCode
-    description: "表示具体养老险/意外险产品，不表示泛险种大类"
-    examples:
-      - query: "持有一年期综合意外保险的客户"
-        output: {field: gProductCode, operator: CONTAINS, value: "一年期综合意外保险"}
-      - query: "买了一年期交通意外保险的客户"
-        output: { field: gProductCode, operator: CONTAINS, value: "一年期交通意外保险" }
-    negative_examples:
-      - query: "买了车险，但没有购买意外险的客户"
-        reason: "这是泛险种大类“意外险”，应映射到 pcCategory=意外伤害保险，不是具体产品 gProductCode"
-
-  # ==================== 健康险产品 ====================
-
-  - id: h_product_code
-    retrieval_text: >
-      健康险产品 健康保险 e生保 安康 平安宝贝 i康保 i药保
-      海外医疗 抗癌险 尊享 尊优 舒享
-    field: hProductCode
-    operator: CONTAINS
-    value_type: enum
-    enum_ref: hProductCode
-    examples:
-      - query: "持有e生保的客户"
-        output: {field: hProductCode, operator: CONTAINS, value: "e生保"}
-      - query: "有i康保的客户"
-        output: {field: hProductCode, operator: CONTAINS, value: "i康保"}
-
   # ==================== 成员关系 ====================
 
   - id: family_relation
@@ -1309,17 +1417,17 @@ intents:
     notes: "涉及家庭成员属性时，familyRelation可与年龄、出生日期、性别、姓名等条件组合输出"
     examples:
       - query: "有子女的客户"
-        output: {field: familyRelation, operator: CONTAINS, value: "子女"}
+        output: {field: familyRelation, operator: CONTAINS, value: ["子女"]}
       - query: "有配偶的客户"
-        output: {field: familyRelation, operator: CONTAINS, value: "配偶"}
+        output: {field: familyRelation, operator: CONTAINS, value: ["配偶"]}
       - query: "家里有未成年子女的客户"
         output:
           query_logic: AND
           conditions:
-            - {field: familyRelation, operator: CONTAINS, value: "子女"}
+            - {field: familyRelation, operator: CONTAINS, value: ["子女"]}
             - {field: familyClientAge, operator: RANGE, value: {min: 0, max: 18}}
       - query: "家里有爸妈的客户"
-        output: {field: familyRelation, operator: CONTAINS, value: "父母"}
+        output: {field: familyRelation, operator: CONTAINS, value: ["父母"]}
 
   # ==================== 家庭成员姓名 ====================
 
@@ -1338,29 +1446,65 @@ intents:
         output:
           query_logic: AND
           conditions:
-            - {field: familyRelation, operator: CONTAINS, value: "子女"}
+            - {field: familyRelation, operator: CONTAINS, value: ["子女"]}
             - {field: familyClientName, operator: NESTED_MATCH, value: "张三"}
       - query: "爱人叫李四的客户"
         output:
           query_logic: AND
           conditions:
-            - {field: familyRelation, operator: CONTAINS, value: "配偶"}
+            - {field: familyRelation, operator: CONTAINS, value: ["配偶"]}
             - {field: familyClientName, operator: NESTED_MATCH, value: "李四"}
     negative_examples:
       - query: "叫张三的客户"
-        reason: "这是客户本人姓名，应映射到 clientName，不是 familyClientName"
+        reason: "这是客户本人姓名，应映射到 searchClientNameNew，不是 familyClientName"
+
+  # ==================== 家庭成员手机号 ====================
+
+  - id: family_client_mobile
+    retrieval_text: >
+      家庭成员手机号 成员手机号 家属手机号 家庭成员电话 成员电话 家属电话
+      子女手机号 父母手机号 配偶手机号 家里人手机号
+    field: familyClientMobile
+    operator: NESTED_MATCH
+    value_type: extract
+    description: "表示家庭成员手机号，不表示客户本人手机号；出现关系词时应与 familyRelation 组合"
+    notes: "出现子女/父母/配偶等关系词时应同时输出familyRelation条件"
+    examples:
+      - query: "家庭成员手机号是13800138000的客户"
+        output: {field: familyClientMobile, operator: NESTED_MATCH, value: "13800138000"}
+      - query: "子女手机号是13800138000的客户"
+        output:
+          query_logic: AND
+          conditions:
+            - {field: familyRelation, operator: CONTAINS, value: ["子女"]}
+            - {field: familyClientMobile, operator: NESTED_MATCH, value: "13800138000"}
+      - query: "父母手机号是13900139000的客户"
+        output:
+          query_logic: AND
+          conditions:
+            - {field: familyRelation, operator: CONTAINS, value: ["父母"]}
+            - {field: familyClientMobile, operator: NESTED_MATCH, value: "13900139000"}
+    negative_examples:
+      - query: "手机号是13800138000的客户"
+        reason: "这是客户本人手机号，应映射到 clientMobile，不是 familyClientMobile"
 
   # ==================== 保单号 ====================
 
   - id: policy_no
     retrieval_text: >
       保单号 保单编号 保险单号 保险单编号
+      保单号匹配 保单号等于 保单号为 按保单号查询
+      按保单号查客户 保单号码 保险单号码
     field: policyNo
     operator: MATCH
     value_type: extract
     examples:
       - query: "保单号为1234567890的客户"
         output: {field: policyNo, operator: MATCH, value: "1234567890"}
+      - query: "保单号匹配P100000000000010的客户"
+        output: {field: policyNo, operator: MATCH, value: "P100000000000010"}
+      - query: "按保单号查P100000000000010的客户"
+        output: {field: policyNo, operator: MATCH, value: "P100000000000010"}
 
   # ==================== 年收入 ====================
 
@@ -1476,6 +1620,23 @@ intents:
       - query: "资产规模50万以下的客户"
         output: {field: asset_scale, operator: LTE, value: 500000}
 
+  # ==================== 客户添加日 ====================
+
+  - id: customer_added_date
+    is_supported: false
+    retrieval_text: >
+      客户添加日 客户添加时间 添加日期 建档日期 客户录入时间 客户创建时间 新添加的客户
+    field: customer_added_date
+    operator: RANGE
+    value_type: date
+    format: "yyyy-MM-dd HH:mm:ss"
+    description: "客户添加到系统中的日期时间"
+    examples:
+      - query: "本月添加的客户"
+        output: {field: customer_added_date, operator: RANGE, value: {min: "2026-03-01 00:00:00", max: "2026-03-31 23:59:59"}}
+      - query: "2026年新添加的客户"
+        output: {field: customer_added_date, operator: RANGE, value: {min: "2026-01-01 00:00:00", max: "2026-12-31 23:59:59"}}
+
   # ==================== 保单产品名称 ====================
 
   - id: policies_product_name
@@ -1518,26 +1679,26 @@ intents:
     retrieval_text: >
       保单状态 有效保单 失效保单 退保 停效 缴费有效 犹豫期退保 到期终止
       展期 交清 减额 转换终止 失效 死亡理赔 等待续保
-    field: policies_status
+    field: polNoInfo.polStatus
     operator: MATCH
     value_type: enum
-    enum: ["取消","死亡理赔","展期","缴费有效","停效","到期终止","犹豫期退保","交清","减额交情","退保","转换终止","失效","终止效率","免交","迁出","人为停效","效力终止","预收","拒保","贷款超停","死亡有效","贷款超失","自垫有效","自垫停效","自垫失效","自垫交清","等待续保"]
+    enum_ref: polNoInfo.polStatus
     show_enum_in_prompt: true
     description: "保单当前状态，嵌套字段"
     examples:
       - query: "保单状态为缴费有效的客户"
-        output: {field: policies_status, operator: MATCH, value: "缴费有效"}
+        output: {field: polNoInfo.polStatus, operator: MATCH, value: "缴费有效"}
       - query: "有退保保单的客户"
-        output: {field: policies_status, operator: MATCH, value: "退保"}
+        output: {field: polNoInfo.polStatus, operator: MATCH, value: "退保"}
       - query: "停效保单的客户"
-        output: {field: policies_status, operator: MATCH, value: "停效"}
+        output: {field: polNoInfo.polStatus, operator: MATCH, value: "停效"}
 
   # ==================== 投保日期 ====================
 
   - id: policies_insure_date
     is_supported: false
     retrieval_text: >
-      投保日期 投保时间 什么时候投保 投保年份 今年投保 去年投保 本月投保
+      投保日期 投保时间 什么时候投保 投保年份 今年投保 去年投保 本月投保 买保险日期 近一年买保险 买保险时间 什么时候买保险 买保险年份 去年买保险 本月买保险
     field: policies_insure_date
     operator: RANGE
     value_type: date
@@ -1554,15 +1715,19 @@ intents:
   - id: policies_undwrt_date
     is_supported: false
     retrieval_text: >
-      承保日期 承保时间 何时承保 承保年份 今年承保 本月承保
-    field: policies_undwrt_date
+      承保日期 承保时间 何时承保 承保年份 今年承保 本月承保 最近承保 最近承保时间
+    field: latelyUndwrtSegTime
     operator: RANGE
     value_type: date
-    format: "yyyy-MM-dd HH:mm:ss"
+    format: "yyyy-MM-dd"
     description: "保单承保日期，嵌套字段"
     examples:
       - query: "本月承保的客户"
-        output: {field: policies_undwrt_date, operator: RANGE, value: {min: "<current_month_start>", max: "<current_month_end>"}}
+        output: {field: latelyUndwrtSegTime, operator: RANGE, value: {min: "<current_month_start>", max: "<current_month_end>"}}
+      - query: "今年承保的客户"
+        output: {field: latelyUndwrtSegTime, operator: RANGE, value: {min: "<current_year_start>", max: "<current_year_end>"}}
+      - query: "最近承保的客户"
+        output: {field: latelyUndwrtSegTime, operator: RANGE, value: {min: "<today_minus_30_days>", max: "<today>"}}
 
   # ==================== 应缴日 ====================
 
@@ -1570,16 +1735,30 @@ intents:
     is_supported: false
     retrieval_text: >
       应缴日 缴费日 应缴时间 缴费到期 本月应缴 下个月缴费 即将缴费
-    field: policies_pay_date
+    field: polNoInfo.payToDate
     operator: RANGE
     value_type: date
-    format: "yyyy-MM-dd HH:mm:ss"
+    format: "yyyy-MM-dd"
     description: "保单应缴费日期，嵌套字段"
     examples:
       - query: "本月应缴费的客户"
-        output: {field: policies_pay_date, operator: RANGE, value: {min: "<current_month_start>", max: "<current_month_end>"}}
+        output: {field: polNoInfo.payToDate, operator: RANGE, value: {min: "<current_month_start>", max: "<current_month_end>"}}
       - query: "下个月缴费日的客户"
-        output: {field: policies_pay_date, operator: RANGE, value: {min: "<next_month_start>", max: "<next_month_end>"}}
+        output: {field: polNoInfo.payToDate, operator: RANGE, value: {min: "<next_month_start>", max: "<next_month_end>"}}
+
+  # ==================== 核保结论 ====================
+
+  - id: policies_whole_decision
+    is_supported: false
+    retrieval_text: >
+      核保结论 核保结果 人核结论 人工核保结论 智核结论 核保意见
+    field: polNoInfo.wholeDecision
+    operator: NESTED_MATCH
+    value_type: extract
+    description: "保单核保结论，嵌套字段，开放域文本"
+    examples:
+      - query: "核保结论为标准体的客户"
+        output: {field: polNoInfo.wholeDecision, operator: NESTED_MATCH, value: "标准体"}
 
   # ==================== 犹豫期时间 ====================
 
@@ -1595,6 +1774,17 @@ intents:
     examples:
       - query: "本月犹豫期到期的客户"
         output: {field: policies_cooling_off, operator: RANGE, value: {min: "<current_month_start>", max: "<current_month_end>"}}
+
+  - id: policies_cooling_off_lte
+    is_supported: false
+    retrieval_text: >
+      犹豫期 犹豫期到期 即将过犹豫期 7天内犹豫期到期
+    field: policies_cooling_off
+    operator: LTE
+    value_type: date
+    format: "yyyy-MM-dd HH:mm:ss"
+    description: "保单犹豫期截止时间早于或等于给定时间，嵌套字段"
+    examples:
       - query: "7天内犹豫期到期的客户"
         output: {field: policies_cooling_off, operator: LTE, value: "<today_plus_7_days>"}
 
@@ -1604,13 +1794,15 @@ intents:
     is_supported: false
     retrieval_text: >
       投保险种名称 险种全称 保险险种名称 险种叫什么
-    field: policies_plan_fullname
+    field: polNoInfo.planFullName
     operator: NESTED_MATCH
-    value_type: extract
-    description: "保单投保险种全称，嵌套字段，开放域文本"
+    value_type: enum
+    enum_ref: polNoInfo.planFullName
+    show_enum_in_prompt: true
+    description: "保单投保险种全称，嵌套字段，枚举值通过独立配置文件维护"
     examples:
       - query: "险种名称为平安e生保医疗保险的客户"
-        output: {field: policies_plan_fullname, operator: NESTED_MATCH, value: "平安e生保医疗保险"}
+        output: {field: polNoInfo.planFullName, operator: NESTED_MATCH, value: "平安e生保医疗保险"}
 
   # ==================== 投保险种简称 ====================
 
@@ -1618,28 +1810,31 @@ intents:
     is_supported: false
     retrieval_text: >
       投保险种简称 险种简称 e生保 安康 平安宝贝 i康保 i药保 海外 抗癌 尊享 尊优 舒享
-    field: policies_plan_abbr_name
+    field: polNoInfo.abbrName
     operator: NESTED_MATCH
     value_type: enum
-    enum: ["e生保", "安康", "平安宝贝", "i康保", "i药保", "海外", "抗癌", "尊享", "尊优", "舒享", "其他"]
-    description: "保单投保险种简称，嵌套字段"
+    enum_ref: polNoInfo.abbrName
+    show_enum_in_prompt: true
+    description: "保单投保险种简称，嵌套字段，枚举值通过独立配置文件维护"
     examples:
       - query: "投保了e生保的客户"
-        output: {field: policies_plan_abbr_name, operator: NESTED_MATCH, value: "e生保"}
+        output: {field: polNoInfo.abbrName, operator: NESTED_MATCH, value: "e生保"}
 
   # ==================== 投保险种类型 ====================
 
   - id: policies_plan_type
     is_supported: false
     retrieval_text: >
-      投保险种类型 险种类型 寿险类型 医疗险类型
-    field: policies_plan_type
+      投保险种类别 险种类别 定期寿险 护理保险 疾病保险 两全保险 年金保险 医疗保险 意外伤害保险 终身寿险
+    field: polNoInfo.planTypeDesc
     operator: NESTED_MATCH
-    value_type: extract
-    description: "保单投保险种类型，嵌套字段，开放域文本"
+    value_type: enum
+    enum_ref: polNoInfo.planTypeDesc
+    show_enum_in_prompt: true
+    description: "保单投保险种类别，枚举值使用险种大类"
     examples:
-      - query: "险种类型为医疗险的客户"
-        output: {field: policies_plan_type, operator: NESTED_MATCH, value: "医疗险"}
+      - query: "险种类别为定期寿险的客户"
+        output: {field: polNoInfo.planTypeDesc, operator: NESTED_MATCH, value: "定期寿险"}
 
   # ==================== 投保人姓名 ====================
 
@@ -1703,13 +1898,13 @@ intents:
     is_supported: false
     retrieval_text: >
       受益人姓名 受益人叫 受益人名字 谁是受益人
-    field: policies_beneficiary_name
+    field: polNoInfo.benefName
     operator: NESTED_MATCH
     value_type: extract
     description: "保单受益人姓名，嵌套字段"
     examples:
       - query: "受益人叫王五的客户"
-        output: {field: policies_beneficiary_name, operator: NESTED_MATCH, value: "王五"}
+        output: {field: polNoInfo.benefName, operator: NESTED_MATCH, value: "王五"}
 
   # ==================== 受益人手机号 ====================
 
@@ -1761,16 +1956,26 @@ intents:
     is_supported: false
     retrieval_text: >
       生存金未领取 未领取生存金 生存金还没领 有未领生存金 生存金待领
-    field: policies_survival_unclaimed_amount
+    field: polNoInfo.payAmountDue
     operator: NESTED_MATCH
     value_type: numeric
     unit: "元，万=×10000，千=×1000"
     description: "保单未领取生存金金额，嵌套字段；若仅判断是否存在未领取金额，用 EXISTS"
     examples:
-      - query: "有未领取生存金的客户"
-        output: {field: policies_survival_unclaimed_amount, operator: EXISTS}
       - query: "未领取生存金超过3万的客户"
-        output: {field: policies_survival_unclaimed_amount, operator: NESTED_MATCH, value: 30000}
+        output: {field: polNoInfo.payAmountDue, operator: NESTED_MATCH, value: 30000}
+
+  - id: policies_survival_unclaimed_amount_exists
+    is_supported: false
+    retrieval_text: >
+      生存金未领取 未领取生存金 生存金还没领 有未领生存金 生存金待领
+    field: polNoInfo.payAmountDue
+    operator: EXISTS
+    value_type: none
+    description: "保单存在未领取生存金金额，嵌套字段"
+    examples:
+      - query: "有未领取生存金的客户"
+        output: {field: polNoInfo.payAmountDue, operator: EXISTS}
 
   # ==================== 生存金已转入万能账户金额 ====================
 
@@ -1784,10 +1989,20 @@ intents:
     unit: "元，万=×10000，千=×1000"
     description: "生存金已转入万能账户金额，嵌套字段"
     examples:
-      - query: "有生存金转入万能账户的客户"
-        output: {field: policies_universal_acct_transfer, operator: EXISTS}
       - query: "生存金转入万能账户超过2万的客户"
         output: {field: policies_universal_acct_transfer, operator: NESTED_MATCH, value: 20000}
+
+  - id: policies_universal_acct_transfer_exists
+    is_supported: false
+    retrieval_text: >
+      生存金转入万能账户 万能账户转入 生存金转万能 万能账户生存金
+    field: policies_universal_acct_transfer
+    operator: EXISTS
+    value_type: none
+    description: "存在生存金已转入万能账户金额，嵌套字段"
+    examples:
+      - query: "有生存金转入万能账户的客户"
+        output: {field: policies_universal_acct_transfer, operator: EXISTS}
 
   # ==================== 生存金利息未领取总额 ====================
 
@@ -1801,10 +2016,20 @@ intents:
     unit: "元，万=×10000，千=×1000"
     description: "生存金利息未领取总额，嵌套字段"
     examples:
-      - query: "有未领取生存金利息的客户"
-        output: {field: policies_survival_interest_total, operator: EXISTS}
       - query: "生存金利息未领取超过1万的客户"
         output: {field: policies_survival_interest_total, operator: NESTED_MATCH, value: 10000}
+
+  - id: policies_survival_interest_total_exists
+    is_supported: false
+    retrieval_text: >
+      生存金利息 未领取生存金利息 生存金利息未领 生存金利息待领
+    field: policies_survival_interest_total
+    operator: EXISTS
+    value_type: none
+    description: "存在未领取的生存金利息总额，嵌套字段"
+    examples:
+      - query: "有未领取生存金利息的客户"
+        output: {field: policies_survival_interest_total, operator: EXISTS}
 
   # ==================== 理赔时间 ====================
 
@@ -1812,18 +2037,28 @@ intents:
     is_supported: false
     retrieval_text: >
       理赔时间 理赔日期 何时理赔 理赔过 有理赔记录 本月理赔 今年理赔 近期理赔
-    field: policies_claim_records_time
+    field: polNoInfo.claimDate
     operator: NESTED_MATCH
     value_type: date
-    format: "yyyy-MM-dd HH:mm:ss"
+    format: "yyyy-MM-dd"
     description: "理赔记录中的理赔时间，嵌套字段；若仅判断是否有理赔记录，用 EXISTS"
     examples:
       - query: "今年有理赔的客户"
-        output: {field: policies_claim_records_time, operator: NESTED_MATCH, value: {min: "<current_year_start>", max: "<current_year_end>"}}
-      - query: "有理赔记录的客户"
-        output: {field: policies_claim_records_time, operator: EXISTS}
+        output: {field: polNoInfo.claimDate, operator: NESTED_MATCH, value: {min: "<current_year_start>", max: "<current_year_end>"}}
       - query: "近30天理赔的客户"
-        output: {field: policies_claim_records_time, operator: NESTED_MATCH, value: {min: "<today_minus_30_days>", max: "<today>"}}
+        output: {field: polNoInfo.claimDate, operator: NESTED_MATCH, value: {min: "<today_minus_30_days>", max: "<today>"}}
+
+  - id: policies_claim_time_exists
+    is_supported: false
+    retrieval_text: >
+      理赔记录 理赔过 有理赔记录 存在理赔记录
+    field: polNoInfo.claimDate
+    operator: EXISTS
+    value_type: none
+    description: "存在理赔记录，嵌套字段"
+    examples:
+      - query: "有理赔记录的客户"
+        output: {field: polNoInfo.claimDate, operator: EXISTS}
 
   # ==================== 理赔案件号 ====================
 
@@ -1861,54 +2096,40 @@ intents:
   - id: policies_claim_coverage
     is_supported: false
     retrieval_text: >
-      理赔险种 理赔了什么险 理赔险种是 获赔险种
-    field: policies_claim_records_coverage
+      理赔险种 理赔产品 理赔产品名 获赔产品 理赔了什么产品
+    field: polNoInfo.claimPlanCodeName
     operator: NESTED_MATCH
-    value_type: extract
-    description: "理赔险种名称，嵌套字段，开放域文本"
+    value_type: enum
+    enum_ref: polNoInfo.claimPlanCodeName
+    show_enum_in_prompt: true
+    description: "理赔产品名称，使用独立产品全称枚举"
     examples:
-      - query: "理赔险种为医疗险的客户"
-        output: {field: policies_claim_records_coverage, operator: NESTED_MATCH, value: "医疗险"}
-      - query: "意外险理赔过的客户"
-        output: {field: policies_claim_records_coverage, operator: NESTED_MATCH, value: "意外险"}
+      - query: "理赔产品为平安e生保医疗保险的客户"
+        output: {field: polNoInfo.claimPlanCodeName, operator: NESTED_MATCH, value: "平安e生保医疗保险"}
 
   # ==================== 是否买了保险 ====================
 
   - id: has_insurance
     retrieval_text: >
       买了保险 买过保险 有保险 配置了保险 有投保 已买保险 持有保险 有保单 持有保单
-    field: productCode
+    field: policyNo
     operator: EXISTS
     value_type: exists
     description: >
-      判断客户是否持有任意保险。客户只要在 productCode（寿险产品）、
-      gProductCode（养老险/意外险产品）、hProductCode（健康险产品）
-      三个字段中任意一个有值，即认为"买了保险"。
-      需要使用 OR 逻辑：query_logic=OR，三个 EXISTS 条件。
+      判断客户是否买过保险或持有保单。当前查询口径统一基于 policyNo 是否存在。
     notes: >
-      必须生成 query_logic=OR 的三个条件：
-        - {field: productCode, operator: EXISTS}
-        - {field: gProductCode, operator: EXISTS}
-        - {field: hProductCode, operator: EXISTS}
+      必须生成单个 EXISTS 条件：
+        - {field: policyNo, operator: EXISTS}
     examples:
       - query: "买了保险的客户"
         output:
-          query_logic: OR
           conditions:
-            - {field: productCode, operator: EXISTS}
-            - {field: gProductCode, operator: EXISTS}
-            - {field: hProductCode, operator: EXISTS}
+            - {field: policyNo, operator: EXISTS}
       - query: "有保险的客户"
         output:
-          query_logic: OR
           conditions:
-            - {field: productCode, operator: EXISTS}
-            - {field: gProductCode, operator: EXISTS}
-            - {field: hProductCode, operator: EXISTS}
+            - {field: policyNo, operator: EXISTS}
       - query: "配置了保险的客户"
         output:
-          query_logic: OR
           conditions:
-            - {field: productCode, operator: EXISTS}
-            - {field: gProductCode, operator: EXISTS}
-            - {field: hProductCode, operator: EXISTS}
+            - {field: policyNo, operator: EXISTS}

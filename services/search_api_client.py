@@ -6,6 +6,7 @@ from typing import Dict, Any
 from loguru import logger
 from config.settings import settings
 from models.schemas import SearchRequest, Operator, RangeValue
+from utils.sensitive_masking import mask_for_log
 
 
 class SearchAPIClient:
@@ -31,7 +32,7 @@ class SearchAPIClient:
             # 构建请求体
             payload = self._build_payload(request)
 
-            logger.info(f"Calling search API with payload: {payload}")
+            logger.info(f"Calling search API with payload: {mask_for_log(payload)}")
 
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
