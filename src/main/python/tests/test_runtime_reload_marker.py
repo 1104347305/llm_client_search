@@ -1,5 +1,6 @@
 import sys
 import types
+import pytest
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -100,6 +101,32 @@ def test_runtime_reload_marker_skips_when_already_seen(monkeypatch, tmp_path):
     routes._ensure_runtime_config_current()
 
     assert calls == []
+
+
+@pytest.mark.asyncio
+async def test_get_query_router_schedules_stale_marker_without_blocking_current_router(monkeypatch, tmp_path):
+    marker_path = tmp_path / ".client_search_runtime_reload.json"
+    marker_path.write_text("{}", encoding="utf-8")
+    current_router = object()
+    calls = []
+
+    monkeypatch.setattr(routes, "_query_router", current_router)
+    monkeypatch.setattr(routes, "_runtime_reload_marker_path", lambda: marker_path)
+    monkeypatch.setattr(routes, "_reload_marker_seen_mtime_ns", None)
+    monkeypatch.setattr(routes, "_reload_marker_failed_mtime_ns", None)
+    monkeypatch.setattr(routes, "_last_runtime_reload_error", None)
+    monkeypatch.setattr(
+        routes,
+        "_schedule_runtime_reload",
+        lambda force_reindex_fields=False, marker_mtime_ns=None, **kwargs: calls.append(
+            (force_reindex_fields, marker_mtime_ns)
+        ) or True,
+    )
+
+    router = await routes.get_query_router()
+
+    assert router is current_router
+    assert calls == [(False, marker_path.stat().st_mtime_ns)]
 
 
 def test_resolve_reload_file_selection_accepts_alias():

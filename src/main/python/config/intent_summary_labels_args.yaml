@@ -108,6 +108,7 @@ op_labels:
 
 messages:
   no_conditions:        "未识别到明确查询条件"
+  bare_value_weak_match: "暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号中一起查找匹配的客户"
   summary_prefix:       ""
   unsupported_prefix:   "提示："
   unsupported_suffix_with_supported:   "暂不支持搜索，系统将按可支持字段搜索。"

@@ -194,3 +194,26 @@ def test_level2_context_allows_loose_values_and_ignores_case():
         ("idType", "护照"),
         ("idNo", "e12345")
     ]
+
+
+def test_level2_identifier_oral_variants():
+    matcher = Level2EnhancedMatcher()
+
+    cases = [
+        ("手机尾号为1234的客户", "clientMobile", "1234"),
+        ("1234尾号的手机号", "clientMobile", "1234"),
+        ("手机号138开头的客户", "clientMobile", "138"),
+        ("客户编号尾号为7890的客户", "clientNo", "7890"),
+        ("C123开头的客户号", "clientNo", "C123"),
+        ("保单编号包含P123456的客户", "polNo", "P123456"),
+        ("保单号P123结尾的客户", "polNo", "P123"),
+        ("123456尾号的保单号", "polNo", "123456"),
+        ("身份证后四位是123X的客户", "idNo", "123X"),
+        ("E12345开头的护照号", "idNo", "E12345"),
+    ]
+
+    for query, expected_field, expected_value in cases:
+        conditions = asyncio.run(matcher.match(query))
+        assert (expected_field, expected_value) in [
+            (condition.field, condition.value) for condition in conditions
+        ], query

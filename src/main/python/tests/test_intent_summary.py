@@ -27,6 +27,22 @@ def test_build_intent_summary_groups_same_value_different_fields_with_or():
     assert "\n并且" not in summary
 
 
+def test_build_intent_summary_uses_bare_value_weak_intent_copy():
+    service = IntentSummaryService().load()
+    service.unsupported_fields = frozenset()
+
+    conditions = [
+        Condition(field="clientNo", operator=Operator.MATCH, value="123456"),
+        Condition(field="polNo", operator=Operator.MATCH, value="123456"),
+        Condition(field="clientMobile", operator=Operator.MATCH, value="123456"),
+        Condition(field="idNo", operator=Operator.MATCH, value="123456"),
+    ]
+
+    summary = service.build_intent_summary(conditions, QueryLogic.OR)
+
+    assert summary == "暂时没判读出这组数据代表什么，已帮您在手机号、客户号、保单号、证件号中一起查找匹配的客户"
+
+
 def test_build_intent_summary_keeps_outer_and_for_other_conditions():
     service = IntentSummaryService().load()
     service.unsupported_fields = frozenset()

@@ -83,6 +83,16 @@ async def health_check():
     if not readiness["ready"]:
         raise HTTPException(status_code=503, detail=readiness)
 
+    if readiness.get("reload_running") and readiness.get("serving_previous_runtime"):
+        return {
+            "status": "healthy",
+            "readiness": readiness,
+            "endpoint_readiness": {
+                "ready": True,
+                "status": "skipped_during_runtime_reload",
+            },
+        }
+
     endpoint_readiness = await routes_module.check_parse_endpoint_ready()
     if not endpoint_readiness["ready"]:
         raise HTTPException(

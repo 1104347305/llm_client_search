@@ -21,6 +21,43 @@ def test_level2_matches_birthday_recent_window():
     assert condition.value.max == (date.today() + timedelta(days=29)).strftime("%m-%d")
 
 
+def test_level2_matches_birthday_next_week_question_forms():
+    matcher = Level2EnhancedMatcher()
+
+    next_monday = date.today() + timedelta(days=(7 - date.today().weekday()))
+    next_sunday = next_monday + timedelta(days=6)
+
+    for query in [
+        "下周有客户过生日吗",
+        "下周有哪些客户过生日",
+        "哪些客户下周过生日",
+    ]:
+        conditions = asyncio.run(matcher.match(query))
+
+        assert len(conditions) == 1
+        condition = conditions[0]
+        assert condition.field == "birthdayMd"
+        assert condition.operator.value == "RANGE"
+        assert condition.value.min == next_monday.strftime("%m-%d")
+        assert condition.value.max == next_sunday.strftime("%m-%d")
+
+
+def test_level2_matches_anniversary_next_week_question_form():
+    matcher = Level2EnhancedMatcher()
+
+    next_monday = date.today() + timedelta(days=(7 - date.today().weekday()))
+    next_sunday = next_monday + timedelta(days=6)
+
+    conditions = asyncio.run(matcher.match("下周有哪些客户到保单周年日"))
+
+    assert len(conditions) == 1
+    condition = conditions[0]
+    assert condition.field == "effAnniversaryDate"
+    assert condition.operator.value == "RANGE"
+    assert condition.value.min == next_monday.strftime("%m-%d")
+    assert condition.value.max == next_sunday.strftime("%m-%d")
+
+
 def test_level2_matches_policy_recent_expiry():
     matcher = Level2EnhancedMatcher()
 
@@ -103,9 +140,29 @@ def test_level2_matches_zxjy_prequalified_grade():
 
     assert len(conditions) == 1
     condition = conditions[0]
-    assert condition.field == "searchZxjyEquityGrade"
+    assert condition.field == "zxjyEquityGrade"
     assert condition.operator.value == "MATCH"
     assert condition.value == "预达标"
+
+
+def test_level2_matches_zxjy_customer_as_prequalified_and_qualified():
+    matcher = Level2EnhancedMatcher()
+
+    for query in [
+        "臻享家医客户",
+        "哪些是臻享家医客户",
+        "有没有家医客户",
+        "家医达标客户名单",
+        "臻享家医预达标或已达标客户",
+        "预达标和已达标的家医客户",
+    ]:
+        conditions = asyncio.run(matcher.match(query))
+
+        assert len(conditions) == 1
+        condition = conditions[0]
+        assert condition.field == "zxjyEquityGrade"
+        assert condition.operator.value == "CONTAINS"
+        assert condition.value == ["预达标", "已达标"]
 
 
 def test_level4_resolves_current_period_placeholders_in_range():
@@ -234,6 +291,20 @@ def test_unified_relative_time_ranges_are_stable():
     )
     assert next_month_window.min == "2026-03-25 00:00:00"
     assert next_month_window.max == "2026-04-23 00:00:00"
+
+    current_week_range = resolve_dynamic_date_range(
+        {"date_range": "week_offset", "offset": 0, "format": "yyyy-MM-dd HH:mm:ss"},
+        now=base_now,
+    )
+    assert current_week_range.min == "2026-03-23 00:00:00"
+    assert current_week_range.max == "2026-03-29 00:00:00"
+
+    next_next_week_range = resolve_dynamic_date_range(
+        {"date_range": "week_offset", "offset": 2, "format": "yyyy-MM-dd HH:mm:ss"},
+        now=base_now,
+    )
+    assert next_next_week_range.min == "2026-04-06 00:00:00"
+    assert next_next_week_range.max == "2026-04-12 00:00:00"
 
 
 def test_unified_relative_time_ranges_support_date_only_format():

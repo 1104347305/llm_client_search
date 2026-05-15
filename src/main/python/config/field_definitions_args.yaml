@@ -374,6 +374,7 @@ intents:
   - id: birthday_month_day
     retrieval_text: >
       生日月日 月日生日 几月几号生日 生日月份 本月生日 下月生日 生日快到了 过生日
+      下周有客户过生日吗 下周有哪些客户过生日 哪些客户下周过生日
     field: birthdayMd
     operator: RANGE
     value_type: date
@@ -386,7 +387,7 @@ intents:
         output: {field: birthdayMd, operator: RANGE, value: {min: "03-01", max: "03-31"}}
       - query: "下个月生日的客户（当前2026年3月）"
         output: {field: birthdayMd, operator: RANGE, value: {min: "04-01", max: "04-30"}}
-      - query: "下周生日的客户（当前2026年3月25号）"
+      - query: "下周有哪些客户过生日（当前2026年3月25号）"
         output: { field: birthdayMd, operator: RANGE, value: { min: "03-30", max: "04-05" } }
       - query: "未来一周的客户（当前2026年4月1号）"
         output: { field: birthdayMd, operator: RANGE, value:  { min: "04-01", max: "04-07" } }
@@ -1731,10 +1732,6 @@ intents:
     examples:
       - query: "臻享家医已达标的客户"
         output: {field: zxjyEquityGrade, operator: MATCH, value: "已达标"}
-      - query: "臻享家医客户"
-        output: { field: zxjyEquityGrade, operator: MATCH, value: "已达标" }
-      - query: "臻享家医权益等级为预达标的客户"
-        output: { field: zxjyEquityGrade, operator: MATCH, value: "预达标" }
       - query: "家医意向客户"
         output: { field: zxjyEquityGrade, operator: MATCH, value: "预达标" }
       - query: "家医V1达标客户"
@@ -1746,6 +1743,24 @@ intents:
         reason: "服务使用记录不等于达标状态"
       - query: "持有臻享家医权益的客户"
         reason: "这更接近权益是否存在语义；当前字段仅表达达标状态，不能凭空扩展为开通/持有关系"
+
+  - id: zxjy_equity_grade_customer
+    retrieval_text: >
+      臻享家医客户 家医客户 臻享家医名单 家医名单 臻享家医达标客户 家医达标客户 臻享客户
+      哪些是臻享家医客户 有没有家医客户 臻享家医预达标或已达标客户 预达标和已达标的家医客户
+    field: zxjyEquityGrade
+    operator: CONTAINS
+    value_type: enum
+    enum_ref: zxjyEquityGrade
+    description: "表示臻享家医客户范围，包括预达标和已达标两类客户"
+    notes: "当用户直接输入“臻享家医客户/家医客户”时，输出 CONTAINS=[预达标, 已达标]，不要只输出已达标。"
+    examples:
+      - query: "臻享家医客户"
+        output: { field: zxjyEquityGrade, operator: CONTAINS, value: [ "预达标", "已达标" ] }
+      - query: "家医客户"
+        output: { field: zxjyEquityGrade, operator: CONTAINS, value: [ "预达标", "已达标" ] }
+      - query: "臻享客户"
+        output: { field: zxjyEquityGrade, operator: CONTAINS, value: [ "预达标", "已达标" ] }
 
   # ==================== 产险产品 ====================
 

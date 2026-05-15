@@ -1,0 +1,134 @@
+id: 20260514_policies_insure_date
+title: 投保日期字段转正与规则增强
+owner: mickey
+reason: 支持按保单投保日期筛选客户，字段格式 yyyy-MM-dd HH:mm:ss
+
+fields:
+  - id: policies_insure_date
+    update_existing: true
+    is_supported: true
+    field: policies_insure_date
+    operator: RANGE
+    value_type: date
+    format: "yyyy-MM-dd HH:mm:ss"
+    retrieval_text: >
+      投保日期 投保时间 什么时候投保 投保年份 今年投保 去年投保 本月投保 上月投保
+      买保险日期 买保险时间 什么时候买保险 买保险年份 去年买保险 本月买保险 最近一年买保险
+    description: "保单投保日期，嵌套字段，格式 yyyy-MM-dd HH:mm:ss；区别于保单生效日期、承保日期、退保日期、缴费日期"
+    notes: "本月取当月1日至月末；去年取去年1月1日至12月31日；最近一年取当前日期往前推一年到当前日期"
+    examples:
+      - query: "今年投保的客户"
+        output: {field: policies_insure_date, operator: RANGE, value: {min: "2026-01-01 00:00:00", max: "2026-12-31 23:59:59"}}
+      - query: "去年投保的客户"
+        output: {field: policies_insure_date, operator: RANGE, value: {min: "2025-01-01 00:00:00", max: "2025-12-31 23:59:59"}}
+      - query: "本月买保险的客户"
+        output: {field: policies_insure_date, operator: RANGE, value: {min: "2026-05-01 00:00:00", max: "2026-05-31 23:59:59"}}
+    negative_examples:
+      - query: "今年承保的客户"
+        reason: "承保日期不是投保日期，应映射到 latelyUndwrtSegTime"
+      - query: "今年保单生效的客户"
+        reason: "保单生效日期不是投保日期，应映射到 polNoInfo.poleffdate"
+
+l2_rules:
+  - name: "投保日期-今年"
+    field: "policies_insure_date"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "current_year"
+      format: "yyyy-MM-dd HH:mm:ss"
+    patterns:
+      - '{SEARCH}(?:今年|本年){CW}{0,2}(?:投保|买保险|购买保险)(?:的客户|客户)?'
+      - '{SEARCH}(?:投保|买保险|购买保险){CW}{0,2}在(?:今年|本年)(?:的客户|客户)?'
+    priority: 9
+
+  - name: "投保日期-去年"
+    field: "policies_insure_date"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "last_year"
+      format: "yyyy-MM-dd HH:mm:ss"
+    patterns:
+      - '{SEARCH}(?:去年|上一年){CW}{0,2}(?:投保|买保险|购买保险)(?:的客户|客户)?'
+      - '{SEARCH}(?:投保|买保险|购买保险){CW}{0,2}在(?:去年|上一年)(?:的客户|客户)?'
+    priority: 9
+
+  - name: "投保日期-本月"
+    field: "policies_insure_date"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "current_month"
+      format: "yyyy-MM-dd HH:mm:ss"
+    patterns:
+      - '{SEARCH}(?:本月|这个月|当月){CW}{0,2}(?:投保|买保险|购买保险)(?:的客户|客户)?'
+      - '{SEARCH}(?:投保|买保险|购买保险){CW}{0,2}在(?:本月|这个月|当月)(?:的客户|客户)?'
+    priority: 9
+
+  - name: "投保日期-最近一年"
+    field: "policies_insure_date"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "last_n_days"
+      days: 365
+      format: "yyyy-MM-dd HH:mm:ss"
+    patterns:
+      - '{SEARCH}(?:最近|近)一年{CW}{0,2}(?:投保|买保险|购买保险)(?:的客户|客户)?'
+      - '{SEARCH}(?:投保|买保险|购买保险){CW}{0,2}(?:最近|近)一年(?:的客户|客户)?'
+    priority: 9
+
+testset_path: generated_testset.jsonl
+
+test_cases:
+  - id: pid_001
+    query: 今年投保的客户
+    expected:
+      query_logic: AND
+      conditions:
+        - field: policies_insure_date
+          operator: RANGE
+          value: {min: "2026-01-01 00:00:00", max: "2026-12-31 23:59:59"}
+    tags: [positive, l2, date]
+
+  - id: pid_002
+    query: 去年买保险的客户
+    expected:
+      query_logic: AND
+      conditions:
+        - field: policies_insure_date
+          operator: RANGE
+          value: {min: "2025-01-01 00:00:00", max: "2025-12-31 23:59:59"}
+    tags: [positive, l2, date]
+
+  - id: pid_003
+    query: 本月投保的客户
+    expected:
+      query_logic: AND
+      conditions:
+        - field: policies_insure_date
+          operator: RANGE
+          value: {min: "2026-05-01 00:00:00", max: "2026-05-31 23:59:59"}
+    tags: [positive, l2, date]
+
+  - id: pid_004
+    query: 今年承保的客户
+    expected:
+      query_logic: AND
+      conditions: []
+    tags: [negative, boundary]
+
+  - id: pid_005
+    query: 今年保单生效的客户
+    expected:
+      query_logic: AND
+      conditions: []
+    tags: [negative, boundary]
+
+acceptance:
+  min_overall_accuracy: 0.95
+  min_exact_match_rate: 0.95
+  max_empty_rate: 0.05
+  max_false_positive_rate: 0.02
+  max_avg_latency_ms: 3000

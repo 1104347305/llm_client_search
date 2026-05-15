@@ -13,9 +13,10 @@
 pattern_vars:
   CW: '[，,。\.？\?\！! ：\:\u4e00-\u9fa5]'
   SEARCH: '(?:查找|查询|查|找|找一下|查一下|检索|搜索|帮我查询|帮我查查|帮我查|帮我找|帮我搜索|给我看看|帮我看看|看看|哪些是|谁是|给我捞一批|捞一批)?(?:一下)?'
+  CUSTOMER_SUFFIX: '(?:的客户|客户|有哪些客户|有哪些人|名单|的人|人)?'
 
 bare_value_weak_match:
-  pattern: '[A-Za-z0-9]{1,64}'
+  pattern: '[A-Za-z0-9*]{1,64}'
   operator: "MATCH"
   confidence: 0.6
   # L1/L2 均未确认命中时，裸值扩展为多个候选字段，并由 QueryRouter 使用 OR 逻辑返回。
@@ -23,7 +24,6 @@ bare_value_weak_match:
     - "clientNo"
     - "polNo"
     - "clientMobile"
-    - "idNo"
 
 
 rules:
@@ -67,14 +67,16 @@ rules:
   - name: "手机号-匹配"
     patterns:
       - '{SEARCH}?(1[3-9]\d{9})'
-      - '{SEARCH}手机号?(\d{1,10})(?:的客户|客户)?'
-      - '{SEARCH}(?:手机号|手机号码)(?:为|是|匹配)[：:\s]?(1[3-9]\d{9})(?:的客户|客户)?'
-      - '{SEARCH}(?:本人)?手机号(?:为|是)[：:\s]?(1[3-9]\d{9})(?:的客户|客户)?'
-      - '{SEARCH}手机号?(\d{1,11})开头(?:的客户|客户)?'
-      - '{SEARCH}手机{CW}{0,2}(\d{1,11})开头(?:的客户|客户)?'
-      - '{SEARCH}手机{CW}{0,2}尾号(\d{1,11})(?:的客户|客户)?'
-      - '{SEARCH}手机号?段(\d{1,11})(?:的客户|客户)?'
-      - '{SEARCH}手机{CW}{0,2}号段(\d{1,11})(?:的客户|客户)?'
+      - '{SEARCH}(?:本人)?(?:手机号|手机号码|手机|电话|联系方式){CW}{0,2}(\d{1,11})(?:的客户|客户)?'
+      - '{SEARCH}(?:本人)?(?:手机号|手机号码|手机|电话|联系方式)(?:为|是|匹配|等于|包含|含有|带有)?[：:\s]?(\d{1,11})(?:的客户|客户)?'
+      - '{SEARCH}(?:本人)?(?:手机号|手机号码|手机|电话|联系方式)(?:前缀|开头|以)(?:为|是)?[：:\s]?(\d{1,11})(?:开头)?(?:的客户|客户)?'
+      - '{SEARCH}(?:本人)?(?:手机号|手机号码|手机|电话|联系方式){CW}{0,2}(\d{1,11})(?:开头|前缀)(?:的客户|客户)?'
+      - '{SEARCH}(?:本人)?(?:手机号|手机号码|手机|电话|联系方式)(?:号段|段)(?:为|是)?[：:\s]?(\d{1,11})(?:的客户|客户)?'
+      - '{SEARCH}(?:本人)?(?:手机|手机号|手机号码|电话|联系方式){CW}{0,2}(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:为|是)?[：:\s]?(\d{1,11})(?:的客户|客户)?'
+      - '{SEARCH}(?:本人)?(?:手机|手机号|手机号码|电话|联系方式){CW}{0,2}(\d{1,11})(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:的客户|客户)?'
+      - '{SEARCH}(?:尾号|尾数|末尾|后四位|后几位)(?:为|是)?[：:\s]?(\d{1,11})(?:的)?(?:手机|手机号|手机号码|电话|联系方式)(?:的客户|客户)?'
+      - '{SEARCH}(\d{1,11})(?:尾号|尾数|末尾|后四位|后几位)(?:的)?(?:手机|手机号|手机号码|电话|联系方式)(?:的客户|客户)?'
+      - '{SEARCH}(\d{1,11})(?:开头|号段|段)(?:的)?(?:手机|手机号|手机号码|电话|联系方式)(?:的客户|客户)?'
     field: "clientMobile"
     operator: "MATCH"
     value_type: "capture"
@@ -398,6 +400,9 @@ rules:
       - '{SEARCH}本月{CW}{0,2}生日(?:的客户|客户)?'
       - '{SEARCH}这个?月{CW}{0,2}生日(?:的客户|客户)?'
       - '{SEARCH}当月{CW}{0,2}生日(?:的客户|客户)?'
+      - '{SEARCH}(?:本月|这个?月|当月)(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要|过)?生日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}(?:本月|这个?月|当月)(?:过生日|生日)的?(?:客户|人)(?:有哪些|有谁|名单)?'
+      - '{SEARCH}(?:哪些|哪几位)?客户(?:本月|这个?月|当月)(?:会|要|将要|过)?生日(?:吗|么|嘛)?'
       - '{SEARCH}生日{CW}{0,2}在本月(?:的客户|客户)?'
       - '{SEARCH}生日{CW}{0,2}在这个?月(?:的客户|客户)?'
       - '{SEARCH}生日{CW}{0,2}在当月(?:的客户|客户)?'
@@ -412,6 +417,9 @@ rules:
   - name: "生日-下个月"
     patterns:
       - '{SEARCH}下个?月{CW}{0,2}生日(?:的客户|客户)?'
+      - '{SEARCH}下个?月(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要|过)?生日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}下个?月(?:过生日|生日)的?(?:客户|人)(?:有哪些|有谁|名单)?'
+      - '{SEARCH}(?:哪些|哪几位)?客户下个?月(?:会|要|将要|过)?生日(?:吗|么|嘛)?'
       - '{SEARCH}生日{CW}{0,2}在下个?月(?:的客户|客户)?'
     field: "birthdayMd"
     operator: "RANGE"
@@ -422,23 +430,28 @@ rules:
     priority: 9
 
   # 涉及到代码改动，下个版本放开
-#  - name: "生日-下下个月"
-#    patterns:
-#      - '{SEARCH}下下个?月{CW}{0,2}生日(?:的客户|客户)?'
-#      - '{SEARCH}生日{CW}{0,2}在下下个?月(?:的客户|客户)?'
-#    field: "birthdayMd"
-#    operator: "RANGE"
-#    value_type: "date_range_dynamic"
-#    value:
-#      date_range: "month_offset"
-#      offset: 2
-#      format: "MM-dd"
-#    priority: 10
+  - name: "生日-下下个月"
+    patterns:
+      - '{SEARCH}下下个?月{CW}{0,2}生日(?:的客户|客户)?'
+      - '{SEARCH}下下个?月(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要|过)?生日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}下下个?月(?:过生日|生日)的?(?:客户|人)(?:有哪些|有谁|名单)?'
+      - '{SEARCH}(?:哪些|哪几位)?客户下下个?月(?:会|要|将要|过)?生日(?:吗|么|嘛)?'
+      - '{SEARCH}生日{CW}{0,2}在下下个?月(?:的客户|客户)?'
+    field: "birthdayMd"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "month_offset"
+      offset: 2
+      format: "MM-dd"
+    priority: 10
 
   - name: "生日-未来N天"
     patterns:
       - '{SEARCH}未来{CW}{0,2}(\d+)天{CW}{0,2}生日(?:的客户|客户)?'
       - '{SEARCH}(\d+)天内{CW}{0,2}生日(?:的客户|客户)?'
+      - '{SEARCH}(?:未来|接下来|之后){CW}{0,2}(\d+)天(?:内|里)?(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要|过)?生日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}(\d+)天内(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要|过)?生日(?:吗|么|嘛|的客户|客户)?'
       - '{SEARCH}生日{CW}{0,2}在未来{CW}{0,2}(\d+)天(?:的客户|客户)?'
     field: "birthdayMd"
     operator: "RANGE"
@@ -452,6 +465,8 @@ rules:
   - name: "生日-未来一周"
     patterns:
       - '{SEARCH}未来{CW}{0,2}一周{CW}{0,2}生日(?:的客户|客户)?'
+      - '{SEARCH}(?:未来|接下来|之后){CW}{0,2}一周(?:内|里)?(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要|过)?生日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}(?:未来|接下来|之后){CW}{0,2}一周(?:内|里)?(?:过生日|生日)的?(?:客户|人)(?:有哪些|有谁|名单)?'
       - '{SEARCH}生日{CW}{0,2}在未来{CW}{0,2}一周(?:的客户|客户)?'
     field: "birthdayMd"
     operator: "RANGE"
@@ -479,6 +494,9 @@ rules:
   - name: "生日-下周"
     patterns:
       - '{SEARCH}下周{CW}{0,2}生日(?:的客户|客户)?'
+      - '{SEARCH}(?:下周|下星期|下个星期)(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要|过)?生日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}(?:下周|下星期|下个星期)(?:过生日|生日)的?(?:客户|人)(?:有哪些|有谁|名单)?'
+      - '{SEARCH}(?:哪些|哪几位)?客户(?:下周|下星期|下个星期)(?:会|要|将要|过)?生日(?:吗|么|嘛)?'
       - '{SEARCH}生日{CW}{0,2}在下周(?:的客户|客户)?'
     field: "birthdayMd"
     operator: "RANGE"
@@ -488,10 +506,28 @@ rules:
       format: "MM-dd"
     priority: 9
 
+  - name: "生日-下下周"
+    patterns:
+      - '{SEARCH}下下周{CW}{0,2}生日(?:的客户|客户)?'
+      - '{SEARCH}(?:下下周|下下星期|下下个星期)(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要|过)?生日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}(?:下下周|下下星期|下下个星期)(?:过生日|生日)的?(?:客户|人)(?:有哪些|有谁|名单)?'
+      - '{SEARCH}(?:哪些|哪几位)?客户(?:下下周|下下星期|下下个星期)(?:会|要|将要|过)?生日(?:吗|么|嘛)?'
+      - '{SEARCH}生日{CW}{0,2}在下下周(?:的客户|客户)?'
+    field: "birthdayMd"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 2
+      format: "MM-dd"
+    priority: 9
+
   - name: "生日-今天"
     patterns:
       - '{SEARCH}今天{CW}{0,2}生日(?:的客户|客户|的人)?'
       - '{SEARCH}今日{CW}{0,2}生日(?:的客户|客户|的人)?'
+      - '{SEARCH}(?:今天|今日|当天)(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要|过)?生日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}(?:今天|今日|当天)(?:过生日|生日)的?(?:客户|人)(?:有哪些|有谁|名单)?'
       - '{SEARCH}生日{CW}{0,2}在今天(?:的客户|客户|的人)?'
       - '{SEARCH}生日{CW}{0,2}是今天(?:的客户|客户|的人)?'
     field: "birthdayMd"
@@ -506,6 +542,8 @@ rules:
     patterns:
       - '{SEARCH}明天{CW}{0,2}生日(?:的客户|客户|的人)?'
       - '{SEARCH}明日{CW}{0,2}生日(?:的客户|客户|的人)?'
+      - '{SEARCH}(?:明天|明日)(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要|过)?生日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}(?:明天|明日)(?:过生日|生日)的?(?:客户|人)(?:有哪些|有谁|名单)?'
       - '{SEARCH}生日{CW}{0,2}在明天(?:的客户|客户|的人)?'
       - '{SEARCH}生日{CW}{0,2}是明天(?:的客户|客户|的人)?'
     field: "birthdayMd"
@@ -519,6 +557,8 @@ rules:
   - name: "生日-后天"
     patterns:
       - '{SEARCH}后天{CW}{0,2}生日(?:的客户|客户|的人)?'
+      - '{SEARCH}后天(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要|过)?生日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}后天(?:过生日|生日)的?(?:客户|人)(?:有哪些|有谁|名单)?'
       - '{SEARCH}生日{CW}{0,2}在后天(?:的客户|客户|的人)?'
       - '{SEARCH}生日{CW}{0,2}是后天(?:的客户|客户|的人)?'
     field: "birthdayMd"
@@ -686,12 +726,19 @@ rules:
   # 理赔案件号（LC前缀，优先于客户号匹配，避免C被误提取）
   - name: "客户号-匹配"
     patterns:
-      - '{SEARCH}?客户号{CW}{0,2}[为是：:]\s*(?<![A-Za-z])([Cc]\d{1,11})'
-      - '{SEARCH}?客户号(?<![A-Za-z])([Cc]\d{1,11})(?:的客户|客户)?'
+      - '{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id){CW}{0,2}[为是：:]\s*(?<![A-Za-z])([Cc]\d{1,11})'
+      - '{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:匹配|等于|包含|含有|带有)?(?<![A-Za-z])([Cc]\d{1,11})(?:的客户|客户|的)?'
       - '{SEARCH}?(?<![A-Za-z])([Cc]\d{1,11}){CW}{0,2}'   # 无关键词但有强制 C 前缀，负向回溯避免误匹配 LC...
-      - '{SEARCH}?客户号{CW}{0,2}[为是：:]\s*(00\d{3,10})'
-      - '{SEARCH}?客户号(?<![A-Za-z])(00\d{3,10})(?:的客户|客户)?'
+      - '{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id){CW}{0,2}[为是：:]\s*(00\d{3,10})'
+      - '{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:匹配|等于|包含|含有|带有)?(?<![A-Za-z])(00\d{3,10})(?:的客户|客户|的)?'
       - '{SEARCH}?(?<![A-Za-z])(00\d{3,10}){CW}{0,2}'   # 无关键词但有强制 C 前缀，负向回溯避免误匹配 LC...
+      - '{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:前缀|开头|以)(?:为|是)?[：:\s]?([A-Za-z0-9]{1,11})(?:开头)?(?:的客户|客户|的)?'
+      - '{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id)([A-Za-z0-9]{1,11})(?:开头|前缀)(?:的客户|客户)?'
+      - '{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id){CW}{0,2}(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:为|是)?[：:\s]?([A-Za-z0-9]{1,11})(?:的客户|客户|的)?'
+      - '{SEARCH}?(?:客户号|客户编号|客户代码|客户ID|客户id)([A-Za-z0-9]{1,11})(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:的客户|客户|的)?'
+      - '{SEARCH}(?:尾号|尾数|末尾|后四位|后几位)(?:为|是)?[：:\s]?([A-Za-z0-9]{1,11})(?:的)?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:的客户|客户|的)?'
+      - '{SEARCH}([A-Za-z0-9]{1,11})(?:尾号|尾数|末尾|后四位|后几位)(?:的)?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:的客户|客户|的)?'
+      - '{SEARCH}([A-Za-z0-9]{1,11})(?:开头|前缀)(?:的)?(?:客户号|客户编号|客户代码|客户ID|客户id)(?:的客户|客户|的)?'
     field: "clientNo"
     operator: "MATCH"
     value_type: "capture"
@@ -702,10 +749,10 @@ rules:
   - name: "客户价值"
     enum_ref: "newValueLabel"
     patterns_template:
-      - '{SEARCH}{enum}(?!{CW}{0,2}(?:以上|及以上|更高|以下|及以下))(?!.*(?:、|，|,|和|或|及|与|以及).*(?:{enum}))(?:的客户|客户|有哪些客户|有哪些人|名单|的人|人)?'
+      - '{SEARCH}{enum}(?!{CW}{0,2}(?:以上|及以上|更高|以下|及以下))(?!.*(?:、|，|,|和|或|及|与|以及).*(?:{enum})){CUSTOMER_SUFFIX}'
       - '{SEARCH}客户价值[为是：:]{enum}(?!.*(?:、|，|,|和|或|及|与|以及).*(?:{enum}))(?:的客户|客户)?'
       - '{SEARCH}(?:谁是|哪些是)?{enum}(?!.*(?:、|，|,|和|或|及|与|以及).*(?:{enum}))(?:的客户|客户)?'
-      - '{SEARCH}{enum}(?:类)?(?!{CW}{0,2}(?:以上|及以上|更高|以下|及以下))(?!.*(?:、|，|,|和|或|及|与|以及).*(?:{enum}))(?:的客户|客户|有哪些客户|有哪些人|名单|的人|人)?'
+      - '{SEARCH}{enum}(?:类)?(?!{CW}{0,2}(?:以上|及以上|更高|以下|及以下))(?!.*(?:、|，|,|和|或|及|与|以及).*(?:{enum})){CUSTOMER_SUFFIX}'
       - '{SEARCH}客户价值[为是：:]{enum}(?:类)?(?!.*(?:、|，|,|和|或|及|与|以及).*(?:{enum}))(?:的客户|客户)?'
       - '{SEARCH}(?:谁是|哪些是)?{enum}(?:类)?(?!.*(?:、|，|,|和|或|及|与|以及).*(?:{enum}))(?:的客户|客户)?'
       - '{SEARCH}{enum}(?!.*(?:、|，|,|和|或|及|与|以及).*(?:{enum}))有哪些(?:客户)?'
@@ -718,10 +765,11 @@ rules:
       group: 1
     priority: 8
     merge_to_llm: true
+    ignore_case: true
 
   - name: "客户价值-高价值"
     patterns:
-      - '{SEARCH}(?:客户)?高价值(?:的客户|客户|有哪些客户|有哪些人|名单|的人|人)?'
+      - '{SEARCH}(?:客户)?高价值{CUSTOMER_SUFFIX}'
     field: "newValueLabel"
     operator: "CONTAINS"
     value_type: "static"
@@ -733,6 +781,7 @@ rules:
       - "B"
       - "C"
     priority: 10
+    ignore_case: true
 
   - name: "客户价值-A类"
     patterns:
@@ -746,6 +795,7 @@ rules:
       - "A3"
       - "A4"
     priority: 8
+    ignore_case: true
 
   - name: "客户价值-AB类"
     patterns:
@@ -760,6 +810,7 @@ rules:
       - "A4"
       - "B"
     priority: 8
+    ignore_case: true
 
   - name: "客户价值-以上"
     enum_ref: "newValueLabel"
@@ -772,6 +823,7 @@ rules:
     value:
       group: 1
     priority: 9
+    ignore_case: true
 
   - name: "客户价值-及以上"
     enum_ref: "newValueLabel"
@@ -784,6 +836,7 @@ rules:
     value:
       group: 1
     priority: 9
+    ignore_case: true
 
   - name: "客户价值-以下"
     enum_ref: "newValueLabel"
@@ -796,6 +849,7 @@ rules:
     value:
       group: 1
     priority: 9
+    ignore_case: true
 
   - name: "客户价值-及以下"
     enum_ref: "newValueLabel"
@@ -808,6 +862,7 @@ rules:
     value:
       group: 1
     priority: 9
+    ignore_case: true
 
   # ==================== 客户温度 (clientTemperature) ====================
 
@@ -1561,6 +1616,8 @@ rules:
       - '{SEARCH}下个?月{CW}{0,2}(?:到)?保单周年日(?:了)?(?:的客户|客户)?'
       - '{SEARCH}保单周年日{CW}{0,2}在下个?月(?:的客户|客户)?'
       - '{SEARCH}下个?月{CW}{0,2}(?:到)?周年日(?:了)?(?:的客户|客户)?'
+      - '{SEARCH}下个?月(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要)?(?:到)?保单周年日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}下个?月(?:到)?保单周年日的?(?:客户|人)(?:有哪些|有谁|名单)?'
       - '哪些客户{SEARCH}下个?月{CW}{0,2}(?:到)?保单周年日(?:了)?'
     field: "effAnniversaryDate"
     operator: "RANGE"
@@ -1575,11 +1632,134 @@ rules:
       - '{SEARCH}本月{CW}{0,2}(?:到)?保单周年日(?:的客户|客户)?'
       - '{SEARCH}保单周年日{CW}{0,2}在本月(?:的客户|客户)?'
       - '{SEARCH}这个?月{CW}{0,2}(?:到)?周年日(?:的客户|客户)?'
+      - '{SEARCH}(?:本月|这个?月|当月)(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要)?(?:到)?保单周年日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}(?:本月|这个?月|当月)(?:到)?保单周年日的?(?:客户|人)(?:有哪些|有谁|名单)?'
     field: "effAnniversaryDate"
     operator: "RANGE"
     value_type: "date_range_dynamic"
     value:
       date_range: "current_month"
+      format: "MM-dd"
+    priority: 9
+
+  - name: "保单周年日-下下个月"
+    patterns:
+      - '{SEARCH}下下个?月{CW}{0,2}(?:到)?保单周年日(?:了)?(?:的客户|客户)?'
+      - '{SEARCH}保单周年日{CW}{0,2}在下下个?月(?:的客户|客户)?'
+      - '{SEARCH}下下个?月{CW}{0,2}(?:到)?周年日(?:了)?(?:的客户|客户)?'
+      - '{SEARCH}下下个?月(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要)?(?:到)?保单周年日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}下下个?月(?:到)?保单周年日的?(?:客户|人)(?:有哪些|有谁|名单)?'
+    field: "effAnniversaryDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "month_offset"
+      offset: 2
+      format: "MM-dd"
+    priority: 9
+
+  - name: "保单周年日-本周"
+    patterns:
+      - '{SEARCH}(?:本周|这周|这个星期){CW}{0,2}(?:到)?保单周年日(?:的客户|客户)?'
+      - '{SEARCH}保单周年日{CW}{0,2}在(?:本周|这周|这个星期)(?:的客户|客户)?'
+      - '{SEARCH}(?:本周|这周|这个星期){CW}{0,2}(?:到)?周年日(?:的客户|客户)?'
+      - '{SEARCH}(?:本周|这周|这个星期)(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要)?(?:到)?保单周年日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}(?:本周|这周|这个星期)(?:到)?保单周年日的?(?:客户|人)(?:有哪些|有谁|名单)?'
+    field: "effAnniversaryDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 0
+      format: "MM-dd"
+    priority: 9
+
+  - name: "保单周年日-下周"
+    patterns:
+      - '{SEARCH}(?:下周|下星期|下个星期){CW}{0,2}(?:到)?保单周年日(?:了)?(?:的客户|客户)?'
+      - '{SEARCH}保单周年日{CW}{0,2}在(?:下周|下星期|下个星期)(?:的客户|客户)?'
+      - '{SEARCH}(?:下周|下星期|下个星期){CW}{0,2}(?:到)?周年日(?:了)?(?:的客户|客户)?'
+      - '{SEARCH}(?:下周|下星期|下个星期)(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要)?(?:到)?保单周年日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}(?:下周|下星期|下个星期)(?:到)?保单周年日的?(?:客户|人)(?:有哪些|有谁|名单)?'
+    field: "effAnniversaryDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 1
+      format: "MM-dd"
+    priority: 9
+
+  - name: "保单周年日-下下周"
+    patterns:
+      - '{SEARCH}(?:下下周|下下星期|下下个星期){CW}{0,2}(?:到)?保单周年日(?:了)?(?:的客户|客户)?'
+      - '{SEARCH}保单周年日{CW}{0,2}在(?:下下周|下下星期|下下个星期)(?:的客户|客户)?'
+      - '{SEARCH}(?:下下周|下下星期|下下个星期){CW}{0,2}(?:到)?周年日(?:了)?(?:的客户|客户)?'
+      - '{SEARCH}(?:下下周|下下星期|下下个星期)(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要)?(?:到)?保单周年日(?:吗|么|嘛|的客户|客户)?'
+      - '{SEARCH}(?:下下周|下下星期|下下个星期)(?:到)?保单周年日的?(?:客户|人)(?:有哪些|有谁|名单)?'
+    field: "effAnniversaryDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 2
+      format: "MM-dd"
+    priority: 9
+
+  - name: "保单周年日-未来N天"
+    patterns:
+      - '{SEARCH}(?:未来|接下来|之后)(\d+)天(?:内|里)?{CW}{0,2}(?:到)?保单周年日(?:的客户|客户)?'
+      - '{SEARCH}保单周年日{CW}{0,2}在?(?:未来|接下来|之后)(\d+)天(?:内|里)?(?:的客户|客户)?'
+      - '{SEARCH}(?:未来|接下来|之后)(\d+)天(?:内|里)?{CW}{0,2}(?:到)?周年日(?:的客户|客户)?'
+      - '{SEARCH}(?:未来|接下来|之后)(\d+)天(?:内|里)?(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要)?(?:到)?保单周年日(?:吗|么|嘛|的客户|客户)?'
+    field: "effAnniversaryDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "next_n_days"
+      days_group: 1
+      format: "MM-dd"
+    priority: 9
+
+  - name: "保单周年日-今天"
+    patterns:
+      - '{SEARCH}(?:今天|今日|当天){CW}{0,2}(?:到)?保单周年日(?:的客户|客户)?'
+      - '{SEARCH}保单周年日{CW}{0,2}在?(?:今天|今日|当天)(?:的客户|客户)?'
+      - '{SEARCH}(?:今天|今日|当天){CW}{0,2}(?:到)?周年日(?:的客户|客户)?'
+      - '{SEARCH}(?:今天|今日|当天)(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要)?(?:到)?保单周年日(?:吗|么|嘛|的客户|客户)?'
+    field: "effAnniversaryDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "today"
+      format: "MM-dd"
+    priority: 9
+
+  - name: "保单周年日-明天"
+    patterns:
+      - '{SEARCH}(?:明天|明日){CW}{0,2}(?:到)?保单周年日(?:的客户|客户)?'
+      - '{SEARCH}保单周年日{CW}{0,2}在?(?:明天|明日)(?:的客户|客户)?'
+      - '{SEARCH}(?:明天|明日){CW}{0,2}(?:到)?周年日(?:的客户|客户)?'
+      - '{SEARCH}(?:明天|明日)(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要)?(?:到)?保单周年日(?:吗|么|嘛|的客户|客户)?'
+    field: "effAnniversaryDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "tomorrow"
+      format: "MM-dd"
+    priority: 9
+
+  - name: "保单周年日-后天"
+    patterns:
+      - '{SEARCH}后天{CW}{0,2}(?:到)?保单周年日(?:的客户|客户)?'
+      - '{SEARCH}保单周年日{CW}{0,2}在?后天(?:的客户|客户)?'
+      - '{SEARCH}后天{CW}{0,2}(?:到)?周年日(?:的客户|客户)?'
+      - '{SEARCH}后天(?:有)?(?:哪些|哪几位|多少)?客户(?:会|要|将要)?(?:到)?保单周年日(?:吗|么|嘛|的客户|客户)?'
+    field: "effAnniversaryDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "day_after_tomorrow"
       format: "MM-dd"
     priority: 9
 
@@ -1636,6 +1816,69 @@ rules:
     value:
       date_range: "next_n_days"
       days: 30
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+
+  - name: "证件到期时间-本月"
+    patterns:
+      - '{SEARCH}(?:本月|这个月|当月){CW}{0,2}(?:证件|身份证)(?:有效期)?(?:到期|过期)(?:的客户|客户)?'
+      - '{SEARCH}(?:证件|身份证)(?:有效期|到期(?:日|时间)?){CW}{0,2}在?(?:本月|这个月|当月)(?:的客户|客户)?'
+    field: "idValidDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "current_month"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+
+  - name: "证件到期时间-下月"
+    patterns:
+      - '{SEARCH}下个?月{CW}{0,2}(?:证件|身份证)(?:有效期)?(?:到期|过期)(?:的客户|客户)?'
+      - '{SEARCH}(?:证件|身份证)(?:有效期|到期(?:日|时间)?){CW}{0,2}在?下个?月(?:的客户|客户)?'
+    field: "idValidDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "next_month"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+
+  - name: "证件到期时间-本周"
+    patterns:
+      - '{SEARCH}(?:本周|这周|这个星期){CW}{0,2}(?:证件|身份证)(?:有效期)?(?:到期|过期)(?:的客户|客户)?'
+      - '{SEARCH}(?:证件|身份证)(?:有效期|到期(?:日|时间)?){CW}{0,2}在?(?:本周|这周|这个星期)(?:的客户|客户)?'
+    field: "idValidDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 0
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+
+  - name: "证件到期时间-下周"
+    patterns:
+      - '{SEARCH}(?:下周|下星期|下个星期){CW}{0,2}(?:证件|身份证)(?:有效期)?(?:到期|过期)(?:的客户|客户)?'
+      - '{SEARCH}(?:证件|身份证)(?:有效期|到期(?:日|时间)?){CW}{0,2}在?(?:下周|下星期|下个星期)(?:的客户|客户)?'
+    field: "idValidDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 1
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+
+  - name: "证件到期时间-下下周"
+    patterns:
+      - '{SEARCH}(?:下下周|下下星期|下下个星期){CW}{0,2}(?:证件|身份证)(?:有效期)?(?:到期|过期)(?:的客户|客户)?'
+      - '{SEARCH}(?:证件|身份证)(?:有效期|到期(?:日|时间)?){CW}{0,2}在?(?:下下周|下下星期|下下个星期)(?:的客户|客户)?'
+    field: "idValidDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 2
       format: "yyyy-MM-dd HH:mm:ss"
     priority: 9
 
@@ -1795,6 +2038,101 @@ rules:
     value:
       date_range: "next_n_days"
       days_group: 1
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "缴费期满-下下个月"
+    patterns:
+      - '{SEARCH}下下个?月{CW}{0,2}缴费期满(?:的客户|客户)?'
+      - '{SEARCH}缴费期满{CW}{0,2}在下下个?月(?:的客户|客户)?'
+    field: "effAppEndDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "month_offset"
+      offset: 2
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "缴费期满-本周"
+    patterns:
+      - '{SEARCH}(?:本周|这周|这个星期){CW}{0,2}缴费期满(?:的客户|客户)?'
+      - '{SEARCH}缴费期满{CW}{0,2}在(?:本周|这周|这个星期)(?:的客户|客户)?'
+    field: "effAppEndDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 0
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "缴费期满-下周"
+    patterns:
+      - '{SEARCH}(?:下周|下星期|下个星期){CW}{0,2}缴费期满(?:的客户|客户)?'
+      - '{SEARCH}缴费期满{CW}{0,2}在(?:下周|下星期|下个星期)(?:的客户|客户)?'
+    field: "effAppEndDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 1
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "缴费期满-下下周"
+    patterns:
+      - '{SEARCH}(?:下下周|下下星期|下下个星期){CW}{0,2}缴费期满(?:的客户|客户)?'
+      - '{SEARCH}缴费期满{CW}{0,2}在(?:下下周|下下星期|下下个星期)(?:的客户|客户)?'
+    field: "effAppEndDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 2
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "缴费期满-今天"
+    patterns:
+      - '{SEARCH}(?:今天|今日|当天){CW}{0,2}缴费期满(?:的客户|客户)?'
+      - '{SEARCH}缴费期满{CW}{0,2}在?(?:今天|今日|当天)(?:的客户|客户)?'
+    field: "effAppEndDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "today"
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "缴费期满-明天"
+    patterns:
+      - '{SEARCH}(?:明天|明日){CW}{0,2}缴费期满(?:的客户|客户)?'
+      - '{SEARCH}缴费期满{CW}{0,2}在?(?:明天|明日)(?:的客户|客户)?'
+    field: "effAppEndDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "tomorrow"
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "缴费期满-后天"
+    patterns:
+      - '{SEARCH}后天{CW}{0,2}缴费期满(?:的客户|客户)?'
+      - '{SEARCH}缴费期满{CW}{0,2}在?后天(?:的客户|客户)?'
+    field: "effAppEndDate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "day_after_tomorrow"
       format: "yyyy-MM-dd"
     priority: 9
     merge_to_llm: true
@@ -1965,6 +2303,89 @@ rules:
       group: 1
       transform: "year_month_cn_range"
     priority: 10
+    merge_to_llm: true
+
+  - name: "保单到期时间-N天内"
+    patterns:
+      - '{SEARCH}(?:未来|接下来|之后)?(\d+)天(?:内|里)?{CW}{0,2}(?:保单|寿险保单|保险)(?:即将)?到期(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单|寿险保单|保险)到期(?:时间|日)?{CW}{0,2}在?(?:未来|接下来|之后)?(\d+)天(?:内|里)?(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:未来|接下来|之后)?(\d+)天(?:内|里)?{CW}{0,2}到期的?(?:保单|寿险保单)(?:客户|的客户)?'
+    field: "validSinsMatuDateTime"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "next_n_days"
+      days_group: 1
+      format: "yyyy-MM-dd"
+    priority: 10
+    merge_to_llm: true
+
+  - name: "保单到期时间-本月"
+    patterns:
+      - '{SEARCH}(?:本月|这个月|当月){CW}{0,2}(?:保单|寿险保单|保险)(?:即将)?到期(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单|寿险保单|保险)到期(?:时间|日)?{CW}{0,2}在?(?:本月|这个月|当月)(?:的客户|客户|保单)?'
+    field: "validSinsMatuDateTime"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "current_month"
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "保单到期时间-下月"
+    patterns:
+      - '{SEARCH}下个?月{CW}{0,2}(?:保单|寿险保单|保险)(?:即将)?到期(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单|寿险保单|保险)到期(?:时间|日)?{CW}{0,2}在?下个?月(?:的客户|客户|保单)?'
+    field: "validSinsMatuDateTime"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "next_month"
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "保单到期时间-本周"
+    patterns:
+      - '{SEARCH}(?:本周|这周|这个星期){CW}{0,2}(?:保单|寿险保单|保险)(?:即将)?到期(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单|寿险保单|保险)到期(?:时间|日)?{CW}{0,2}在?(?:本周|这周|这个星期)(?:的客户|客户|保单)?'
+    field: "validSinsMatuDateTime"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 0
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "保单到期时间-下周"
+    patterns:
+      - '{SEARCH}(?:下周|下星期|下个星期){CW}{0,2}(?:保单|寿险保单|保险)(?:即将)?到期(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单|寿险保单|保险)到期(?:时间|日)?{CW}{0,2}在?(?:下周|下星期|下个星期)(?:的客户|客户|保单)?'
+    field: "validSinsMatuDateTime"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 1
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "保单到期时间-下下周"
+    patterns:
+      - '{SEARCH}(?:下下周|下下星期|下下个星期){CW}{0,2}(?:保单|寿险保单|保险)(?:即将)?到期(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单|寿险保单|保险)到期(?:时间|日)?{CW}{0,2}在?(?:下下周|下下星期|下下个星期)(?:的客户|客户|保单)?'
+    field: "validSinsMatuDateTime"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 2
+      format: "yyyy-MM-dd"
+    priority: 9
     merge_to_llm: true
 
   - name: "保单-已到期"
@@ -2233,6 +2654,24 @@ rules:
     merge_to_llm: true
 
   # ==================== 臻享家族等级 (zxjyEquityGrade) ====================
+
+  - name: "臻享家医客户-预达标和已达标"
+    patterns:
+      - '{SEARCH}(?:臻享家医|家医)(?:客户|名单|客群|人群)(?:都)?(?:有哪些|有谁|名单)?(?:的客户|客户|的人|人)?'
+      - '{SEARCH}(?:哪些|哪几位|谁是|有没有|是否有|有无)(?:臻享家医|家医)(?:客户|名单|客群|人群)(?:的客户|客户|的人|人)?'
+      - '{SEARCH}(?:臻享家医|家医)(?:达标客户|达标名单|达标客群|达标人群)(?:有哪些|有谁|名单)?(?:的客户|客户|的人|人)?'
+      - '{SEARCH}(?:哪些|哪几位|谁是|有没有|是否有|有无)(?:臻享家医|家医)(?:达标客户|达标名单|达标客群|达标人群)(?:的客户|客户|的人|人)?'
+      - '{SEARCH}(?:臻享家医|家医)(?:权益等级)?(?:为|是|包含|包括)?(?:预达标|已达标)(?:和|或|及|与|、|，|,)(?:预达标|已达标)(?:的客户|客户|名单|的人|人)?'
+      - '{SEARCH}(?:预达标|已达标)(?:和|或|及|与|、|，|,)(?:预达标|已达标)(?:的)?(?:臻享家医|家医)(?:客户|名单|客群|人群)?(?:的客户|客户|的人|人)?'
+      - '{SEARCH}(?:臻享家医|家医)(?:预达标|已达标)(?:和|或|及|与|、|，|,)(?:预达标|已达标)(?:客户|名单|客群|人群)?(?:的客户|客户|的人|人)?'
+    field: "zxjyEquityGrade"
+    operator: "CONTAINS"
+    value_type: "static"
+    value:
+      - "预达标"
+      - "已达标"
+    priority: 9
+    merge_to_llm: false
 
   - name: "臻享家族等级"
     enum_ref: "zxjyEquityGrade"
@@ -2578,7 +3017,7 @@ rules:
 
   - name: "子女年龄-范围"
     patterns:
-      - '{SEARCH}(?:子女|孩子|小孩|小朋友|娃|小娃)(\d+)[-~到至](\d+)周?岁(?:的客户|客户)?'
+      - '{SEARCH}(?:子女|孩子|小孩|小朋友|娃|小娃)(?:在)?(\d+)[-~到至](\d+)周?岁(?:之间)?(?:的客户|客户)?'
     field: "familyInfo.familyclientage"
     operator: "RANGE"
     value_type: "range"
@@ -4821,6 +5260,48 @@ rules:
     priority: 9
     merge_to_llm: true
 
+  - name: "承保日期-本周"
+    patterns:
+      - '{SEARCH}(?:本周|这周|这个星期){CW}{0,2}承保(?:的客户|客户)?'
+      - '{SEARCH}承保(?:时间|日期)?{CW}{0,2}在(?:本周|这周|这个星期)(?:的客户|客户)?'
+    field: "latelyUndwrtSegTime"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 0
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "承保日期-上周"
+    patterns:
+      - '{SEARCH}(?:上周|上星期|上个星期){CW}{0,2}承保(?:的客户|客户)?'
+      - '{SEARCH}承保(?:时间|日期)?{CW}{0,2}在(?:上周|上星期|上个星期)(?:的客户|客户)?'
+    field: "latelyUndwrtSegTime"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: -1
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "承保日期-近一周"
+    patterns:
+      - '{SEARCH}(?:近|最近|过去)一周(?:内|里)?{CW}{0,2}承保(?:的客户|客户)?'
+      - '{SEARCH}承保(?:时间|日期)?{CW}{0,2}在(?:近|最近|过去)一周(?:内|里)?(?:的客户|客户)?'
+    field: "latelyUndwrtSegTime"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "last_n_days"
+      days: 7
+      format: "yyyy-MM-dd"
+    priority: 9
+    merge_to_llm: true
+
   - name: "承保日期-大于指定年份"
     patterns:
       - '{SEARCH}承保(?:时间|日期){CW}{0,2}大于(\d{4})年(?:的客户|客户)?'
@@ -4940,7 +5421,14 @@ rules:
     patterns:
       - '{SEARCH}(\d{17}[\dXx])(?:的客户|客户)?'
       - '{SEARCH}身份证{CW}{0,2}(\d{17}[\dXx]|\d{15})(?:的客户|客户)?'
-      - '{SEARCH}(?:证件号|证件号码|出生证号|户口本号|港澳台居住证号|军人证号|港澳台证件|护照号|外国人居留证号){CW}{0,2}([A-Za-z0-9]{1,32})(?:的客户|客户)?'
+      - '{SEARCH}(?:身份证|身份证号|身份证号码|证件号|证件号码|出生证号|户口本号|港澳台居住证号|军人证号|港澳台证件|护照号|护照号码|外国人居留证号)(?:为|是|匹配|等于|包含|含有|带有)?{CW}{0,2}([A-Za-z0-9]{1,32})(?:的客户|客户)?'
+      - '{SEARCH}(?:身份证|身份证号|身份证号码|证件号|证件号码|出生证号|户口本号|港澳台居住证号|军人证号|港澳台证件|护照号|护照号码|外国人居留证号)(?:前缀|开头|以)(?:为|是)?[：:\s]?([A-Za-z0-9]{1,32})(?:开头)?(?:的客户|客户)?'
+      - '{SEARCH}(?:身份证|身份证号|身份证号码|证件号|证件号码|出生证号|户口本号|港澳台居住证号|军人证号|港澳台证件|护照号|护照号码|外国人居留证号){CW}{0,2}([A-Za-z0-9]{1,32})(?:开头|前缀)(?:的客户|客户)?'
+      - '{SEARCH}(?:身份证|身份证号|身份证号码|证件号|证件号码|出生证号|户口本号|港澳台居住证号|军人证号|港澳台证件|护照号|护照号码|外国人居留证号){CW}{0,2}(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:为|是)?[：:\s]?([A-Za-z0-9]{1,32})(?:的客户|客户)?'
+      - '{SEARCH}(?:身份证|身份证号|身份证号码|证件号|证件号码|出生证号|户口本号|港澳台居住证号|军人证号|港澳台证件|护照号|护照号码|外国人居留证号){CW}{0,2}([A-Za-z0-9]{1,32})(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:的客户|客户)?'
+      - '{SEARCH}(?:尾号|尾数|末尾|后四位|后几位)(?:为|是)?[：:\s]?([A-Za-z0-9]{1,32})(?:的)?(?:身份证|身份证号|身份证号码|证件号|证件号码|护照号|护照号码)(?:的客户|客户)?'
+      - '{SEARCH}([A-Za-z0-9]{1,32})(?:尾号|尾数|末尾|后四位|后几位)(?:的)?(?:身份证|身份证号|身份证号码|证件号|证件号码|护照号|护照号码)(?:的客户|客户)?'
+      - '{SEARCH}([A-Za-z0-9]{1,32})(?:开头|前缀)(?:的)?(?:身份证|身份证号|身份证号码|证件号|证件号码|护照号|护照号码)(?:的客户|客户)?'
     field: "idNo"
     operator: "MATCH"
     value_type: "capture"
@@ -4982,11 +5470,16 @@ rules:
 
   - name: "保单号-匹配"
     patterns:
-      - '{SEARCH}([Pp]\d{6,15})(?:的客户|客户)?'
-      - '{SEARCH}保单号{CW}{0,2}[为是：:]\s*([Pp]\d{1,15})(?:的客户|客户)?'
-      - '{SEARCH}保单号(?:匹配|等于)?\s*([Pp]\d{1,15})(?:的客户|客户)?'
-      - '{SEARCH}保单号{CW}{0,2}([Pp]\d{6,15})(?:的客户|客户)?'
-      - '{SEARCH}保单号{CW}{0,2}([Pp]\d{1,15})结尾(?:的客户|客户)?'
+      - '{SEARCH}([Pp]\d{6,15}[A-Za-z]?)(?:的客户|客户)?'
+      - '{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}[为是：:]\s*([Pp]?\d{1,15}[A-Za-z]?)(?:的客户|客户)?'
+      - '{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:匹配|等于|包含|含有|带有)?\s*([Pp]?\d{1,15}[A-Za-z]?)(?:的客户|客户)?'
+      - '{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:前缀|开头|以)(?:为|是)?[：:\s]?([A-Za-z0-9]{1,20})(?:开头)?(?:的客户|客户)?'
+      - '{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}([A-Za-z0-9]{1,20})(?:开头|前缀)(?:的客户|客户)?'
+      - '{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:为|是)?[：:\s]?([A-Za-z0-9]{1,20})(?:的客户|客户)?'
+      - '{SEARCH}(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id){CW}{0,2}([A-Za-z0-9]{1,20})(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:的客户|客户)?'
+      - '{SEARCH}(?:尾号|尾数|末尾|后四位|后几位)(?:为|是)?[：:\s]?([A-Za-z0-9]{1,20})(?:的)?(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:的客户|客户)?'
+      - '{SEARCH}([A-Za-z0-9]{1,20})(?:尾号|尾数|末尾|后四位|后几位)(?:的)?(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:的客户|客户)?'
+      - '{SEARCH}([A-Za-z0-9]{1,20})(?:开头|前缀)(?:的)?(?:保单号|保单号码|保单编号|保单代码|保单ID|保单id)(?:的客户|客户)?'
     field: "polNo"
     operator: "MATCH"
     value_type: "capture"
@@ -5223,6 +5716,34 @@ rules:
     require_paired_field: "familyInfo.familyrelation"
     priority: 11
 
+  - name: "子女姓名-父亲口语"
+    patterns:
+      - '{SEARCH}([\u4e00-\u9fa5]{2,4})(?:的)?(?:爸爸|父亲)(?:的)?(?:保单|客户)?'
+    field: "familyInfo.familyclientname"
+    operator: "MATCH"
+    value_type: "capture"
+    value:
+      group: 1
+    extra_conditions:
+      - field: "familyInfo.familyrelation"
+        operator: "MATCH"
+        value: "子女"
+    priority: 12
+
+  - name: "子女姓名-父母保单反向推断"
+    patterns:
+      - '{SEARCH}([\u4e00-\u9fa5]{2,4}?)(?:的)?(?:爸爸|父亲|父母|妈妈|母亲)(?:的)?(?:保单)?(?:的客户|客户)?'
+    field: "familyInfo.familyclientname"
+    operator: "MATCH"
+    value_type: "capture"
+    value:
+      group: 1
+    priority: 13
+    extra_conditions:
+      - field: "familyInfo.familyrelation"
+        operator: "CONTAINS"
+        value: "子女"
+
   - name: "家庭成员手机号-显式"
     patterns:
       - '{SEARCH}(?:家庭成员|家属|成员)(?:手机号|电话|手机)(?:匹配|为|是)?(1[3-9]\d{9})(?:的客户|客户)?'
@@ -5396,6 +5917,9 @@ rules:
       - '{SEARCH}(?:保单)?状态为有效(?:的客户|客户)?'
       - '{SEARCH}生效中的保单(?:的客户|客户)?'
       - '{SEARCH}(?:生效|生效中)(?:的)?(?:客户|的客户|保单客户|名单)?'
+      - '{SEARCH}(?:保单)?(?:未失效|没失效|没有失效|还没失效|尚未失效|非失效)(?:状态)?(?:的客户|客户|保单客户|名单|的人|人)?'
+      - '{SEARCH}(?:未失效|没失效|没有失效|还没失效|尚未失效|非失效)(?:的)?(?:保单|客户|的客户|保单客户|名单|的人|人)?'
+      - '{SEARCH}(?:保单)?(?:不是|不为)失效(?:状态)?(?:的客户|客户|保单客户|名单|的人|人)?'
     field: "polNoInfo.polStatus"
     operator: "CONTAINS"
     value_type: "static"
@@ -5409,14 +5933,54 @@ rules:
     priority: 10
     merge_to_llm: true
 
+  - name: "保单状态-未有效汇总"
+    # 未生效客户沿用“生效客户=保单状态有效汇总”的口径，取有效状态集合的反向包含。
+    patterns:
+      - '{SEARCH}(?:保单)?(?:未生效|还未生效|尚未生效)(?:状态)?(?:的客户|客户|保单客户|名单)?'
+      - '{SEARCH}(?:未生效|还未生效|尚未生效)(?:的)?(?:保单|客户|的客户|保单客户|名单)?'
+    field: "polNoInfo.polStatus"
+    operator: "NOT_CONTAINS"
+    value_type: "static"
+    value:
+      - "交费有效"
+      - "自垫交清"
+      - "交清"
+      - "减额交清"
+      - "免交"
+      - "自垫有效"
+    priority: 10
+    merge_to_llm: true
+
+  - name: "e生保未生效"
+    patterns:
+      - '{SEARCH}e生保(?:保单)?(?:未生效|还未生效|尚未生效|没生效)(?:的客户|客户|保单客户)?'
+      - '{SEARCH}(?:未生效|还未生效|尚未生效|没生效)(?:的)?e生保(?:保单)?(?:的客户|客户)?'
+      - '{SEARCH}e生保(?:还?没有生效|还没生效)(?:的客户|客户)?'
+    field: "polNoInfo.plancodeinfo.abbrname"
+    operator: "MATCH"
+    value_type: "static"
+    value: "e生保"
+    extra_conditions:
+      - field: "polNoInfo.polStatus"
+        operator: "NOT_CONTAINS"
+        value:
+          - "交费有效"
+          - "自垫交清"
+          - "交清"
+          - "减额交清"
+          - "免交"
+          - "自垫有效"
+    priority: 10
+    merge_to_llm: true
+
   # ==================== 应缴日 (policies_pay_date) ====================
 
   - name: "应缴日-精确"
     is_supported: true
     patterns:
-      - '{SEARCH}(?:保单)?(?:应缴日|缴费日|应缴时间|下次缴费时间)(?:为|是|在|：|:)?(\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2}:\d{2})?)(?:的保单客户|保单客户|的客户|客户)?'
+      - '{SEARCH}(?:保单)?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日)(?:为|是|在|：|:)?(\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2}:\d{2})?)(?:的保单客户|保单客户|的客户|客户)?'
       - '{SEARCH}(\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2}:\d{2})?)(?:应缴|缴费)(?:的客户|客户)?'
-      - '{SEARCH}(?:应缴日|缴费日|应缴时间)(?:在)?(\d{4})年(\d{1,2})月(\d{1,2})?日?(?:的客户|客户)?'
+      - '{SEARCH}(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日)(?:在)?(\d{4})年(\d{1,2})月(\d{1,2})?日?(?:的客户|客户)?'
     field: "polNoInfo.paytodate"
     operator: "RANGE"
     value_type: "date_range_dynamic"
@@ -5429,9 +5993,10 @@ rules:
   - name: "应缴日-本月"
     is_supported: true
     patterns:
-      - '{SEARCH}本月{CW}{0,2}(?:应缴|缴费)(?:的客户|客户)?'
-      - '{SEARCH}(?:应缴日|缴费日){CW}{0,2}在本月(?:的客户|客户)?'
-      - '{SEARCH}这个?月{CW}{0,2}(?:应缴|缴费)(?:的客户|客户)?'
+      - '{SEARCH}本月{CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在本月(?:的客户|客户)?'
+      - '{SEARCH}有?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在?本月(?:的客户|客户)?'
+      - '{SEARCH}这个?月{CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
     field: "polNoInfo.paytodate"
     operator: "RANGE"
     value_type: "date_range_dynamic"
@@ -5444,13 +6009,159 @@ rules:
   - name: "应缴日-下月"
     is_supported: true
     patterns:
-      - '{SEARCH}下个?月{CW}{0,2}(?:应缴|缴费)(?:的客户|客户)?'
-      - '{SEARCH}(?:应缴日|缴费日){CW}{0,2}在下个?月(?:的客户|客户)?'
+      - '{SEARCH}下个?月{CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在下个?月(?:的客户|客户)?'
+      - '{SEARCH}有?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在?下个?月(?:的客户|客户)?'
     field: "polNoInfo.paytodate"
     operator: "RANGE"
     value_type: "date_range_dynamic"
     value:
       date_range: "next_month"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "应缴日-今天"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(?:今天|今日|当天){CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}有?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在?(?:今天|今日|当天)(?:的客户|客户)?'
+    field: "polNoInfo.paytodate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "today"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "应缴日-明天"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(?:明天|明日){CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}有?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在?(?:明天|明日)(?:的客户|客户)?'
+    field: "polNoInfo.paytodate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "tomorrow"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "应缴日-后天"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(?:后天){CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}有?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在?后天(?:的客户|客户)?'
+    field: "polNoInfo.paytodate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "day_after_tomorrow"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "应缴日-本周"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(?:本周|这周|这个星期){CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}有?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在?(?:本周|这周|这个星期)(?:的客户|客户)?'
+    field: "polNoInfo.paytodate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 0
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "应缴日-下周"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(?:下周|下星期|下个星期){CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}有?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在?(?:下周|下星期|下个星期)(?:的客户|客户)?'
+    field: "polNoInfo.paytodate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 1
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "应缴日-下下周"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(?:下下周|下下星期|下下个星期){CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}有?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在?(?:下下周|下下星期|下下个星期)(?:的客户|客户)?'
+    field: "polNoInfo.paytodate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 2
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 10
+    merge_to_llm: true
+
+  - name: "应缴日-未来N天"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(?:未来|接下来|之后)(\d+)天(?:内|里)?{CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}有?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在?(?:未来|接下来|之后)(\d+)天(?:内|里)?(?:的客户|客户)?'
+    field: "polNoInfo.paytodate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "next_n_days"
+      days_group: 1
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "应缴日-近N天"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(?:近|最近|过去)(\d+)天(?:内|里)?{CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}有?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在?(?:近|最近|过去)(\d+)天(?:内|里)?(?:的客户|客户)?'
+    field: "polNoInfo.paytodate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "last_n_days"
+      days_group: 1
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "应缴日-上月"
+    is_supported: true
+    patterns:
+      - '{SEARCH}上个?月{CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}有?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在?上个?月(?:的客户|客户)?'
+    field: "polNoInfo.paytodate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "last_month"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "应缴日-今年"
+    is_supported: true
+    patterns:
+      - '{SEARCH}今年{CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}有?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在?今年(?:的客户|客户)?'
+    field: "polNoInfo.paytodate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "current_year"
       format: "yyyy-MM-dd HH:mm:ss"
     priority: 9
     merge_to_llm: true
@@ -5472,6 +6183,7 @@ rules:
 
   - name: "投保险种名称"
     is_supported: true
+    ignore_case: true
     enum_ref: "polNoInfo.plancodeinfo.planfullname"
     patterns_template:
       - '{SEARCH}(?:投保险种名|投保险种名称|险种全称|保险险种名称)(?:为|是|包含)?{enum}(?:的客户|客户)?'
@@ -5487,6 +6199,7 @@ rules:
 
   - name: "未持有-投保险种名称"
     is_supported: true
+    ignore_case: true
     enum_ref: "polNoInfo.plancodeinfo.planfullname"
     patterns_template:
       - '{SEARCH}(?:投保险种名|投保险种全称|险种全称)(?:不为|不是|不包含|没包含|没有){enum}(?:的客户|客户)?'
@@ -5504,6 +6217,7 @@ rules:
 
   - name: "投保险种简称"
     is_supported: true
+    ignore_case: true
     enum_ref: "polNoInfo.plancodeinfo.abbrname"
     patterns_template:
       - '{SEARCH}(?:投保险种名|投保险种简称|险种简称)(?:为|是|包含)?{enum}(?:的客户|客户)?'
@@ -5520,6 +6234,7 @@ rules:
 
   - name: "未持有-投保险种简称"
     is_supported: true
+    ignore_case: true
     enum_ref: "polNoInfo.plancodeinfo.abbrname"
     patterns_template:
       - '{SEARCH}(?:投保险种名|投保险种简称|险种简称)(?:不为|不是|不包含|没包含|没有){enum}(?:的客户|客户)?'
@@ -5655,6 +6370,65 @@ rules:
       date_range: "last_n_days"
       days: 30
       format: "yyyy-MM-dd"
+    priority: 10
+    merge_to_llm: true
+
+  - name: "理赔时间-今天"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(?:今天|今日|当天){CW}{0,2}理赔(?:过)?(?:的客户|客户)?'
+      - '{SEARCH}理赔时间{CW}{0,2}在?(?:今天|今日|当天)(?:的客户|客户)?'
+    field: "polNoInfo.claimdatainfo.claimdate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "today"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 10
+    merge_to_llm: true
+
+  - name: "理赔时间-本周"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(?:本周|这周|这个星期){CW}{0,2}理赔(?:过)?(?:的客户|客户)?'
+      - '{SEARCH}理赔时间{CW}{0,2}在(?:本周|这周|这个星期)(?:的客户|客户)?'
+    field: "polNoInfo.claimdatainfo.claimdate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 0
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 10
+    merge_to_llm: true
+
+  - name: "理赔时间-上周"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(?:上周|上星期|上个星期){CW}{0,2}理赔(?:过)?(?:的客户|客户)?'
+      - '{SEARCH}理赔时间{CW}{0,2}在(?:上周|上星期|上个星期)(?:的客户|客户)?'
+    field: "polNoInfo.claimdatainfo.claimdate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: -1
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 10
+    merge_to_llm: true
+
+  - name: "理赔时间-近一周"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(?:近|最近|过去)一周(?:内|里)?{CW}{0,2}理赔(?:过)?(?:的客户|客户)?'
+      - '{SEARCH}理赔时间{CW}{0,2}在(?:近|最近|过去)一周(?:内|里)?(?:的客户|客户)?'
+    field: "polNoInfo.claimdatainfo.claimdate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "last_n_days"
+      days: 7
+      format: "yyyy-MM-dd HH:mm:ss"
     priority: 10
     merge_to_llm: true
 
@@ -5891,6 +6665,113 @@ rules:
     priority: 10
     merge_to_llm: true
 
+  - name: "保单生效日-本月"
+    patterns:
+      - '{SEARCH}(?:本月|这个月|当月){CW}{0,2}(?:保单)?生效(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单)?生效(?:日|时间|日期)?{CW}{0,2}在?(?:本月|这个月|当月)(?:的客户|客户|保单)?'
+    field: "polNoInfo.poleffdate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "current_month"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "保单生效日-下月"
+    patterns:
+      - '{SEARCH}下个?月{CW}{0,2}(?:保单)?生效(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单)?生效(?:日|时间|日期)?{CW}{0,2}在?下个?月(?:的客户|客户|保单)?'
+    field: "polNoInfo.poleffdate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "next_month"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "保单生效日-本周"
+    patterns:
+      - '{SEARCH}(?:本周|这周|这个星期){CW}{0,2}(?:保单)?生效(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单)?生效(?:日|时间|日期)?{CW}{0,2}在?(?:本周|这周|这个星期)(?:的客户|客户|保单)?'
+    field: "polNoInfo.poleffdate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 0
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "保单生效日-下周"
+    patterns:
+      - '{SEARCH}(?:下周|下星期|下个星期){CW}{0,2}(?:保单)?生效(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单)?生效(?:日|时间|日期)?{CW}{0,2}在?(?:下周|下星期|下个星期)(?:的客户|客户|保单)?'
+    field: "polNoInfo.poleffdate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 1
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "保单生效日-下下周"
+    patterns:
+      - '{SEARCH}(?:下下周|下下星期|下下个星期){CW}{0,2}(?:保单)?生效(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单)?生效(?:日|时间|日期)?{CW}{0,2}在?(?:下下周|下下星期|下下个星期)(?:的客户|客户|保单)?'
+    field: "polNoInfo.poleffdate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 2
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "保单生效日-今天"
+    patterns:
+      - '{SEARCH}(?:今天|今日|当天){CW}{0,2}(?:保单)?生效(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单)?生效(?:日|时间|日期)?{CW}{0,2}在?(?:今天|今日|当天)(?:的客户|客户|保单)?'
+    field: "polNoInfo.poleffdate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "today"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "保单生效日-明天"
+    patterns:
+      - '{SEARCH}(?:明天|明日){CW}{0,2}(?:保单)?生效(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单)?生效(?:日|时间|日期)?{CW}{0,2}在?(?:明天|明日)(?:的客户|客户|保单)?'
+    field: "polNoInfo.poleffdate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "tomorrow"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "保单生效日-后天"
+    patterns:
+      - '{SEARCH}后天{CW}{0,2}(?:保单)?生效(?:的客户|客户|保单)?'
+      - '{SEARCH}(?:保单)?生效(?:日|时间|日期)?{CW}{0,2}在?后天(?:的客户|客户|保单)?'
+    field: "polNoInfo.poleffdate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "day_after_tomorrow"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
   - name: "保单生效日-某年之后"
     patterns:
       - '{SEARCH}(?:保单)?生效(?:日|时间)?(?:在)?(\d{4})年之后(?:的客户|客户)?'
@@ -6021,6 +6902,60 @@ rules:
     value_type: "date_range_dynamic"
     value:
       date_range: "past_month_to_today"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "客户添加日-本月"
+    patterns:
+      - '{SEARCH}(?:本月|这个月|当月){CW}{0,2}(?:新增|添加|录入|建档|创建)的?(?:的客户|客户)?'
+      - '{SEARCH}(?:新增|添加|录入|建档|创建)(?:日期|时间|日)?{CW}{0,2}在?(?:本月|这个月|当月)(?:的客户|客户)?'
+    field: "dateCreated"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "current_month"
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "客户添加日-本周"
+    patterns:
+      - '{SEARCH}(?:本周|这周|这个星期){CW}{0,2}(?:新增|添加|录入|建档|创建)的?(?:的客户|客户)?'
+      - '{SEARCH}(?:新增|添加|录入|建档|创建)(?:日期|时间|日)?{CW}{0,2}在?(?:本周|这周|这个星期)(?:的客户|客户)?'
+    field: "dateCreated"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: 0
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "客户添加日-上周"
+    patterns:
+      - '{SEARCH}(?:上周|上星期|上个星期){CW}{0,2}(?:新增|添加|录入|建档|创建)的?(?:的客户|客户)?'
+      - '{SEARCH}(?:新增|添加|录入|建档|创建)(?:日期|时间|日)?{CW}{0,2}在?(?:上周|上星期|上个星期)(?:的客户|客户)?'
+    field: "dateCreated"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "week_offset"
+      offset: -1
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 9
+    merge_to_llm: true
+
+  - name: "客户添加日-今天"
+    patterns:
+      - '{SEARCH}(?:今天|今日|当天){CW}{0,2}(?:新增|添加|录入|建档|创建)的?(?:的客户|客户)?'
+      - '{SEARCH}(?:新增|添加|录入|建档|创建)(?:日期|时间|日)?{CW}{0,2}在?(?:今天|今日|当天)(?:的客户|客户)?'
+    field: "dateCreated"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "today"
       format: "yyyy-MM-dd HH:mm:ss"
     priority: 9
     merge_to_llm: true
@@ -6875,23 +7810,24 @@ rules:
 
   - name: "理赔案件号-MC格式"
     patterns:
-      - '{SEARCH}(?:理赔)?案件?号{CW}{0,2}(?:等于|＝|是|为)?(MC\d{14})(?:的客户|客户)?'
+      - '{SEARCH}(?<![A-Za-z0-9])([Mm][Cc]\d{14})(?![A-Za-z0-9])(?:的客户|客户)?'
+      - '{SEARCH}(?:理赔)?(?:案件号|案号|案件编号|理赔案件号|理赔案号|理赔编号|赔案号|报案号){CW}{0,2}(?:为|是|匹配|等于|包含|含有|带有)?[：:\s]?(?<![A-Za-z0-9])([Mm][Cc]\d{1,14})(?![A-Za-z0-9])(?:的客户|客户)?'
+      - '{SEARCH}(?:理赔)?(?:案件号|案号|案件编号|理赔案件号|理赔案号|理赔编号|赔案号|报案号)(?:前缀|开头|以)(?:为|是)?[：:\s]?([Mm][Cc]\d{1,14})(?:开头)?(?:的客户|客户)?'
+      - '{SEARCH}(?:理赔)?(?:案件号|案号|案件编号|理赔案件号|理赔案号|理赔编号|赔案号|报案号){CW}{0,2}([Mm][Cc]\d{1,14})(?:开头|前缀)(?:的客户|客户)?'
+      - '{SEARCH}(?:理赔)?(?:案件号|案号|案件编号|理赔案件号|理赔案号|理赔编号|赔案号|报案号){CW}{0,2}(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:为|是)?[：:\s]?(\d{1,14})(?:的客户|客户)?'
+      - '{SEARCH}(?:理赔)?(?:案件号|案号|案件编号|理赔案件号|理赔案号|理赔编号|赔案号|报案号){CW}{0,2}(\d{1,14})(?:尾号|尾数|末尾|后四位|后几位|结尾)(?:的客户|客户)?'
+      - '{SEARCH}(?:尾号|尾数|末尾|后四位|后几位)(?:为|是)?[：:\s]?(\d{1,14})(?:的)?(?:理赔)?(?:案件号|案号|案件编号|理赔案件号|理赔案号|理赔编号|赔案号|报案号)(?:的客户|客户)?'
+      - '{SEARCH}(\d{1,14})(?:尾号|尾数|末尾|后四位|后几位)(?:的)?(?:理赔)?(?:案件号|案号|案件编号|理赔案件号|理赔案号|理赔编号|赔案号|报案号)(?:的客户|客户)?'
+      - '{SEARCH}([Mm][Cc]\d{1,14})(?:开头|前缀)(?:的)?(?:理赔)?(?:案件号|案号|案件编号|理赔案件号|理赔案号|理赔编号|赔案号|报案号)(?:的客户|客户)?'
     field: "polNoInfo.claimdatainfo.claimno"
     operator: "MATCH"
     value_type: "capture"
     value:
       group: 1
     priority: 11
+    merge_to_llm: true
 
-  - name: "理赔案件号-通用"
-    patterns:
-      - '{SEARCH}(?:理赔)?案件?号{CW}{0,2}(?:为|是|：)?(\w+)(?:的客户|客户)?'
-    field: "polNoInfo.claimdatainfo.claimno"
-    operator: "MATCH"
-    value_type: "capture"
-    value:
-      group: 1
-    priority: 9
+
 
 composite_rules:
 
@@ -6902,6 +7838,7 @@ composite_rules:
     priority: 24
 
   - name: "投保险种简称+投保险种类型"
+    ignore_case: true
     patterns:
       - '【投保险种简称】(?:[的、，, 和及与且]{0,2})?【投保险种类型】(?:的客户|客户|名单|的人|人)?'
       - '【投保险种类型】(?:[的、，, 和及与且]{0,2})?【投保险种简称】(?:的客户|客户|名单|的人|人)?'
@@ -6909,10 +7846,14 @@ composite_rules:
 
   - name: "投保险种简称+保单状态"
     # 产品名和保单状态同时出现时，产品名默认按投保险种简称解析
+    ignore_case: true
     patterns:
       - '【投保险种简称】(?:[的、，, 和及与且]{0,2})?【保单状态】(?:的客户|客户|名单|的人|人)?'
       - '【保单状态】(?:[的、，, 和及与且]{0,2})?【投保险种简称】(?:的客户|客户|名单|的人|人)?'
       - '【投保险种简称】(?:[的、，, 和及与且]{0,2})?【保单状态-有效汇总】'
+      - '【保单状态-有效汇总】(?:[的、，, 和及与且]{0,2})?【投保险种简称】(?:的客户|客户|名单|的人|人)?'
+      - '【投保险种简称】(?:[的、，, 和及与且]{0,2})?【保单状态-未有效汇总】'
+      - '【保单状态-未有效汇总】(?:[的、，, 和及与且]{0,2})?【投保险种简称】(?:的客户|客户|名单|的人|人)?'
     priority: 24
 
   - name: "投保险种简称+保单到期时间"
@@ -6923,10 +7864,13 @@ composite_rules:
     priority: 24
 
   - name: "投保险种名称+保单状态"
+    ignore_case: true
     patterns:
       - '【投保险种名称】(?:[的、，, 和及与且]{0,2})?【保单状态】(?:的客户|客户|名单|的人|人)?'
       - '【保单状态】(?:[的、，, 和及与且]{0,2})?【投保险种名称】(?:的客户|客户|名单|的人|人)?'
       - '【投保险种名称】(?:[的、，, 和及与且]{0,2})?【保单状态-有效汇总】'
+      - '【投保险种名称】(?:[的、，, 和及与且]{0,2})?【保单状态-未有效汇总】'
+      - '【保单状态-未有效汇总】(?:[的、，, 和及与且]{0,2})?【投保险种名称】(?:的客户|客户|名单|的人|人)?'
     priority: 24
 
   - name: "险种到期"

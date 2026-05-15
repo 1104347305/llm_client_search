@@ -279,6 +279,12 @@ annPremSegNum:
   总保费: "年缴保费"
   年金费用: "年金年缴保费"
 
+polNoInfo.plancodeinfo.abbrname:
+  E生保: "e生保"
+
+polNoInfo.plancodeinfo.planfullname:
+  平安E生保医疗保险: "平安e生保医疗保险"
+
 pcustSourcType:
   o2o: "O2O"
   O2o: "O2O"

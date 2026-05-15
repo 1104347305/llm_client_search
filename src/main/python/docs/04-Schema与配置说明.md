@@ -179,8 +179,16 @@ src/main/python/config/enhanced_rules_args.yaml
 ```text
 rules: 417
 composite_rules: 70
-pattern_vars: 2
+pattern_vars: 3
 ```
+
+`pattern_vars` 用于抽取规则中高频复用的正则片段，当前包括：
+
+| 变量 | 说明 |
+| --- | --- |
+| `CW` | 中文、标点和空白连接字符范围。 |
+| `SEARCH` | 查询/查找/帮我看看等检索意图前缀。 |
+| `CUSTOMER_SUFFIX` | 查询末尾的客户、人、名单等对象后缀：`(?:的客户|客户|有哪些客户|有哪些人|名单|的人|人)?`。 |
 
 常见规则形态：
 
@@ -323,4 +331,3 @@ ENABLE_PARSE_RESPONSE_AES: false
 
 - YAML 里当前存在明文 LLM API key，建议后续迁到环境变量或密钥管理系统。
 - `ENABLE_L3=true` 不代表主链路真的启用了 L3，当前代码中 L3 调用被注释。
-

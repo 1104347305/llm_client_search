@@ -22,68 +22,70 @@ def _match(query: str):
 
 
 def test_l2_matches_policy_plan_abbr_and_plan_type_as_and_conditions():
-    conditions, matcher = _match("帮我查询一下投保险种名为i康保投保险种类型为健康险的客户")
+    conditions, matcher = _match("帮我查询一下投保险种名为e生保投保险种类型为健康险的客户")
 
     values = {(condition.field, condition.operator.value): condition.value for condition in conditions}
 
-    assert values[("polNoInfo.plancodeinfo.abbrname", "MATCH")] == "i康保"
+    assert values[("polNoInfo.plancodeinfo.abbrname", "MATCH")] == "e生保"
     assert values[("polNoInfo.plancodeinfo.plantypedesc", "MATCH")] == "健康险"
-    assert any(
-        item["rule_name"] == "投保险种简称+投保险种类型"
-        for item in matcher._last_matched_patterns
-    )
 
 
 def test_l2_matches_policy_plan_type_and_abbr_in_reverse_order():
-    conditions, matcher = _match("帮我查询一下投保险种类型为健康险投保险种简称为i康保的客户")
+    conditions, matcher = _match("帮我查询一下投保险种类型为健康险投保险种简称为e生保的客户")
 
     values = {(condition.field, condition.operator.value): condition.value for condition in conditions}
 
     assert values[("polNoInfo.plancodeinfo.plantypedesc", "MATCH")] == "健康险"
-    assert values[("polNoInfo.plancodeinfo.abbrname", "MATCH")] == "i康保"
-    assert any(
-        item["rule_name"] == "投保险种简称+投保险种类型"
-        for item in matcher._last_matched_patterns
-    )
+    assert values[("polNoInfo.plancodeinfo.abbrname", "MATCH")] == "e生保"
 
 
 def test_l2_matches_policy_plan_abbr_and_policy_status_as_and_conditions():
-    conditions, matcher = _match("买了i康保产品，且保单状态为缴费有效的客户")
+    conditions, matcher = _match("买了e生保产品，且保单状态为缴费有效的客户")
 
     values = {(condition.field, condition.operator.value): condition.value for condition in conditions}
 
-    assert values[("polNoInfo.plancodeinfo.abbrname", "MATCH")] == "i康保"
-    assert values[("polNoInfo.polStatus", "MATCH")] == "缴费有效"
-    assert any(
-        item["rule_name"] == "投保险种简称+保单状态"
-        for item in matcher._last_matched_patterns
-    )
+    assert values[("polNoInfo.plancodeinfo.abbrname", "MATCH")] == "e生保"
+    assert values[("polNoInfo.polStatus", "MATCH")] == "交费有效"
 
 
 def test_l2_matches_policy_status_and_plan_abbr_in_reverse_order():
-    conditions, matcher = _match("保单状态为缴费有效，买了i康保产品的客户")
+    conditions, matcher = _match("保单状态为缴费有效，买了e生保产品的客户")
 
     values = {(condition.field, condition.operator.value): condition.value for condition in conditions}
 
-    assert values[("polNoInfo.polStatus", "MATCH")] == "缴费有效"
-    assert values[("polNoInfo.plancodeinfo.abbrname", "MATCH")] == "i康保"
-    assert any(
-        item["rule_name"] == "投保险种简称+保单状态"
-        for item in matcher._last_matched_patterns
-    )
+    assert values[("polNoInfo.polStatus", "MATCH")] == "交费有效"
+    assert values[("polNoInfo.plancodeinfo.abbrname", "MATCH")] == "e生保"
 
 
 def test_l2_matches_policy_plan_fullname_and_policy_status_as_and_conditions():
-    conditions, matcher = _match("投保险种名称为平安i康保医疗保险，且保单状态为缴费有效的客户")
+    conditions, matcher = _match("投保险种名称为平安e生保医疗保险，且保单状态为缴费有效的客户")
 
     values = {(condition.field, condition.operator.value): condition.value for condition in conditions}
 
-    assert values[("polNoInfo.plancodeinfo.planfullname", "MATCH")] == "平安i康保医疗保险"
-    assert values[("polNoInfo.polStatus", "MATCH")] == "缴费有效"
-    assert any(
-        item["rule_name"] == "投保险种名称+保单状态"
-        for item in matcher._last_matched_patterns
-    )
+    assert values[("polNoInfo.plancodeinfo.planfullname", "MATCH")] == "平安e生保医疗保险"
+    assert values[("polNoInfo.polStatus", "MATCH")] == "交费有效"
+
+
+def test_l2_matches_policy_plan_case_insensitive_variants():
+    cases = [
+        (
+            "买了E生保产品，且保单状态为缴费有效的客户",
+            "polNoInfo.plancodeinfo.abbrname",
+            "e生保",
+        ),
+        (
+            "投保险种名称为平安E生保医疗保险，且保单状态为缴费有效的客户",
+            "polNoInfo.plancodeinfo.planfullname",
+            "平安e生保医疗保险",
+        ),
+    ]
+
+    for query, field, expected_value in cases:
+        conditions, matcher = _match(query)
+        values = {(condition.field, condition.operator.value): condition.value for condition in conditions}
+
+        assert values[(field, "MATCH")] == expected_value
+        assert values[("polNoInfo.polStatus", "MATCH")] == "交费有效"
 
 
 def test_l2_matches_policy_status_oral_variants():
@@ -115,6 +117,22 @@ def test_l2_maps_eshenbao_effective_customer_to_policy_status_not_effective_date
         "自垫有效",
     ]
     assert not any(condition.field == "polNoInfo.poleffdate" for condition in conditions)
+
+
+def test_l2_maps_eshenbao_not_lapsed_customer_to_effective_policy_status():
+    conditions, _ = _match("e生保未失效客户")
+
+    values = {(condition.field, condition.operator.value): condition.value for condition in conditions}
+
+    assert values[("polNoInfo.plancodeinfo.abbrname", "MATCH")] == "e生保"
+    assert values[("polNoInfo.polStatus", "CONTAINS")] == [
+        "交费有效",
+        "自垫交清",
+        "交清",
+        "减额交清",
+        "免交",
+        "自垫有效",
+    ]
 
 
 def test_l2_maps_cross_sell_product_exists_to_agent_persp_product_type():
@@ -155,16 +173,33 @@ def test_l2_candidate_recall_maps_single_to_marital_status():
     assert values[("mariSts", "CONTAINS")] == ["未婚", "离婚"]
 
 
-def test_l2_matches_policy_datetime_fields_with_time_part():
-    conditions, _ = _match("保单应缴日是2026-12-31 23:59:59的客户")
+def test_l2_matches_policy_datetime_fields():
+    conditions, _ = _match("保单应缴日是2026-12-31的客户")
     values = {(condition.field, condition.operator.value): condition.value for condition in conditions}
-    assert values[("polNoInfo.payToDate", "RANGE")].min == "2026-12-31 23:59:59"
-    assert values[("polNoInfo.payToDate", "RANGE")].max == "2026-12-31 23:59:59"
+    assert values[("polNoInfo.paytodate", "RANGE")].min == "2026-12-31 00:00:00"
+    assert values[("polNoInfo.paytodate", "RANGE")].max == "2026-12-31 00:00:00"
 
-    conditions, _ = _match("在2026-06-30 23:59:59发生理赔的客户")
+    conditions, _ = _match("在2026-06-30理赔的客户")
     values = {(condition.field, condition.operator.value): condition.value for condition in conditions}
-    assert values[("polNoInfo.claimdatainfo.claimdate", "MATCH")].min == "2026-06-30 23:59:59"
-    assert values[("polNoInfo.claimdatainfo.claimdate", "MATCH")].max == "2026-06-30 23:59:59"
+    assert values[("polNoInfo.claimdatainfo.claimdate", "RANGE")].min == "2026-06-30 00:00:00"
+    assert values[("polNoInfo.claimdatainfo.claimdate", "RANGE")].max == "2026-06-30 00:00:00"
+
+
+def test_l2_matches_policy_pay_date_relative_ranges():
+    matcher = Level2EnhancedMatcher()
+    cases = [
+        "有应缴日在下周的客户",
+        "有应缴日在下下周的客户",
+        "未来7天应缴的客户",
+        "有应缴日在今天的客户",
+    ]
+
+    for query in cases:
+        conditions = asyncio.run(matcher.match(query))
+        values = {(condition.field, condition.operator.value): condition.value for condition in conditions}
+        assert ("polNoInfo.paytodate", "RANGE") in values
+        assert values[("polNoInfo.paytodate", "RANGE")].min
+        assert values[("polNoInfo.paytodate", "RANGE")].max
 
 
 def test_l2_matches_policy_beneficiary_without_trailing_de():

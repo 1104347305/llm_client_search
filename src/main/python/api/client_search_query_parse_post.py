@@ -488,13 +488,11 @@ def start_background_query_router_load(delay_seconds: float = 0.0) -> None:
 
 def runtime_readiness_status() -> Dict[str, Any]:
     """返回当前 worker 的运行时配置/规则加载状态，用于健康检查。"""
-    _ensure_runtime_config_current()
-
     if _query_router is not None:
         if _runtime_reload_task is not None and not _runtime_reload_task.done():
             return {
-                "ready": False,
-                "status": "reloading_previous_runtime_available",
+                "ready": True,
+                "status": "ready_reloading_previous_runtime_available",
                 "serving_previous_runtime": True,
                 **_runtime_reload_status(),
             }
@@ -506,13 +504,13 @@ def runtime_readiness_status() -> Dict[str, Any]:
                 "detail": _last_runtime_reload_error,
                 **_runtime_reload_status(),
             }
-        # if _runtime_reload_marker_is_stale():
-        #     return {
-        #         "ready": False,
-        #         "status": "reload_pending_previous_runtime_available",
-        #         "serving_previous_runtime": True,
-        #         **_runtime_reload_status(),
-        #     }
+        if _runtime_reload_marker_is_stale():
+            return {
+                "ready": True,
+                "status": "ready_reload_pending_previous_runtime_available",
+                "serving_previous_runtime": True,
+                **_runtime_reload_status(),
+            }
         return {
             "ready": True,
             "status": "ready",
@@ -534,12 +532,12 @@ def runtime_readiness_status() -> Dict[str, Any]:
             **_runtime_reload_status(),
         }
 
-    # if _runtime_reload_marker_is_stale():
-    #     return {
-    #         "ready": False,
-    #         "status": "reload_pending",
-    #         **_runtime_reload_status(),
-    #     }
+    if _runtime_reload_marker_is_stale():
+        return {
+            "ready": False,
+            "status": "reload_pending",
+            **_runtime_reload_status(),
+        }
 
     if _query_router_load_task is None:
         return {

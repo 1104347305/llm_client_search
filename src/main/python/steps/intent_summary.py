@@ -35,10 +35,13 @@ class IntentSummaryService:
         self.date_labels: dict[str, str] = {}
         self.family_templates: dict[str, Any] = {}
         self.profile_phrases: dict[str, dict[str, str]] = {}
+        self.bare_value_weak_summary: Optional[str] = None
+        self.bare_value_weak_fields: frozenset[str] = frozenset()
         self.unsupported_fields: frozenset[str] = frozenset()
 
     def load(self) -> "IntentSummaryService":
         self._load_labels()
+        self._load_bare_value_weak_summary()
         self._load_unsupported_fields()
         return self
 
@@ -58,6 +61,10 @@ class IntentSummaryService:
     ) -> str:
         if not conditions:
             return self._message("no_conditions", "未识别到明确查询条件")
+
+        bare_value_summary = self._bare_value_weak_summary(conditions, query_logic)
+        if bare_value_summary:
+            return bare_value_summary
 
         supported_parts: list[str] = []
         unsupported_labels: list[str] = []
@@ -235,8 +242,53 @@ class IntentSummaryService:
         except Exception:
             self.unsupported_fields = frozenset()
 
+    def _load_bare_value_weak_summary(self) -> None:
+        self.bare_value_weak_summary = None
+        self.bare_value_weak_fields = frozenset()
+        try:
+            with open(settings.ENHANCED_RULES_PATH, encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+            config = data.get("bare_value_weak_match", {}) or {}
+            fields = config.get("fields") or []
+            summary = self._message("bare_value_weak_match", "")
+            if summary.strip():
+                self.bare_value_weak_summary = summary.strip()
+            if isinstance(fields, list):
+                self.bare_value_weak_fields = frozenset(str(field) for field in fields)
+        except Exception:
+            self.bare_value_weak_summary = None
+            self.bare_value_weak_fields = frozenset()
+
     def _message(self, key: str, default: str) -> str:
         return self.messages.get(key, default)
+
+    def _bare_value_weak_summary(
+        self,
+        conditions: list[Condition],
+        query_logic: QueryLogic,
+    ) -> Optional[str]:
+        if query_logic != QueryLogic.OR or not self.bare_value_weak_summary:
+            return None
+        if len(conditions) < 2:
+            return None
+
+        values: set[str] = set()
+        fields: set[str] = set()
+        for cond in conditions:
+            if cond.operator != Operator.MATCH:
+                return None
+            if cond.value is None or isinstance(cond.value, (RangeValue, dict, list)):
+                return None
+            fields.add(cond.field)
+            values.add(str(cond.value))
+
+        if len(values) != 1:
+            return None
+        if not self.bare_value_weak_fields:
+            return None
+        if not fields.issubset(self.bare_value_weak_fields):
+            return None
+        return self.bare_value_weak_summary
 
     def _date_label(self, key: str, default: str, **kwargs: object) -> str:
         template = self.date_labels.get(key, default)
@@ -478,7 +530,7 @@ class IntentSummaryService:
             max_v = self._format_value_for_summary(value.max) if value.max is not None else ""
             if cond.field == "familyInfo.familyclientage" and family_field_label and min_v and max_v:
                 if min_v == max_v:
-                    return self._family_template("age_range", "{label}={value}岁", label=family_field_label, min=min_v, max=max_v)
+                    return self._family_template("age_exact", "{label}={value}岁", label=family_field_label, min=min_v, max=max_v)
                 return self._family_template("age_range", "{label}在{min}-{max}岁之间", label=family_field_label, min=min_v, max=max_v)
             try:
                 if min_v == max_v and min_v != "":

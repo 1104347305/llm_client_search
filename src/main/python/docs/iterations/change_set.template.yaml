@@ -1,0 +1,70 @@
+id: 20260514_customer_temperature
+title: 客户温度字段优化
+owner: mickey
+reason: 支持高温、中温、低温客户查询
+
+fields:
+  - id: client_temperature_match
+    field: clientTemperature
+    operator: MATCH
+    value_type: enum
+    retrieval_text: 客户温度 高温客户 中温客户 低温客户
+    enum_ref: clientTemperature
+    description: 客户经营温度标签
+    examples:
+      - query: 高温客户
+        output: {field: clientTemperature, operator: MATCH, value: 高温}
+      - query: 找一下中温客户
+        output: {field: clientTemperature, operator: MATCH, value: 中温}
+    negative_examples:
+      - query: 今天温度高的客户
+        reason: 天气温度不是客户温度标签
+
+enums:
+  clientTemperature:
+    values:
+      - 冷却
+      - 低温
+      - 中温
+      - 高温
+    ordered: true
+
+value_mappings:
+  clientTemperature:
+    最近没联系: 冷却
+
+l2_rules:
+  - name: 客户温度匹配
+    field: clientTemperature
+    operator: MATCH
+    value_type: capture
+    enum_ref: clientTemperature
+    patterns_template:
+      - "{enum}客户"
+      - "客户温度是{enum}"
+
+testset_path: generated_testset.jsonl
+
+test_cases:
+  - id: ct_001
+    query: 高温客户
+    expected:
+      query_logic: AND
+      conditions:
+        - field: clientTemperature
+          operator: MATCH
+          value: 高温
+    tags: [positive, l2]
+  - id: ct_002
+    query: 今天温度高的客户
+    expected:
+      query_logic: AND
+      conditions: []
+    tags: [negative]
+
+acceptance:
+  min_overall_accuracy: 0.95
+  min_exact_match_rate: 0.95
+  max_empty_rate: 0.02
+  max_false_positive_rate: 0.02
+  max_avg_latency_ms: 3000

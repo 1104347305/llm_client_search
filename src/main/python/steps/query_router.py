@@ -3,6 +3,7 @@
 L1 → L2 → L3 依次执行并累积条件；三层均无条件时转至 L4 (LLM)
 """
 from dataclasses import dataclass, field
+import asyncio
 from loguru import logger
 from src.main.python.models.schemas import ParsedQuery, QueryLogic, LogicNode, Condition, Operator, RangeValue
 from src.main.python.steps.level1_rule_engine import Level1RuleEngine
@@ -154,6 +155,28 @@ class QueryRouter:
                 seen_values.append(value)
 
         return result
+
+    @staticmethod
+    def _run_level2_match_sync(level2: Level2EnhancedMatcher, query: str) -> Tuple[List[Condition], List[Dict[str, Any]]]:
+        """在线程中执行 L2 正则匹配，避免同步正则循环阻塞事件循环。"""
+        conditions = asyncio.run(level2.match(query))
+        matched_patterns = list(getattr(level2, "_last_matched_patterns", []))
+        return conditions, matched_patterns
+
+    async def _match_level2(self, query: str) -> Tuple[List[Condition], List[Dict[str, Any]]]:
+        return await asyncio.to_thread(self._run_level2_match_sync, self.level2, query)
+
+    async def _recall_level2_candidate_conditions(
+        self,
+        query: str,
+        *,
+        merge_to_llm_only: bool = False,
+    ) -> List[Condition]:
+        return await asyncio.to_thread(
+            self.level2.recall_candidate_conditions,
+            query,
+            merge_to_llm_only=merge_to_llm_only,
+        )
 
     @classmethod
     def _looks_like_full_person_name(cls, candidate: str) -> bool:
@@ -402,9 +425,9 @@ class QueryRouter:
         l2_conditions = []
         l2_candidate_conditions: List[Condition] = []
         if settings.ENABLE_L2:
-            l2_conditions = await self.level2.match(query)
-            l2_candidate_conditions = self.level2.recall_candidate_conditions(query)
-            state.matched_patterns.extend(list(getattr(self.level2, "_last_matched_patterns", [])))
+            l2_conditions, l2_matched_patterns = await self._match_level2(query)
+            l2_candidate_conditions = await self._recall_level2_candidate_conditions(query)
+            state.matched_patterns.extend(l2_matched_patterns)
             logger.info(f"Level 2 matched {len(l2_conditions)} conditions")
         else:
             logger.info("Level 2 DISABLED, skipped")
@@ -454,7 +477,7 @@ class QueryRouter:
                     logger.info("L2-L4 merge: ENABLE_RAGE_L2_CANDIDATES=true, using l2_priority (backward compat)")
 
                 if merge_strategy != "llm_only":
-                    merge_conditions = self.level2.recall_candidate_conditions(
+                    merge_conditions = await self._recall_level2_candidate_conditions(
                         query, merge_to_llm_only=True
                     )
                     if merge_conditions:
@@ -596,19 +619,39 @@ class QueryRouter:
 
         return value
 
-    def convert_age_to_birthday(self, conditions: List[Condition]) -> List[Condition]:
+    def convert_age_to_birthday(self, conditions: List[Condition], today=None) -> List[Condition]:
         """
         后处理：将年龄条件转换为出生日期范围条件。
         clientAge       → clientBirthday
         familyInfo.familyclientage  → familyInfo.familyclientbirthday
 
-        逻辑（当前年份 year）：
-        - GTE N  → birthday LTE {year-N}-12-31 00:00:00（年龄越大，出生越早）
-        - LTE N  → birthday GTE {year-N}-01-01 00:00:00
-        - RANGE [min_age, max_age] → birthday RANGE [{year-max_age}-01-01, {year-min_age}-12-31]
+        逻辑（按真实周岁精确到天）：
+        - GTE N  → birthday LTE 今天-N年 23:59:59（年龄越大，出生越早）
+        - LTE N  → birthday GTE 今天-(N+1)年+1天 00:00:00
+        - RANGE [min_age, max_age] → birthday RANGE
+          [今天-(max_age+1)年+1天 00:00:00, 今天-min_age年 23:59:59]
         """
-        from datetime import date
-        year = date.today().year
+        from datetime import date, timedelta
+
+        today = today or date.today()
+
+        def _minus_years(base_date, years: int):
+            try:
+                return base_date.replace(year=base_date.year - years)
+            except ValueError:
+                # 处理 2 月 29 日落到非闰年的情况。
+                return base_date.replace(year=base_date.year - years, day=28)
+
+        def _start_of_day(value):
+            return f"{value:%Y-%m-%d} 00:00:00"
+
+        def _end_of_day(value):
+            return f"{value:%Y-%m-%d} 23:59:59"
+
+        def _birthday_range_for_age(age: int) -> RangeValue:
+            earliest = _minus_years(today, age + 1) + timedelta(days=1)
+            latest = _minus_years(today, age)
+            return RangeValue(min=_start_of_day(earliest), max=_end_of_day(latest))
 
         age_field_map = {
             'familyInfo.familyclientage': 'familyInfo.familyclientbirthday'
@@ -625,37 +668,47 @@ class QueryRouter:
                 if cond.operator == Operator.RANGE and isinstance(v, RangeValue):
                     min_age = int(v.min) if v.min is not None else 0
                     max_age = int(v.max) if v.max is not None else 120
+                    if min_age > max_age:
+                        min_age, max_age = max_age, min_age
+                    earliest = _minus_years(today, max_age + 1) + timedelta(days=1)
+                    latest = _minus_years(today, min_age)
                     new_cond = Condition(
                         field=target_field,
                         operator=Operator.RANGE,
                         value=RangeValue(
-                            min=f"{year - max_age}-01-01 00:00:00",
-                            max=f"{year - min_age}-12-31 00:00:00",
+                            min=_start_of_day(earliest),
+                            max=_end_of_day(latest),
                         ),
                     )
                 elif cond.operator == Operator.GTE:
                     new_cond = Condition(
                         field=target_field,
                         operator=Operator.LTE,
-                        value=f"{year - int(v)}-12-31 00:00:00",
+                        value=_end_of_day(_minus_years(today, int(v))),
                     )
                 elif cond.operator == Operator.LTE:
                     new_cond = Condition(
                         field=target_field,
                         operator=Operator.GTE,
-                        value=f"{year - int(v)}-01-01 00:00:00",
+                        value=_start_of_day(_minus_years(today, int(v) + 1) + timedelta(days=1)),
                     )
                 elif cond.operator == Operator.GT:
                     new_cond = Condition(
                         field=target_field,
-                        operator=Operator.GT,
-                        value=f"{year - int(v)}-12-31 00:00:00",
+                        operator=Operator.LTE,
+                        value=_end_of_day(_minus_years(today, int(v) + 1)),
                     )
                 elif cond.operator == Operator.LT:
                     new_cond = Condition(
                         field=target_field,
-                        operator=Operator.LT,
-                        value=f"{year - int(v)}-01-01 00:00:00",
+                        operator=Operator.GTE,
+                        value=_start_of_day(_minus_years(today, int(v)) + timedelta(days=1)),
+                    )
+                elif cond.operator == Operator.MATCH:
+                    new_cond = Condition(
+                        field=target_field,
+                        operator=Operator.RANGE,
+                        value=_birthday_range_for_age(int(v)),
                     )
                 else:
                     result.append(cond)

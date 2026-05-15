@@ -34,6 +34,12 @@ def _next_week_bounds(today: date) -> tuple[date, date]:
     return next_monday, next_monday + timedelta(days=6)
 
 
+def _week_offset_bounds(today: date, offset: int) -> tuple[date, date]:
+    monday = today - timedelta(days=today.weekday())
+    target_monday = monday + timedelta(days=offset * 7)
+    return target_monday, target_monday + timedelta(days=6)
+
+
 def _next_month_bounds(today: date) -> tuple[date, date]:
     year = today.year + 1 if today.month == 12 else today.year
     month = 1 if today.month == 12 else today.month + 1
@@ -137,6 +143,11 @@ def resolve_dynamic_date_range(config: Dict, match=None, now: Optional[Union[dat
 
     if date_range == "next_week":
         start, end = _next_week_bounds(today)
+        return _range(start, end)
+
+    if date_range == "week_offset":
+        offset = int(config.get("offset", 0))
+        start, end = _week_offset_bounds(today, offset)
         return _range(start, end)
 
     if date_range == "last_n_days":
