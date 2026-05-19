@@ -835,7 +835,7 @@ rules:
     enum_ref: "newValueLabel"
     patterns_template:
       - '{SEARCH}{enum}(?:类|类客户)?(?:以上|更高)(?:的客户|客户)?'
-      - '{SEARCH}客户价值{CW}{0,2}{enum}(?:类|类客户)?(?:以上|更高)(?:的客户|客户)?'
+      - '{SEARCH}(?:客户价值|客价){CW}{0,2}{enum}(?:类|类客户)?(?:以上|更高)(?:的客户|客户)?'
     field: "newValueLabel"
     operator: "CONTAINS"
     value_type: "enum_gt"
@@ -848,7 +848,7 @@ rules:
     enum_ref: "newValueLabel"
     patterns_template:
       - '{SEARCH}{enum}(?:类|类客户)?及以上(?:的客户|客户)?'
-      - '{SEARCH}客户价值{CW}{0,2}{enum}(?:类|类客户)?及以上(?:的客户|客户)?'
+      - '{SEARCH}(?:客户价值|客价){CW}{0,2}{enum}(?:类|类客户)?及以上(?:的客户|客户)?'
     field: "newValueLabel"
     operator: "CONTAINS"
     value_type: "enum_gte"

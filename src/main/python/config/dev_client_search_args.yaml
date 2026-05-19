@@ -51,11 +51,11 @@ ENABLE_L4_RAG_L2: true
 ENABLE_RAGE_L2_CANDIDATES: false
 
 # L2-L4 合并控制
-L4_L2_MERGE_STRATEGY: "llm_only"  # dev 环境测试 l2_priority、only_llm
-L4_L2_REMOVE_MERGED_FROM_PROMPT: false
+L4_L2_MERGE_STRATEGY: "llm_only"  # dev 环境测试 l2_priority、only_llm、l2_llm
+L4_L2_REMOVE_MERGED_FROM_PROMPT: false   # 是否将L2召回的候选知识从PROMPT中删除掉
 
-L4_PROMPT_CHAR_BUDGET: 6000
-L4_ENUM_OVERLAP_FILTER: true
+L4_PROMPT_CHAR_BUDGET: 0    # prompt裁剪最大长度，若为0表示不裁剪
+L4_ENUM_OVERLAP_FILTER: false   # 是否将L2conditions中的枚举值从prompt中删除掉
 
 L4_RAG_TOP_K: 15
 L4_ES_TOP_K: 10
