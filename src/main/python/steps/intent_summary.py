@@ -530,7 +530,7 @@ class IntentSummaryService:
             max_v = self._format_value_for_summary(value.max) if value.max is not None else ""
             if cond.field == "familyInfo.familyclientage" and family_field_label and min_v and max_v:
                 if min_v == max_v:
-                    return self._family_template("age_exact", "{label}={value}岁", label=family_field_label, min=min_v, max=max_v)
+                    return self._family_template("age_exact", "{label}={value}岁", label=family_field_label, value=min_v)
                 return self._family_template("age_range", "{label}在{min}-{max}岁之间", label=family_field_label, min=min_v, max=max_v)
             try:
                 if min_v == max_v and min_v != "":

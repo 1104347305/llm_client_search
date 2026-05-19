@@ -663,32 +663,7 @@ def _get_parse_response_aes_key() -> bytes:
 
 
 def _log_session_id(request: ParseApiRequest) -> str:
-    return request.session_id or "-"
-
-
-def _promote_single_value_contains_to_match(conditions: List[Condition]) -> List[Condition]:
-    """Parse 输出前：CONTAINS 只有一个值时按 MATCH 输出，保留多值 CONTAINS 的 IN 语义。"""
-    normalized: List[Condition] = []
-    for cond in conditions:
-        if cond.operator != Operator.CONTAINS:
-            normalized.append(cond)
-            continue
-
-        value = cond.value
-        if isinstance(value, list):
-            if len(value) != 1:
-                normalized.append(cond)
-                continue
-            value = value[0]
-
-        normalized.append(
-            Condition(
-                field=cond.field,
-                operator=Operator.MATCH,
-                value=value,
-            )
-        )
-    return normalized
+    return request.trace_id or "-"
 
 
 @router.post("/client_search_query_parse", summary="解析查询条件（不执行搜索）", response_model=ParseApiResponse)
@@ -705,8 +680,8 @@ async def client_search_query_parse(request: ParseApiRequest):
                 f"user_id={request.user_id or '-'} query={mask_for_log(request.user_text)}"
             )
             query_router = await get_query_router()
-            parsed = await query_router.route_with_peeling(request.user_text)
-            logger.info(f"query解析总耗时：{time.perf_counter() - start_time}")
+            parsed = await query_router.route_with_peeling(request.user_text, request.trace_id)
+            logger.info(f"{trace_id}--->query解析总耗时：{time.perf_counter() - start_time}")
 
             raw_conditions = query_router.normalize_date_condition_formats(parsed.conditions or [])
             intent_summary = build_intent_summary(raw_conditions, parsed.query_logic)

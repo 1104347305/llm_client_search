@@ -7001,7 +7001,7 @@ rules:
   - name: "客户添加日-近期"
     patterns:
       - '{SEARCH}(?:最近|近期|新)(?:新增|添加|录入|建档|创建)的?(?:的客户|客户)?'
-    field: "customer_added_date"
+    field: "dateCreated"
     operator: "RANGE"
     value_type: "date_range_dynamic"
     value:
@@ -7033,7 +7033,7 @@ rules:
   - name: "客户添加日-精确"
     patterns:
       - '{SEARCH}(?:客户)?(?:新增|添加|录入|建档|创建)(?:日期|时间|日)(?:为|是|在|：)?(\d{4}-\d{2}-\d{2})(?:的客户|客户)?'
-    field: "customer_added_date"
+    field: "dateCreated"
     operator: "RANGE"
     value_type: "date_range_dynamic"
     value:

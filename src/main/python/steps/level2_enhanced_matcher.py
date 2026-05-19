@@ -1406,6 +1406,25 @@ class Level2EnhancedMatcher:
                 int(value[:4]), int(value[4:6]), int(value[6:8]), config
             )
 
+        elif transform == "strip_non_digits":
+            return re.sub(r"\D+", "", value)
+
+        elif transform == "birth_year_to_birth_range":
+            # 2 位年份按当前年份推断世纪：00~当前年份后两位 => 20xx，其余 => 19xx
+            if not value.isdigit() or len(value) not in (2, 4):
+                return value
+            if len(value) == 2:
+                from datetime import date
+                year_suffix = int(value)
+                current_suffix = date.today().year % 100
+                year = (2000 if year_suffix <= current_suffix else 1900) + year_suffix
+            else:
+                year = int(value)
+            return RangeValue(
+                min=f"{year:04d}-01-01 00:00:00",
+                max=f"{year:04d}-12-31 00:00:00",
+            )
+
         elif transform == "year_to_birth_range":
             # 将出生年份转为接口要求的出生日期范围
             year = int(value)
@@ -1486,18 +1505,31 @@ class Level2EnhancedMatcher:
             )
 
         elif transform == "month_day_cn_to_md":
-            matched = re.match(r'(\d{1,2})月(\d{1,2})', value)
+            cn_month_map = {
+                '正': 1, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4,
+                '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
+                '十一': 11, '十二': 12, '冬': 11, '腊': 12,
+            }
+
+            def _month(raw: str) -> int:
+                return int(raw) if raw.isdigit() else cn_month_map.get(raw, 0)
+
+            matched = re.match(r'(\d{1,2}|正|一|二|两|三|四|五|六|七|八|九|十|十一|十二|冬|腊)月(\d{1,2})', value)
             if matched:
-                month = int(matched.group(1))
+                month = _month(matched.group(1))
                 day = int(matched.group(2))
+                if month < 1 or month > 12:
+                    return value
                 return RangeValue(
                     min=f"{month:02d}-{day:02d}",
                     max=f"{month:02d}-{day:02d}",
                 )
 
-            matched = re.match(r'(\d{1,2})月(?:份)?', value)
+            matched = re.match(r'(\d{1,2}|正|一|二|两|三|四|五|六|七|八|九|十|十一|十二|冬|腊)月(?:份)?', value)
             if matched:
-                month = int(matched.group(1))
+                month = _month(matched.group(1))
+                if month < 1 or month > 12:
+                    return value
                 from calendar import monthrange
                 last_day = monthrange(2000, month)[1]
                 return RangeValue(

@@ -425,7 +425,7 @@ class QueryRouter:
             merged.append(cond)
         return merged
 
-    async def route_with_peeling(self, query: str) -> ParsedQuery:
+    async def route_with_peeling(self, query: str, trace_id: str) -> ParsedQuery:
         """
         串联流水线路由：
         1. L1 处理原始查询，提取确定性实体
@@ -438,7 +438,7 @@ class QueryRouter:
         query = query.replace(' ', '').replace('。', '')
         normalized_query = self.field_registry.normalize_query(query)
         if normalized_query != query:
-            logger.info(f"Query normalized: '{mask_for_log(query)}' -> '{mask_for_log(normalized_query)}'")
+            logger.info(f"{trace_id}--->Query normalized: '{mask_for_log(query)}' -> '{mask_for_log(normalized_query)}'")
         query = normalized_query
         state = _RouteState(rewritten_query=query)
         self._record_bare_name_candidate(query, state)
@@ -450,9 +450,9 @@ class QueryRouter:
         if settings.ENABLE_L1:
             l1_conditions = await self.level1.extract(query)
             state.matched_patterns.extend(list(getattr(self.level1, "_last_matched_patterns", [])))
-            logger.info(f"Level 1 extracted {len(l1_conditions)} conditions")
+            logger.info(f"{trace_id}--->Level 1 extracted {len(l1_conditions)} conditions")
         else:
-            logger.info("Level 1 DISABLED, skipped")
+            logger.info(f"{trace_id}--->Level 1 DISABLED, skipped")
 
         # Level 2: 增强模板匹配 - 使用原始查询
         l2_conditions = []
@@ -461,14 +461,14 @@ class QueryRouter:
             l2_conditions, l2_matched_patterns = await self._match_level2(query)
             l2_candidate_conditions = await self._recall_level2_candidate_conditions(query)
             state.matched_patterns.extend(l2_matched_patterns)
-            logger.info(f"Level 2 matched {len(l2_conditions)} conditions")
+            logger.info(f"{trace_id}--->Level 2 matched {len(l2_conditions)} conditions")
         else:
-            logger.info("Level 2 DISABLED, skipped")
+            logger.info(f"{trace_id}--->Level 2 DISABLED, skipped")
 
         # 合并 L1 和 L2 条件：只要 L2 有结果，就完全丢弃 L1 条件
         if l2_conditions:
             l1_conditions_filtered = []
-            logger.info("L2 matched, dropping all L1 conditions")
+            logger.info(f"{trace_id}--->L2 matched, dropping all L1 conditions")
         else:
             l1_conditions_filtered = l1_conditions
 
@@ -478,7 +478,7 @@ class QueryRouter:
         all_conditions.extend(l1_conditions_filtered)
         all_conditions.extend(l2_conditions)
 
-        logger.info(f"After L2 override: kept {len(l1_conditions_filtered)} from L1, added {len(l2_conditions)} from L2")
+        logger.info(f"{trace_id}--->After L2 override: kept {len(l1_conditions_filtered)} from L1, added {len(l2_conditions)} from L2")
 
         # Level 3: 语义缓存 - 始终对原始查询检索
         cached = None
@@ -493,11 +493,11 @@ class QueryRouter:
         # L1+L2+L3 均无条件 → Level 4 (LLM)
         if not all_conditions:
             if hasattr(self.level2, "is_bare_value_weak_query") and self.level2.is_bare_value_weak_query(query):
-                logger.info("No confirmed L1/L2 conditions for bare value, returning weak OR candidates")
+                logger.info(f"{trace_id}--->No confirmed L1/L2 conditions for bare value, returning weak OR candidates")
                 return self._build_bare_value_weak_result(query, state)
 
             if settings.ENABLE_L4:
-                logger.info("No conditions from L1+L2+L3, falling back to Level 4 (LLM)")
+                logger.info(f"{trace_id}--->No conditions from L1+L2+L3, falling back to Level 4 (LLM)")
                 parsed = await self.level4.parse(query)
                 # parsed = await self.level4.agent_parse(query)
                 # parsed.conditions = self._convert_age_to_birthday(parsed.conditions)
@@ -507,7 +507,7 @@ class QueryRouter:
                 # 向后兼容：ENABLE_RAGE_L2_CANDIDATES=true 且 strategy=llm_only 时使用 l2_priority
                 if settings.ENABLE_RAGE_L2_CANDIDATES and merge_strategy == "llm_only":
                     merge_strategy = "l2_priority"
-                    logger.info("L2-L4 merge: ENABLE_RAGE_L2_CANDIDATES=true, using l2_priority (backward compat)")
+                    logger.info(f"{trace_id}--->L2-L4 merge: ENABLE_RAGE_L2_CANDIDATES=true, using l2_priority (backward compat)")
 
                 if merge_strategy != "llm_only":
                     merge_conditions = await self._recall_level2_candidate_conditions(
@@ -515,16 +515,16 @@ class QueryRouter:
                     )
                     if merge_conditions:
                         logger.info(
-                            f"L2-L4 merge: applying {merge_strategy} with "
-                            f"{len(merge_conditions)} merge_to_llm conditions"
+                            f"{trace_id}--->L2-L4 merge: applying {merge_strategy} with "
+                            f"{trace_id}--->{len(merge_conditions)} merge_to_llm conditions"
                         )
                         parsed.conditions = self._merge_l2_candidate_conditions(
                             parsed.conditions, merge_conditions, strategy=merge_strategy
                         )
                     else:
-                        logger.info("L2-L4 merge: no merge_to_llm conditions matched, skipping merge")
+                        logger.info(f"{trace_id}--->L2-L4 merge: no merge_to_llm conditions matched, skipping merge")
                 else:
-                    logger.info("L2-L4 merge: strategy=llm_only, skipping merge")
+                    logger.info(f"{trace_id}--->L2-L4 merge: strategy=llm_only, skipping merge")
 
                 parsed.conditions = self._enforce_explicit_client_full_name(query, parsed.conditions)
                 parsed.conditions = self._materialize_name_candidate_if_needed(parsed.conditions, state)
@@ -538,7 +538,7 @@ class QueryRouter:
                 return parsed
 
             else:
-                logger.warning("No conditions found and Level 4 DISABLED — returning empty result")
+                logger.warning(f"{trace_id}--->No conditions found and Level 4 DISABLED — returning empty result")
                 return ParsedQuery(conditions=[], query_logic=QueryLogic.AND, confidence=0.0, matched_level=0)
 
         # 确定匹配层级与置信度

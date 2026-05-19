@@ -172,6 +172,25 @@ def test_build_intent_summary_puts_family_relation_before_family_details():
     assert summary.index("有子女") < summary.index("子女年龄")
 
 
+def test_build_intent_summary_formats_exact_family_age_range():
+    service = IntentSummaryService().load()
+    service.unsupported_fields = frozenset()
+
+    conditions = [
+        Condition(field="familyInfo.familyrelation", operator=Operator.MATCH, value="父母"),
+        Condition(
+            field="familyInfo.familyclientage",
+            operator=Operator.RANGE,
+            value=RangeValue(min=70, max=70),
+        ),
+    ]
+
+    summary = service.build_intent_summary(conditions, QueryLogic.AND)
+
+    assert "有父母" in summary
+    assert "父母年龄=70岁" in summary
+
+
 def test_build_intent_summary_only_reorders_family_conditions():
     service = IntentSummaryService().load()
     service.unsupported_fields = frozenset()
