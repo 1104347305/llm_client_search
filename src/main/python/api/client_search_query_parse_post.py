@@ -758,7 +758,7 @@ async def client_search_query_parse_no_encipher(request: ParseApiRequest):
                 f"user_id={request.user_id or '-'} query={mask_for_log(request.user_text)}"
             )
             query_router = await get_query_router()
-            parsed = await query_router.route_with_peeling(request.user_text)
+            parsed = await query_router.route_with_peeling(request.user_text, request.trace_id)
             logger.info(f"query解析总耗时：{time.perf_counter() - start_time}")
 
             raw_conditions = query_router.normalize_date_condition_formats(parsed.conditions or [])

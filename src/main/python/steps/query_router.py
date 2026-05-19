@@ -434,7 +434,7 @@ class QueryRouter:
         4. 若 L1+L2+L3 合计条件为空，则转至 L4 (LLM)
         """
         original_query = query
-        logger.info(f"Routing query: {mask_for_log(original_query)}")
+        logger.info(f"{trace_id}--->Routing query: {mask_for_log(original_query)}")
         query = query.replace(' ', '').replace('。', '')
         normalized_query = self.field_registry.normalize_query(query)
         if normalized_query != query:
