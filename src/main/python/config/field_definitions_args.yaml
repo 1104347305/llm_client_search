@@ -257,7 +257,7 @@ intents:
 
   - id: birthday_exact
     retrieval_text: >
-      生日 出生日期 出生年月日 生日是 出生于 哪年哪月出生 90后 00后 80后 01后
+      生日 出生日期 出生年月日 生日是 出生于 哪年哪月出生 90后 00后 80后 01后 66年出生 83年客户
     field: clientBirthday
     operator: RANGE
     value_type: date
@@ -521,7 +521,7 @@ intents:
   - id: customer_segment_tag
     retrieval_text: >
       客群标签 客群 人群标签 客户画像 人群分类
-      奋斗青年 都市白领 新晋父母 社会中坚 邻退天命 慈爱祖辈 创业新贵 创富一代 荣耀高堂 承富二代 已退小康
+      奋斗青年 都市白领 而立一族 社会中坚 邻退天命 慈爱祖辈 创业新贵 创富一代 荣耀高堂 承富二代 已退小康
     field: clientGroupLabel
     operator: CONTAINS
     value_type: enum

@@ -82,7 +82,7 @@ clientGroupLabel:
   values:
     - "奋斗青年"
     - "都市白领"
-    - "新晋父母"
+    - "而立一族"
     - "社会中坚"
     - "邻退天命"
     - "慈爱祖辈"
@@ -347,3 +347,36 @@ isBuyInsurance:
     - "客户"
     - "准客"
     - "用户"
+
+# 日期/时间字段输出格式。后处理会按这里的格式统一纠正 L2/LLM 输出。
+# - yyyy-MM-dd HH:mm:ss: 缺少时分秒时自动补齐
+# - yyyy-MM-dd: 多出时分秒时自动删除
+date_field_formats:
+  # 客户出生日
+  clientBirthday: "yyyy-MM-dd HH:mm:ss"
+  # 证件有效期
+  idValidDate: "yyyy-MM-dd HH:mm:ss"
+  # 保单到期日
+  validSinsMatuDateTime: "yyyy-MM-dd"
+  # 车险到期时间
+  carInsuranceMatuDateTime: "yyyy-MM-dd"
+  # 缴费期满日
+  effAppEndDate: "yyyy-MM-dd"
+  # 家庭成员生日
+  familyInfo.familyclientbirthday: "yyyy-MM-dd HH:mm:ss"
+  # 保单生效日
+  polNoInfo.poleffdate: "yyyy-MM-dd HH:mm:ss"
+  # 客户添加日
+  dateCreated: "yyyy-MM-dd HH:mm:ss"
+  # 承保日期
+  latelyUndwrtSegTime: "yyyy-MM-dd"
+  # 应缴日
+  polNoInfo.paytodate: "yyyy-MM-dd HH:mm:ss"
+  # 理赔时间
+  polNoInfo.claimdatainfo.claimdate: "yyyy-MM-dd HH:mm:ss"
+  # 退保时间
+  polNoInfo.surrenderDateTime: "yyyy-MM-dd HH:mm:ss"
+  # 犹豫期时间
+  policies_cooling_off: "yyyy-MM-dd HH:mm:ss"
+  # 投保日期
+  policies_insure_date: "yyyy-MM-dd HH:mm:ss"

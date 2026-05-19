@@ -708,7 +708,7 @@ async def client_search_query_parse(request: ParseApiRequest):
             parsed = await query_router.route_with_peeling(request.user_text)
             logger.info(f"query解析总耗时：{time.perf_counter() - start_time}")
 
-            raw_conditions = parsed.conditions or []
+            raw_conditions = query_router.normalize_date_condition_formats(parsed.conditions or [])
             intent_summary = build_intent_summary(raw_conditions, parsed.query_logic)
             conditions = filter_supported_conditions(raw_conditions)
             conditions = query_router.convert_age_to_birthday(conditions)
@@ -765,7 +765,7 @@ async def client_search_query_parse(request: ParseApiRequest):
                 ),
             )
         except Exception as e:
-            logger.error(f"Parse error: {e}")
+            logger.exception(f"Parse error: {e}")
             return ParseApiResponse(code=500, msg=str(e), data=None)
 
 
@@ -786,7 +786,7 @@ async def client_search_query_parse_no_encipher(request: ParseApiRequest):
             parsed = await query_router.route_with_peeling(request.user_text)
             logger.info(f"query解析总耗时：{time.perf_counter() - start_time}")
 
-            raw_conditions = parsed.conditions or []
+            raw_conditions = query_router.normalize_date_condition_formats(parsed.conditions or [])
             intent_summary = build_intent_summary(raw_conditions, parsed.query_logic)
             conditions = filter_supported_conditions(raw_conditions)
             conditions = query_router.convert_age_to_birthday(conditions)
@@ -843,7 +843,7 @@ async def client_search_query_parse_no_encipher(request: ParseApiRequest):
                 ),
             )
         except Exception as e:
-            logger.error(f"Parse error: {e}")
+            logger.exception(f"Parse error: {e}")
             return ParseApiResponse(code=500, msg=str(e), data=None)
 
 

@@ -61,6 +61,7 @@ class QueryRouter:
         # 加载已知字段和枚举值，用于 L4 输出后处理校验
         self._valid_fields: Set[str] = set()
         self._enum_values: Dict[str, List[str]] = {}
+        self._field_time_formats: Dict[str, str] = {}
         self._load_validation_data()
 
         logger.info(
@@ -297,6 +298,7 @@ class QueryRouter:
         finalized = self._enforce_explicit_client_full_name(query, conditions)
         finalized = self._materialize_name_candidate_if_needed(finalized, state)
         finalized = self._validate_conditions(finalized)
+        finalized = self.normalize_date_condition_formats(finalized)
         return self.normalize_conditions_for_summary(finalized)
 
     def _load_validation_data(self):
@@ -318,6 +320,37 @@ class QueryRouter:
                 vals = entry.get('values', []) if isinstance(entry, dict) else list(entry)
                 if vals:
                     self._enum_values[field] = [str(v) for v in vals]
+
+        self._field_time_formats = self._load_field_time_formats()
+
+    def _load_field_time_formats(self) -> Dict[str, str]:
+        """从 field_enums_args.yaml 加载字段日期/时间格式配置。"""
+        field_enums_path = Path(settings.ENUMS_DIR_PATH) / "field_enums_args.yaml"
+        if not field_enums_path.exists():
+            logger.warning(f"field time format config not found: {field_enums_path}")
+            return {}
+
+        raw = yaml.safe_load(field_enums_path.read_text(encoding='utf-8')) or {}
+        configured = raw.get("date_field_formats", {})
+        if not isinstance(configured, dict):
+            logger.warning("field_enums_args.yaml 中 date_field_formats 不是字典，已忽略")
+            return {}
+
+        supported_formats = {"yyyy-MM-dd", "yyyy-MM-dd HH:mm:ss"}
+        formats: Dict[str, str] = {}
+        for field, fmt in configured.items():
+            field_name = str(field).strip()
+            format_text = str(fmt).strip()
+            if not field_name:
+                continue
+            if format_text not in supported_formats:
+                logger.warning(
+                    f"字段 '{field_name}' 的时间格式 '{format_text}' 暂不支持，"
+                    f"仅支持 {sorted(supported_formats)}"
+                )
+                continue
+            formats[field_name] = format_text
+        return formats
 
     def normalize_conditions_for_summary(self, conditions: list[Condition]) -> list[Condition]:
         '''在意图摘要前缀轻量归并：GTE+LTE→RANGE，单值CONTAINS→MATCH。'''
@@ -618,6 +651,80 @@ class QueryRouter:
                 return value[0]
 
         return value
+
+    @staticmethod
+    def _coerce_date_text(value: Any) -> Optional[Tuple[str, Optional[str]]]:
+        if value is None:
+            return None
+        text = str(value).strip()
+        if not text:
+            return None
+
+        match = re.match(
+            r"^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$",
+            text,
+        )
+        if not match:
+            return None
+
+        year, month, day, hour, minute, second = match.groups()
+        return (
+            f"{int(year):04d}-{int(month):02d}-{int(day):02d}",
+            f"{int(hour or 0):02d}:{int(minute or 0):02d}:{int(second or 0):02d}" if hour is not None else None,
+        )
+
+    def _normalize_date_scalar(
+            self,
+            field: str,
+            operator: Operator,
+            value: Any,
+            bound: Optional[str] = None,
+    ) -> Any:
+        field_format = getattr(self, "_field_time_formats", {}).get(field)
+        if field_format not in {"yyyy-MM-dd", "yyyy-MM-dd HH:mm:ss"}:
+            return value
+
+        coerced = self._coerce_date_text(value)
+        if coerced is None:
+            return value
+
+        date_part, time_part = coerced
+        if field_format == "yyyy-MM-dd":
+            return date_part
+
+        if time_part is not None:
+            return f"{date_part} {time_part}"
+
+        if bound == "min" or operator in {Operator.LT, Operator.LTE}:
+            return f"{date_part} 23:59:59"
+        return f"{date_part} 00:00:00"
+
+    def normalize_date_condition_formats(self, conditions: List[Condition]) -> List[Condition]:
+        """按 field_enums_args.yaml 中配置的字段时间格式纠正日期条件值。"""
+        normalized: List[Condition] = []
+        for cond in conditions:
+            if cond.operator in {Operator.EXISTS, Operator.NOT_EXISTS}:
+                normalized.append(cond)
+                continue
+
+            value = cond.value
+            if cond.operator == Operator.RANGE:
+                if isinstance(value, RangeValue):
+                    value = RangeValue(
+                        min=self._normalize_date_scalar(cond.field, cond.operator, value.min, bound="min"),
+                        max=self._normalize_date_scalar(cond.field, cond.operator, value.max, bound="max"),
+                    )
+                elif isinstance(value, dict):
+                    value = {
+                        **value,
+                        "min": self._normalize_date_scalar(cond.field, cond.operator, value.get("min"), bound="min"),
+                        "max": self._normalize_date_scalar(cond.field, cond.operator, value.get("max"), bound="max"),
+                    }
+            else:
+                value = self._normalize_date_scalar(cond.field, cond.operator, value)
+
+            normalized.append(Condition(field=cond.field, operator=cond.operator, value=value))
+        return normalized
 
     def convert_age_to_birthday(self, conditions: List[Condition], today=None) -> List[Condition]:
         """

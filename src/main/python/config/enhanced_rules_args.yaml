@@ -67,8 +67,11 @@ rules:
   - name: "手机号-匹配"
     patterns:
       - '{SEARCH}?(1[3-9]\d{9})'
+      - '{SEARCH}?((?:\d{2,4}-){2,3}\d{2,4})'
       - '{SEARCH}(?:本人)?(?:手机号|手机号码|手机|电话|联系方式){CW}{0,2}(\d{1,11})(?:的客户|客户)?'
+      - '{SEARCH}(?:本人)?(?:手机号|手机号码|手机|电话|联系方式){CW}{0,2}((?:\d{2,4}-){2,3}\d{2,4})(?:的客户|客户)?'
       - '{SEARCH}(?:本人)?(?:手机号|手机号码|手机|电话|联系方式)(?:为|是|匹配|等于|包含|含有|带有)?[：:\s]?(\d{1,11})(?:的客户|客户)?'
+      - '{SEARCH}(?:本人)?(?:手机号|手机号码|手机|电话|联系方式)(?:为|是|匹配|等于|包含|含有|带有)?[：:\s]?((?:\d{2,4}-){2,3}\d{2,4})(?:的客户|客户)?'
       - '{SEARCH}(?:本人)?(?:手机号|手机号码|手机|电话|联系方式)(?:前缀|开头|以)(?:为|是)?[：:\s]?(\d{1,11})(?:开头)?(?:的客户|客户)?'
       - '{SEARCH}(?:本人)?(?:手机号|手机号码|手机|电话|联系方式){CW}{0,2}(\d{1,11})(?:开头|前缀)(?:的客户|客户)?'
       - '{SEARCH}(?:本人)?(?:手机号|手机号码|手机|电话|联系方式)(?:号段|段)(?:为|是)?[：:\s]?(\d{1,11})(?:的客户|客户)?'
@@ -82,6 +85,7 @@ rules:
     value_type: "capture"
     value:
       group: 1
+      transform: "strip_non_digits"
     priority: 10
     merge_to_llm: false
 
@@ -349,13 +353,26 @@ rules:
       - '{SEARCH}(?:出生|出生的|生|出生于|出生在)(\d{4})年(?:的客户|客户)?'
       - '{SEARCH}有没有(?:出生|出生的|生|出生于|出生在)(\d{4})年(?:的客户|客户)?'
       - '{SEARCH}生于(\d{4})年(?:的客户|客户)?'
+      - '{SEARCH}(\d{2})年(?:出生|出生的|生)(?:的客户|客户)?'
+      - '{SEARCH}(\d{2})年(?:的客户|客户)'
     field: "clientBirthday"
     operator: "RANGE"
     value_type: "capture"
     value:
       group: 1
-      transform: "year_to_birth_range"
+      transform: "birth_year_to_birth_range"
     priority: 8
+
+  - name: "出生年份-片段"
+    patterns:
+      - '(\d{2}|\d{4})年(?:出生|出生的|生)?'
+    field: "clientBirthday"
+    operator: "RANGE"
+    value_type: "capture"
+    value:
+      group: 1
+      transform: "birth_year_to_birth_range"
+    priority: 12
 
   - name: "出生日期-年份之后"
     patterns:
@@ -387,6 +404,8 @@ rules:
       - '{SEARCH}生日(?:在)?((?:\d{1,2})月(?:\d{1,2})[日号]?)(?:的客户|客户)?'
       - '{SEARCH}((?:\d{1,2})月(?:份)?)(?:过)?生日(?:的客户|客户)?'
       - '{SEARCH}生日(?:在)?((?:\d{1,2})月(?:份)?)(?:的客户|客户)?'
+      - '{SEARCH}(?<!年)((?:\d{1,2}|正|一|二|两|三|四|五|六|七|八|九|十|十一|十二|冬|腊)月(?:份)?)(?:出生|出生的|生)(?:的客户|客户)?'
+      - '{SEARCH}(?:出生|出生在|出生于)((?:\d{1,2}|正|一|二|两|三|四|五|六|七|八|九|十|十一|十二|冬|腊)月(?:份)?)(?:的客户|客户)?'
     field: "birthdayMd"
     operator: "RANGE"
     value_type: "capture"
@@ -764,7 +783,7 @@ rules:
     value:
       group: 1
     priority: 8
-    merge_to_llm: true
+    merge_to_llm: false
     ignore_case: true
 
   - name: "客户价值-高价值"
@@ -1179,7 +1198,7 @@ rules:
     value_type: "enum_values"
     value:
       enum_ref: "millionMedicalProducts"
-    priority: 15
+    priority: 16
 
   - name: "寿险产品-税优养老"
     patterns:
@@ -2546,7 +2565,7 @@ rules:
 
   - name: "居家达标-泛称"
     patterns:
-      - '{SEARCH}(?<![没无非])(?<!不是)(?:居家达标|居家会员)(?:的客户|客户|有哪些|有哪些人)?'
+      - '{SEARCH}(?<![没无非])(?<!不是)(?:居家客户|居家养老客户|居家达标|居家达标客户|居家会员|居家会员客户|有居家权益的客户)(?:的客户|客户|有哪些|有哪些人)?'
     field: "jujiaClientGrade"
     operator: "CONTAINS"
     value_type: "static"
@@ -2561,6 +2580,22 @@ rules:
     merge_to_llm: true
 
   # ==================== 康养达标客户等级 (kangyangClientGrade) ====================
+
+  - name: "康养达标-泛称"
+    patterns:
+      - '{SEARCH}(?<![没无非])(?<!不是)(?:康养客户|康养达标客户|康养会员|康养会员客户|有康养权益的客户)(?:的客户|客户|有哪些|有哪些人)?'
+    field: "kangyangClientGrade"
+    operator: "CONTAINS"
+    value_type: "static"
+    value:
+      - "逸享会员"
+      - "逸享PLUS会员"
+      - "颐享家会员"
+      - "臻享会员V1"
+      - "臻享会员V2"
+      - "臻享会员V3"
+    priority: 9
+    merge_to_llm: true
 
   - name: "康养达标客户等级"
     enum_ref: "kangyangClientGrade"
@@ -2646,11 +2681,14 @@ rules:
 
   - name: "安有护-持有"
     patterns:
-      - '{SEARCH}(?<![没无非])(?<!不是)安有护(?:的客户|客户)?'
+      - '{SEARCH}(?<![没无非])(?<!不是)(?:安有护客户|安有护达标客户|安有护会员|有安有护权益的客户|安有护)(?:的客户|客户)?'
     field: "zhenxiangRunEquityGrade"
-    operator: "EXISTS"
-    value_type: "none"
-    priority: 6
+    operator: "CONTAINS"
+    value_type: "static"
+    value:
+      - "安有护(国际版)"
+      - "安有护(国内版)"
+    priority: 9
     merge_to_llm: true
 
   # ==================== 臻享家族等级 (zxjyEquityGrade) ====================
@@ -6230,7 +6268,7 @@ rules:
     value:
       group: 1
     priority: 10
-    merge_to_llm: true
+    merge_to_llm: false
 
   - name: "未持有-投保险种简称"
     is_supported: true
@@ -6264,7 +6302,7 @@ rules:
     value:
       group: 1
     priority: 9
-    merge_to_llm: true
+    merge_to_llm: false
 
   # ==================== 受益人姓名 (policies_beneficiary_name) ====================
 
@@ -7830,6 +7868,11 @@ rules:
 
 
 composite_rules:
+
+  - name: "姓名+出生年份"
+    patterns:
+      - '{SEARCH}【姓名-模糊匹配】【出生年份-片段】(?:的客户|客户)?'
+    priority: 40
 
   - name: "投保险种名称+投保险种类型"
     patterns:
