@@ -199,13 +199,13 @@ intents:
   - id: age_range
     retrieval_text: >
       年龄 年龄范围 到岁之间 岁到岁 年龄区间 x岁到x岁
-      30到40岁 中年 青年 老年 年龄段 x岁 30岁
+      30到40岁 中年 青年 老年 年龄段 x岁 30岁 岁左右 年龄左右
     field: clientAge
     operator: RANGE
     value_type: numeric
     unit: "岁，直接取数字"
     description: "表示客户本人年龄范围，不表示家庭成员年龄范围"
-    notes: "语义年龄：青年18-35，中年36-55，老年56-100，未成年0-17；精确年龄（如'35岁'）用 RANGE {min:x,max:x}"
+    notes: "语义年龄：青年18-35，中年36-55，老年56-100，未成年0-17；精确年龄（如'35岁'）用 RANGE {min:x,max:x}；年龄左右按上下各5岁输出，如40岁左右→RANGE {min:35,max:45}"
     examples:
       - query: "30到40岁的客户"
         output: {field: clientAge, operator: RANGE, value: {min: 30, max: 40}}
@@ -213,6 +213,8 @@ intents:
         output: {field: clientAge, operator: RANGE, value: {min: 36, max: 55}}
       - query: "35岁的客户"
         output: {field: clientAge, operator: RANGE, value: {min: 35, max: 35}}
+      - query: "40岁左右的客户"
+        output: {field: clientAge, operator: RANGE, value: {min: 35, max: 45}}
       - query: "40或50岁的客户"
         query_logic: OR
         conditions: [{ field: clientAge, operator: RANGE, value: { min: 40, max: 40 } }, { field: clientAge, operator: RANGE, value: { min: 50, max: 50 }}]

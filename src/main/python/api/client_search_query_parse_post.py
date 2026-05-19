@@ -28,9 +28,9 @@ from src.main.python.services.search_service import SearchService
 from src.main.python.steps.field_registry import get_field_registry
 from src.main.python.steps.query_router import QueryRouter
 from src.main.python.steps.intent_summary import (
+    IntentSummaryService,
     build_intent_summary,
     filter_supported_conditions,
-    reload_intent_summary_service,
 )
 from src.main.python.db.request_logger import get_request_logger
 from src.main.python.config.settings import settings
@@ -325,7 +325,11 @@ def _schedule_runtime_reload(
         logger.info("配置热更新任务已在运行，本次请求复用当前后台任务")
         return False
 
-    if _query_router_load_task is not None and not _query_router_load_task.done():
+    if (
+        _query_router_load_task is not None
+        and not _query_router_load_task.done()
+        and _query_router_load_delayed
+    ):
         _query_router_load_task.cancel()
 
     _runtime_reload_task = asyncio.create_task(
@@ -405,51 +409,70 @@ def reload_runtime_components(
 ) -> Dict[str, Any]:
     """热更新运行时配置与依赖组件。"""
     global search_service, _query_router, _query_router_load_task, _query_router_load_delayed
+    import src.main.python.models.field_mapping as field_mapping_module
+    import src.main.python.steps.intent_summary as intent_summary_module
+    import src.main.python.steps.level2_enhanced_matcher as level2_module
+    import src.main.python.steps.field_registry as reg_module
 
-    reload_meta = settings.reload()
-    reloaded_yaml_files = _collect_config_yaml_files()
+    old_settings = dict(settings.__dict__)
+    old_field_mapping_config = dict(getattr(field_mapping_module, "_CONFIG", {}) or {})
+    old_field_mapping_mtime_ns = getattr(field_mapping_module, "_CONFIG_MTIME_NS", None)
+    old_query_fields = dict(getattr(field_mapping_module, "QUERY_FIELDS", {}) or {})
+    old_negation_words = list(getattr(field_mapping_module, "NEGATION_WORDS", []) or [])
+    old_level2_negation_words = list(getattr(level2_module, "NEGATION_WORDS", []) or [])
 
-    if reload_scope == "intent_summary":
-        intent_summary_service = reload_intent_summary_service()
+    try:
+        reload_meta = settings.reload()
+        reloaded_yaml_files = _collect_config_yaml_files()
+
+        if reload_scope == "intent_summary":
+            intent_summary_service = IntentSummaryService().load()
+            intent_summary_module._intent_summary_service = intent_summary_service
+            return {
+                "env": reload_meta["env"],
+                "config_path": reload_meta["config_path"],
+                "field_definitions_path": settings.FIELD_DEFINITIONS_PATH,
+                "force_reindex_fields": False,
+                "reloaded_yaml_files": [item["path"] for item in selected_files or []],
+                "selected_files": selected_files or [],
+                "reload_scope": reload_scope,
+                "field_intent_total": None,
+                "intent_summary_labels_path": str(intent_summary_service.labels_path),
+            }
+
+        field_mapping_module.reload_field_mapping()
+        level2_module.NEGATION_WORDS = field_mapping_module.NEGATION_WORDS
+
+        registry = reg_module.FieldRegistry(force_reindex=force_reindex_fields)
+        intent_summary_service = IntentSummaryService().load()
+        query_router = QueryRouter(field_registry=registry)
+
+        reg_module._registry = registry
+        intent_summary_module._intent_summary_service = intent_summary_service
+        _query_router = query_router
+        _query_router_load_task = None
+        _query_router_load_delayed = False
+
         return {
             "env": reload_meta["env"],
             "config_path": reload_meta["config_path"],
             "field_definitions_path": settings.FIELD_DEFINITIONS_PATH,
-            "force_reindex_fields": False,
-            "reloaded_yaml_files": [item["path"] for item in selected_files or []],
+            "force_reindex_fields": force_reindex_fields,
+            "reloaded_yaml_files": [item["path"] for item in selected_files] if selected_files else reloaded_yaml_files,
             "selected_files": selected_files or [],
             "reload_scope": reload_scope,
-            "field_intent_total": None,
+            "field_intent_total": len(registry.intents),
             "intent_summary_labels_path": str(intent_summary_service.labels_path),
         }
-
-    import src.main.python.models.field_mapping as field_mapping_module
-    import src.main.python.steps.level2_enhanced_matcher as level2_module
-    import src.main.python.steps.field_registry as reg_module
-
-    field_mapping_module.reload_field_mapping()
-    level2_module.NEGATION_WORDS = field_mapping_module.NEGATION_WORDS
-
-    registry = reg_module.FieldRegistry(force_reindex=force_reindex_fields)
-    reg_module._registry = registry
-
-    intent_summary_service = reload_intent_summary_service()
-
-    _query_router = QueryRouter()
-    _query_router_load_task = None
-    _query_router_load_delayed = False
-
-    return {
-        "env": reload_meta["env"],
-        "config_path": reload_meta["config_path"],
-        "field_definitions_path": settings.FIELD_DEFINITIONS_PATH,
-        "force_reindex_fields": force_reindex_fields,
-        "reloaded_yaml_files": [item["path"] for item in selected_files] if selected_files else reloaded_yaml_files,
-        "selected_files": selected_files or [],
-        "reload_scope": reload_scope,
-        "field_intent_total": len(registry.intents),
-        "intent_summary_labels_path": str(intent_summary_service.labels_path),
-    }
+    except Exception:
+        settings.__dict__.clear()
+        settings.__dict__.update(old_settings)
+        field_mapping_module._CONFIG = old_field_mapping_config
+        field_mapping_module._CONFIG_MTIME_NS = old_field_mapping_mtime_ns
+        field_mapping_module.QUERY_FIELDS = old_query_fields
+        field_mapping_module.NEGATION_WORDS = old_negation_words
+        level2_module.NEGATION_WORDS = old_level2_negation_words
+        raise
 
 
 async def _load_query_router() -> QueryRouter:
@@ -625,6 +648,15 @@ async def get_query_router() -> QueryRouter:
         _query_router_load_delayed = False
 
     if _query_router_load_task is None:
+        if _runtime_reload_task is not None and not _runtime_reload_task.done():
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "status": "runtime_reloading",
+                    "message": "运行时配置正在热更新，当前 worker 暂无可用旧运行时，请稍后重试",
+                    **_runtime_reload_status(),
+                },
+            )
         logger.info("Query router not ready; loading before handling request")
         _query_router_load_task = asyncio.create_task(_load_query_router())
 

@@ -10,7 +10,7 @@ from src.main.python.steps.level1_rule_engine import Level1RuleEngine
 from src.main.python.steps.level2_enhanced_matcher import Level2EnhancedMatcher
 from src.main.python.steps.level3_semantic_cache import Level3SemanticCache
 from src.main.python.steps.level4_llm_parser import Level4LLMParser
-from src.main.python.steps.field_registry import get_field_registry
+from src.main.python.steps.field_registry import FieldRegistry, get_field_registry
 from src.main.python.config.settings import settings
 from src.main.python.models.field_mapping import get_query_field, QUERY_FIELDS
 from typing import List, Tuple, Optional, Set, Dict, Any
@@ -51,12 +51,12 @@ class QueryRouter:
         "投保人", "被保人", "被保险人", "受益人", "联系人",
     )
 
-    def __init__(self):
+    def __init__(self, field_registry: Optional[FieldRegistry] = None):
         self.level1 = Level1RuleEngine()
         self.level2 = Level2EnhancedMatcher()
         # self.level3 = Level3SemanticCache() if settings.ENABLE_L3 else None
-        self.level4 = Level4LLMParser(level2_recall=self.level2)
-        self.field_registry = get_field_registry()
+        self.field_registry = field_registry or get_field_registry()
+        self.level4 = Level4LLMParser(level2_recall=self.level2, field_registry=self.field_registry)
 
         # 加载已知字段和枚举值，用于 L4 输出后处理校验
         self._valid_fields: Set[str] = set()

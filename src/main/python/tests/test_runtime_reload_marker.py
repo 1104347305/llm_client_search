@@ -1,3 +1,4 @@
+import asyncio
 import sys
 import types
 import pytest
@@ -103,6 +104,11 @@ def test_runtime_reload_marker_skips_when_already_seen(monkeypatch, tmp_path):
     assert calls == []
 
 
+class _RunningTask:
+    def done(self):
+        return False
+
+
 @pytest.mark.asyncio
 async def test_get_query_router_schedules_stale_marker_without_blocking_current_router(monkeypatch, tmp_path):
     marker_path = tmp_path / ".client_search_runtime_reload.json"
@@ -129,12 +135,116 @@ async def test_get_query_router_schedules_stale_marker_without_blocking_current_
     assert calls == [(False, marker_path.stat().st_mtime_ns)]
 
 
+@pytest.mark.asyncio
+async def test_get_query_router_fails_fast_when_reloading_without_previous_runtime(monkeypatch):
+    async def load_query_router():
+        raise AssertionError("query router should not load during runtime reload")
+
+    monkeypatch.setattr(routes, "_query_router", None)
+    monkeypatch.setattr(routes, "_query_router_load_task", None)
+    monkeypatch.setattr(routes, "_runtime_reload_task", _RunningTask())
+    monkeypatch.setattr(routes, "_last_runtime_reload_error", None)
+    monkeypatch.setattr(routes, "_last_runtime_reload_result", None)
+    monkeypatch.setattr(routes, "_ensure_runtime_config_current", lambda: None)
+    monkeypatch.setattr(routes, "_load_query_router", load_query_router)
+
+    with pytest.raises(routes.HTTPException) as exc_info:
+        await routes.get_query_router()
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail["status"] == "runtime_reloading"
+
+
+@pytest.mark.asyncio
+async def test_get_query_router_uses_existing_load_task_while_reloading(monkeypatch):
+    expected_router = object()
+    load_task = asyncio.create_task(asyncio.sleep(0, result=expected_router))
+
+    monkeypatch.setattr(routes, "_query_router", None)
+    monkeypatch.setattr(routes, "_query_router_load_task", load_task)
+    monkeypatch.setattr(routes, "_query_router_load_delayed", False)
+    monkeypatch.setattr(routes, "_runtime_reload_task", _RunningTask())
+    monkeypatch.setattr(routes, "_last_runtime_reload_error", None)
+    monkeypatch.setattr(routes, "_last_runtime_reload_result", None)
+    monkeypatch.setattr(routes, "_ensure_runtime_config_current", lambda: None)
+
+    router = await routes.get_query_router()
+
+    assert router is expected_router
+
+
 def test_resolve_reload_file_selection_accepts_alias():
     selected, scope = routes._resolve_reload_file_selection(["intent_summary"])
 
     assert scope == "intent_summary"
     assert len(selected) == 1
     assert selected[0]["alias"] == "intent_summary"
+
+
+def test_reload_runtime_components_keeps_previous_runtime_on_failure(monkeypatch):
+    from src.main.python.models import field_mapping as field_mapping_module
+    from src.main.python.steps import field_registry as reg_module
+    from src.main.python.steps import level2_enhanced_matcher as level2_module
+
+    old_router = object()
+    old_registry = object()
+    old_api_port = routes.settings.API_PORT
+    old_config = {"query_fields": {"customer_name": "oldName"}, "negation_words": ["旧"]}
+    old_query_fields = {"customer_name": "oldName"}
+    old_negation_words = ["旧"]
+    old_level2_negation_words = ["旧"]
+
+    monkeypatch.setattr(routes, "_query_router", old_router)
+    monkeypatch.setattr(reg_module, "_registry", old_registry)
+    monkeypatch.setattr(field_mapping_module, "_CONFIG", old_config)
+    monkeypatch.setattr(field_mapping_module, "_CONFIG_MTIME_NS", 123)
+    monkeypatch.setattr(field_mapping_module, "QUERY_FIELDS", old_query_fields)
+    monkeypatch.setattr(field_mapping_module, "NEGATION_WORDS", old_negation_words)
+    monkeypatch.setattr(level2_module, "NEGATION_WORDS", old_level2_negation_words)
+    monkeypatch.setattr(routes, "_collect_config_yaml_files", lambda: [])
+
+    def reload_settings():
+        routes.settings.API_PORT = 18000
+        return {"env": "dev", "config_path": "new.yaml"}
+
+    def reload_field_mapping():
+        field_mapping_module._CONFIG = {"query_fields": {"customer_name": "newName"}}
+        field_mapping_module._CONFIG_MTIME_NS = 456
+        field_mapping_module.QUERY_FIELDS = {"customer_name": "newName"}
+        field_mapping_module.NEGATION_WORDS = ["新"]
+
+    class FakeRegistry:
+        intents = []
+
+        def __init__(self, force_reindex=False):
+            self.force_reindex = force_reindex
+
+    class FakeIntentSummaryService:
+        labels_path = "new-labels.yaml"
+
+        def load(self):
+            return self
+
+    def build_query_router(*args, **kwargs):
+        raise RuntimeError("bad router")
+
+    monkeypatch.setattr(routes.settings, "reload", reload_settings)
+    monkeypatch.setattr(field_mapping_module, "reload_field_mapping", reload_field_mapping)
+    monkeypatch.setattr(reg_module, "FieldRegistry", FakeRegistry)
+    monkeypatch.setattr(routes, "IntentSummaryService", FakeIntentSummaryService)
+    monkeypatch.setattr(routes, "QueryRouter", build_query_router)
+
+    with pytest.raises(RuntimeError, match="bad router"):
+        routes.reload_runtime_components()
+
+    assert routes._query_router is old_router
+    assert reg_module._registry is old_registry
+    assert routes.settings.API_PORT == old_api_port
+    assert field_mapping_module._CONFIG == old_config
+    assert field_mapping_module._CONFIG_MTIME_NS == 123
+    assert field_mapping_module.QUERY_FIELDS == old_query_fields
+    assert field_mapping_module.NEGATION_WORDS == old_negation_words
+    assert level2_module.NEGATION_WORDS == old_level2_negation_words
 
 
 def test_resolve_reload_file_selection_accepts_file_name():

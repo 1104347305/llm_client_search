@@ -39,7 +39,7 @@ except ImportError:  # pragma: no cover - 开发环境未安装 openai 时降级
 from pydantic import BaseModel, Field
 from src.main.python.config.settings import settings
 from src.main.python.models.schemas import ParsedQuery, Condition, QueryLogic, Operator, RangeValue
-from src.main.python.steps.field_registry import get_field_registry
+from src.main.python.steps.field_registry import FieldRegistry, get_field_registry
 from src.main.python.steps.level2_enhanced_matcher import Level2EnhancedMatcher
 from src.main.python.steps.time_range_resolver import resolve_dynamic_date_placeholder
 from src.main.python.utils.sensitive_masking import mask_for_log
@@ -68,14 +68,18 @@ class QueryAnalysisResult(BaseModel):
 class Level4LLMParser:
     """LLM 解析器 - 使用原生异步 OpenAI 兼容接口作为兜底方案（集成 RAG 字段检索）"""
 
-    def __init__(self, level2_recall: Optional[Level2EnhancedMatcher] = None):
+    def __init__(
+        self,
+        level2_recall: Optional[Level2EnhancedMatcher] = None,
+        field_registry: Optional[FieldRegistry] = None,
+    ):
         """初始化 LLM 解析器"""
         # 加载字段注册表（RAG 检索）
         # from agno.agent import Agent
         # from agno.models.dashscope import DashScope
 
         # 加载字段注册表（RAG检索）
-        self.field_registry = get_field_registry()
+        self.field_registry = field_registry or get_field_registry()
         self.level2_recall = level2_recall if settings.ENABLE_L4_RAG_L2 else None
         if settings.ENABLE_L4_RAG_L2 and self.level2_recall is None:
             self.level2_recall = Level2EnhancedMatcher()

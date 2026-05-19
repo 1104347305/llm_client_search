@@ -314,7 +314,7 @@ rules:
       group: 1
       transform: "chinese_decade_plus_range"
       offset: -5
-      range: 10
+      range: 5
     priority: 10
     merge_to_llm: true
 

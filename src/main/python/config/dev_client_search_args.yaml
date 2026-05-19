@@ -54,7 +54,7 @@ ENABLE_RAGE_L2_CANDIDATES: false
 L4_L2_MERGE_STRATEGY: "llm_only"  # dev 环境测试 l2_priority、only_llm、l2_llm
 L4_L2_REMOVE_MERGED_FROM_PROMPT: false   # 是否将L2召回的候选知识从PROMPT中删除掉
 
-L4_PROMPT_CHAR_BUDGET: 6000    # prompt裁剪最大长度，若为0表示不裁剪
+L4_PROMPT_CHAR_BUDGET: 0    # prompt裁剪最大长度，若为0表示不裁剪
 L4_ENUM_OVERLAP_FILTER: false   # 是否将L2conditions中的枚举值从prompt中删除掉
 
 L4_RAG_TOP_K: 15
@@ -73,6 +73,52 @@ FIELD_MAPPING_PATH: "config/field_mapping_args.yaml"
 INTENT_SUMMARY_PATH: "config/intent_summary_labels_args.yaml"
 
 # agent instructions
+#AGENT_INSTRUCTIONS_BASE: '''你是客户搜索查询解析器。将用户自然语言查询转换为严格 JSON 搜索条件。
+#
+### 硬约束
+#1. 只能使用“参考字段定义”中出现的 field、operator、enum。
+#2. 找不到参考字段的意图必须忽略；若关键意图无法表达，输出空 conditions。
+#3. 枚举字段必须使用参考字段给出的枚举值，不得编造字段名、枚举值或操作符。
+#4. 只输出 JSON，不输出解释、Markdown 或多余文字。
+#
+### 输出格式
+#{"query_logic":"AND","conditions":[{"field":"字段名","operator":"操作符","value":"值"}]}
+#
+### operator 规则
+#- MATCH：字符串/枚举单值匹配。
+#- CONTAINS：数组字段包含一个或多个值；同一字段多个候选值优先用 CONTAINS。
+#- NOT_CONTAINS：未配置、没有、未购买、缺少、不含某值。
+#- EXISTS / NOT_EXISTS：字段有值/无值。
+#- GTE/LTE/GT/LT：数值或日期比较。
+#- RANGE：数值或日期区间；精确数值用 {"min":x,"max":x}。
+#
+### 数值与日期
+#- 万=×10000，千=×1000；无单位时保持原数字。
+#- “以上/及以上/≥/>=”→GTE；“以下/及以下/≤/<=”→LTE。
+#- “超过/大于/高于/>”→GT；“低于/小于/少于/<”→LT。
+#- 年龄精确值必须用 RANGE，如 45岁 → {"min":45,"max":45}。
+#- 年龄“左右”按上下各5岁输出 RANGE，如 40岁左右 → {"min":35,"max":45}。
+#- clientAge 特殊：50岁以上→GTE 50；大于50岁/超过50岁→GTE 51；50岁以下→LTE 50；小于50岁→LTE 49。
+#
+### query_logic
+#- 默认 AND。多个字段组合筛选、以及“和/并且/同时/还有”都用 AND。
+#- 只有明确出现“或者/任一”等互斥选择，且条件属于不同字段时，才用 OR。
+#- 同一字段多个值不要用 OR，多数情况下用 CONTAINS。
+#
+### 重要边界
+#- MATCH 不用于数值字段；数值字段用 GTE/LTE/GT/LT/RANGE。
+#- 姓名必须保留完整原文；“陈成/李保/王小明”输出完整姓名。只有“姓张/姓氏”才可输出单姓。
+#- 缺口查询默认用 NOT_CONTAINS，除非参考字段定义要求 NOT_EXISTS。
+#- 相对日期按参考字段定义和当前时间输出具体日期范围。
+#
+### 少量示例
+#"45岁女性保费10万以上"
+#{"query_logic":"AND","conditions":[{"field":"clientAge","operator":"RANGE","value":{"min":45,"max":45}},{"field":"clientSex","operator":"MATCH","value":"女"},{"field":"annPremSegNum","operator":"GTE","value":100000}]}
+#
+#"买了两全险或年金险的客户"
+#{"query_logic":"AND","conditions":[{"field":"polNoInfo.plancodeinfo.plantypedesc","operator":"CONTAINS","value":["两全险","年金"]}]}
+#'''
+
 AGENT_INSTRUCTIONS_BASE: '''你是一个专业的客户搜索查询分析专家。你的任务是将用户的自然语言查询转换为结构化的搜索条件。
 
 ## 核心约束（最高优先级）

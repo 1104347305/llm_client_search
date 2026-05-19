@@ -1,0 +1,6 @@
+{"id":"intent_001","query":"男客户","expected":{"query_logic":"AND","conditions":[{"field":"clientSex","operator":"MATCH","value":"男"}]},"tags":["gender","condition_to_intent"]}
+{"id":"intent_002","query":"45岁以上客户","expected":{"query_logic":"AND","conditions":[{"field":"clientAge","operator":"GTE","value":45}]},"tags":["age","condition_to_intent"]}
+{"id":"intent_003","query":"客户温度包含高温","expected_intent_lines":["客户温度包含高温的客户"],"tags":["temperature","intent_text"]}
+{"id":"intent_004","query":"未识别示例","expected":{"query_logic":"AND","conditions":[]},"tags":["no_conditions","condition_to_intent"]}
+{"id":"intent_005","query":"犹豫期内客户","expected":{"query_logic":"AND","conditions":[{"field":"policies_cooling_off","operator":"RANGE","value":{"min":"2026-01-01","max":"2026-01-31"}}]},"tags":["unsupported","condition_to_intent"]}
+{"id":"intent_006","query":"男客户或者女客户","expected":{"query_logic":"OR","conditions":[{"field":"clientSex","operator":"MATCH","value":"男"},{"field":"clientSex","operator":"MATCH","value":"女"}]},"tags":["query_logic_or","condition_to_intent"]}

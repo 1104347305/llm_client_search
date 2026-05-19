@@ -1,0 +1,15 @@
+{
+  "verdict": ["pass", "fail", "uncertain"],
+  "severity": ["high", "medium", "low"],
+  "error_types": [
+    "unparsed",
+    "missing_condition",
+    "extra_condition",
+    "duplicate_condition_across_fields",
+    "field_wrong",
+    "operator_wrong",
+    "value_wrong",
+    "logic_wrong",
+    "unsupported_handling_wrong"
+  ]
+}

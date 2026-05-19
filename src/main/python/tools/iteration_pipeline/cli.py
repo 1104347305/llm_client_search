@@ -7,7 +7,15 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import httpx
+
 from src.main.python.tools.iteration_pipeline.change_set import load_change_set, write_template
+from src.main.python.tools.iteration_pipeline.change_set_generator import (
+    build_change_set_from_spec_file,
+    build_change_set_from_field_spec,
+    parse_list_arg,
+)
+from src.main.python.tools.iteration_pipeline.config_apply import apply_change_set_to_config
 from src.main.python.tools.iteration_pipeline.config_lint import has_errors, lint_change_set
 from src.main.python.tools.iteration_pipeline.evaluator import (
     EvalOptions,
@@ -70,6 +78,86 @@ def _cmd_generate_testset(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_generate_change_set(args: argparse.Namespace) -> int:
+    output = Path(args.output).resolve()
+    if args.spec_file:
+        change_set = build_change_set_from_spec_file(
+            spec_path=Path(args.spec_file).resolve(),
+            output=output,
+            owner=args.owner,
+            change_id=args.id,
+            title=args.title,
+            reason=args.reason,
+        )
+    else:
+        missing = [name for name in ("field", "name", "type") if not getattr(args, name)]
+        if missing:
+            raise SystemExit(f"--{', --'.join(missing)} required when --spec-file is not provided")
+        change_set = build_change_set_from_field_spec(
+            field=args.field,
+            chinese_name=args.name,
+            field_type=args.type,
+            enum_values=parse_list_arg(args.enum_values),
+            date_format=args.format,
+            numeric_unit=args.unit,
+            ordered=args.ordered,
+            owner=args.owner,
+            change_id=args.id,
+            title=args.title,
+            reason=args.reason,
+            output=output,
+        )
+    print(f"generated change set: {output}")
+    print(f"fields: {len(change_set.get('fields') or [])}")
+    print(f"l2_rules: {len(change_set.get('l2_rules') or [])}")
+    print(f"test_cases: {len(change_set.get('test_cases') or [])}")
+    return 0
+
+
+def _cmd_apply_change_set(args: argparse.Namespace) -> int:
+    change_set = load_change_set(args.change_set)
+    messages = lint_change_set(change_set.raw)
+    for message in messages:
+        print(f"[{message.level}] {message.message}")
+    if has_errors(messages) and not args.ignore_lint_errors:
+        print("lint failed; use --ignore-lint-errors to apply anyway")
+        return 1
+
+    patch_output = Path(args.patch_output).resolve() if args.patch_output else None
+    config_dir = Path(args.config_dir).resolve() if args.config_dir else None
+    result = apply_change_set_to_config(
+        change_set,
+        config_dir=config_dir,
+        apply=args.apply,
+        patch_output=patch_output,
+    )
+    for message in result.messages:
+        print(message)
+    print(f"patch: {result.patch_path}")
+    if result.changed_files:
+        action = "updated" if args.apply else "would update"
+        for path in result.changed_files:
+            print(f"{action}: {path}")
+    else:
+        print("no config changes")
+    if not args.apply:
+        print("dry-run only; add --apply to write config files")
+    return 0
+
+
+async def _reload_runtime_config(base_url: str, timeout_seconds: float, force_reindex_fields: bool) -> None:
+    timeout = httpx.Timeout(timeout_seconds)
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.post(
+            f"{base_url.rstrip('/')}/api/v1/reload_config",
+            json={"force_reindex_fields": force_reindex_fields, "wait": True},
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if not payload.get("success"):
+            raise RuntimeError(f"config reload failed: {payload}")
+
+
 async def _run_eval(args: argparse.Namespace) -> int:
     change_set = load_change_set(args.change_set)
     messages = lint_change_set(change_set.raw)
@@ -78,6 +166,28 @@ async def _run_eval(args: argparse.Namespace) -> int:
     if has_errors(messages) and not args.ignore_lint_errors:
         print("lint failed; use --ignore-lint-errors to evaluate anyway")
         return 1
+
+    if getattr(args, "apply_config", False):
+        patch_output = Path(args.patch_output).resolve() if getattr(args, "patch_output", None) else None
+        config_dir = Path(args.config_dir).resolve() if getattr(args, "config_dir", None) else None
+        apply_result = apply_change_set_to_config(
+            change_set,
+            config_dir=config_dir,
+            apply=True,
+            patch_output=patch_output,
+        )
+        for message in apply_result.messages:
+            print(message)
+        print(f"patch: {apply_result.patch_path}")
+        for path in apply_result.changed_files:
+            print(f"updated: {path}")
+        if not getattr(args, "skip_reload", False):
+            await _reload_runtime_config(
+                args.base_url,
+                args.timeout,
+                force_reindex_fields=not getattr(args, "no_force_reindex", False),
+            )
+            print("runtime config reloaded")
 
     testset_path = Path(args.testset).resolve() if args.testset else change_set.testset_path
     if testset_path and testset_path.exists():
@@ -583,6 +693,33 @@ def build_parser() -> argparse.ArgumentParser:
     gen_parser.add_argument("--output")
     gen_parser.set_defaults(func=_cmd_generate_testset)
 
+    spec_parser = subparsers.add_parser(
+        "generate-change-set",
+        help="generate change_set.yaml from minimal field metadata",
+    )
+    spec_parser.add_argument("--spec-file", help="YAML/JSON file containing a fields list for batch generation")
+    spec_parser.add_argument("--field", help="field English name")
+    spec_parser.add_argument("--name", help="field Chinese display name")
+    spec_parser.add_argument("--type", choices=["enum", "date", "numeric", "text", "string"])
+    spec_parser.add_argument("--output", required=True, help="where to write change_set.yaml")
+    spec_parser.add_argument("--enum-values", help="comma-separated enum values for enum fields")
+    spec_parser.add_argument("--ordered", action="store_true", help="mark enum values as ordered")
+    spec_parser.add_argument("--format", help="date format, e.g. yyyy-MM-dd HH:mm:ss")
+    spec_parser.add_argument("--unit", help="numeric unit, e.g. 岁/元/万")
+    spec_parser.add_argument("--id", help="change set id")
+    spec_parser.add_argument("--title")
+    spec_parser.add_argument("--owner")
+    spec_parser.add_argument("--reason")
+    spec_parser.set_defaults(func=_cmd_generate_change_set)
+
+    apply_parser = subparsers.add_parser("apply-change-set", help="merge a change set into YAML config files")
+    apply_parser.add_argument("--change-set", required=True)
+    apply_parser.add_argument("--config-dir", help="config directory; defaults to src/main/python/config")
+    apply_parser.add_argument("--patch-output", help="where to write the generated unified diff")
+    apply_parser.add_argument("--apply", action="store_true", help="write config files; default is dry-run")
+    apply_parser.add_argument("--ignore-lint-errors", action="store_true")
+    apply_parser.set_defaults(func=_cmd_apply_change_set)
+
     eval_parser = subparsers.add_parser("eval", help="evaluate parse API with a JSONL testset")
     eval_parser.add_argument("--change-set", required=True)
     eval_parser.add_argument("--testset")
@@ -599,6 +736,11 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--timeout", type=float, default=30.0)
     run_parser.add_argument("--concurrency", type=int, default=4)
     run_parser.add_argument("--ignore-lint-errors", action="store_true")
+    run_parser.add_argument("--apply-config", action="store_true", help="merge change set into YAML config before evaluation")
+    run_parser.add_argument("--config-dir", help="config directory; defaults to src/main/python/config")
+    run_parser.add_argument("--patch-output", help="where to write the generated config diff")
+    run_parser.add_argument("--skip-reload", action="store_true", help="do not call runtime config reload after --apply-config")
+    run_parser.add_argument("--no-force-reindex", action="store_true", help="reload config without rebuilding field RAG index")
     run_parser.set_defaults(func=_cmd_eval)
 
     batch_parser = subparsers.add_parser("batch-eval", help="evaluate an ad-hoc batch of questions")

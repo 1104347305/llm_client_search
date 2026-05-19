@@ -1,0 +1,1677 @@
+{
+  "cases": [
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30012.76549999602,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0001",
+      "query": "张三",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.84316702932,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0002",
+      "query": "手机号为13800138000",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.726208979264,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0003",
+      "query": "保单号202001000001",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.662916064262,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0004",
+      "query": "身份证号110101198005150012",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.571500001475,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0005",
+      "query": "查找45岁以上未配置养老险的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.503292031586,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0006",
+      "query": "50岁以上",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.440708085895,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0007",
+      "query": "二十多岁刚结婚的青年客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.384791012853,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0008",
+      "query": "18-40岁客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.27875002101,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0009",
+      "query": "35岁有小朋友还没配置重疾险的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.220749928616,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0010",
+      "query": "所有万能险客户名单",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.143208942376,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0011",
+      "query": "未配置医疗险客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.110207992606,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0012",
+      "query": "未配置百万医疗的",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.081874947995,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0013",
+      "query": "有重疾险客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.033582962118,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0014",
+      "query": "有意向医疗客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.98887493834,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0015",
+      "query": "e生保客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.933374981396,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0016",
+      "query": "子女在3-5周岁的",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.565832998604,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0017",
+      "query": "离职员工的孤儿单客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.76795800589,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0018",
+      "query": "孤儿单",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.673374980688,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0019",
+      "query": "客户年交保费20万以上",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.598291987553,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0020",
+      "query": "男",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.54316700436,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0021",
+      "query": "本月生日的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.464792018756,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0022",
+      "query": "下月生日的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.395916989073,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0023",
+      "query": "1953年出生的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.342290969566,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0024",
+      "query": "20岁",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.995833034627,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0025",
+      "query": "已婚的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.66629199218,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0026",
+      "query": "本科以上的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.574959049933,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0027",
+      "query": "有车的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.497124929912,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0028",
+      "query": "客户号C00000000001",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.42054111045,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0029",
+      "query": "客价B类及以上",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.345124936663,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0030",
+      "query": "客价BC的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.276458988898,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0031",
+      "query": "中温及以上的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.234125022776,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0032",
+      "query": "黄金V1",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.34979107417,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0033",
+      "query": "铂金以上客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.338333012536,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0034",
+      "query": "在职有效单",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.275874911807,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0035",
+      "query": "已托管保单的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.285874987952,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0036",
+      "query": "买了e生保的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.22604205273,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0037",
+      "query": "万能险客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.176957977004,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0038",
+      "query": "配置了意外伤害保险",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.12616597209,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0039",
+      "query": "配置了车险的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.086583947763,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0040",
+      "query": "配置了养老险产品的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30006.195541936904,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0041",
+      "query": "年缴保费5000以上的",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.41737501044,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0042",
+      "query": "保额20万以上的",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.285708932206,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0043",
+      "query": "未购买学平险产品",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.214040982537,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0044",
+      "query": "有过综拓产品理赔报案",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.155417020433,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0045",
+      "query": "购买了意健险的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.080041941255,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0046",
+      "query": "未购买国意健险的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.013333051465,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0047",
+      "query": "居家潜客",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.952250048518,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0048",
+      "query": "居家客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.836000083946,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0049",
+      "query": "康养客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.72841707617,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0050",
+      "query": "安有护国际版客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.665250006132,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0051",
+      "query": "臻享家医客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.66712510772,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0052",
+      "query": "有子女",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.59554202482,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0053",
+      "query": "未成年子女",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.528958979994,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0054",
+      "query": "P088821210",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.48295804765,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0055",
+      "query": "有等待续保保单的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.41762507055,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0056",
+      "query": "有除责条款的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30010.416041943245,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0057",
+      "query": "购买过守护百分百的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30009.65087499935,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0058",
+      "query": "购买过任我行的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30009.547208086587,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0059",
+      "query": "购买过两全产品的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30009.480249951594,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0060",
+      "query": "受益人叫张三",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30009.435791987926,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0061",
+      "query": "有生存金利息没领的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30009.373959037475,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0062",
+      "query": "去年理赔的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30009.319333010353,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0063",
+      "query": "e生保理赔过的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30009.262791951187,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0064",
+      "query": "平安理赔客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.371249979362,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0065",
+      "query": "45岁女性保费10万以上",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.369457998313,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0066",
+      "query": "二十多岁刚结婚的青年客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.296000046656,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0067",
+      "query": "A类冷却客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.25462499354,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0068",
+      "query": "有生存金未领取",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.201625055633,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0069",
+      "query": "未领取生存金的人",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.140290944837,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0070",
+      "query": "康养预达标会员",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.082583986223,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0071",
+      "query": "45岁以上的博士",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.03091700375,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0072",
+      "query": "1953年出生",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.15179208014,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0073",
+      "query": "搜索未购买百万医疗保险的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.4617500389,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0074",
+      "query": "查找2018年7月投保的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.370459006168,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0075",
+      "query": "未配置养老保险的人员名单",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.295584047213,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0076",
+      "query": "把最近一个月新添加的客户查询出来",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.232916980982,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0077",
+      "query": "身份证有效期快到期的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.164709011093,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0078",
+      "query": "搜索已配置万能险的客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.09950001631,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0079",
+      "query": "查医疗险客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.0537500754,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0080",
+      "query": "长期没联系保额10万以上都有谁",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.978957982734,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0081",
+      "query": "最近投保的人",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.92750008218,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0082",
+      "query": "哪些是黄金VIP意外险的人",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.85025001783,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0083",
+      "query": "有没有A1养老险最近一年买保险保额比较高的人",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.81254204735,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0084",
+      "query": "帮我找A1有哪些客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.75412507169,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0085",
+      "query": "谁是A1客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.704624927603,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0086",
+      "query": "查保额超过10万的人",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.654250038788,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0087",
+      "query": "查保费一万以上有哪些",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.607167026028,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0088",
+      "query": "找40岁左右保额10万以上名单",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30005.031665903516,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0089",
+      "query": "40岁左右黄金VIP有哪些人",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.358416073956,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0090",
+      "query": "40岁黄金VIP寿险客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.262708011083,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0091",
+      "query": "帮我找VIP保费一万以上名单",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.19366697315,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0092",
+      "query": "给我看看50岁A1医疗险客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.124791012146,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0093",
+      "query": "保额超过10万客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30004.061333020218,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0094",
+      "query": "谁是VIP最近没联系车险到期有哪些",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30003.994041937403,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0095",
+      "query": "A1最近一年买保险保费一万以上有哪些",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [],
+        "query_logic": "AND"
+      },
+      "comparison": null,
+      "elapsed_ms": 30003.93529201392,
+      "error": "",
+      "expected": null,
+      "graded": false,
+      "id": "q_0096",
+      "query": "帮我找A类低温名单",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [
+          {
+            "field": "pCategorys",
+            "operator": "MATCH",
+            "value": "意外伤害保险"
+          }
+        ],
+        "cost_times": 9386.0,
+        "intent_summary": "产品类别为意外伤害保险的客户",
+        "matched_level": 2,
+        "matched_patterns": null,
+        "query_logic": "AND",
+        "rewritten_query": "给我看看意外伤害保险名单"
+      },
+      "comparison": null,
+      "elapsed_ms": 9482.23154200241,
+      "error": null,
+      "expected": null,
+      "graded": false,
+      "id": "q_0097",
+      "query": "给我看看意外险名单",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [
+          {
+            "field": "clientAge",
+            "operator": "RANGE",
+            "value": {
+              "max": 39,
+              "min": 30
+            }
+          }
+        ],
+        "cost_times": 9383.0,
+        "intent_summary": "客户年龄在30~39之间的客户",
+        "matched_level": 2,
+        "matched_patterns": null,
+        "query_logic": "AND",
+        "rewritten_query": "帮我查30多岁客户"
+      },
+      "comparison": null,
+      "elapsed_ms": 9481.88041697722,
+      "error": null,
+      "expected": null,
+      "graded": false,
+      "id": "q_0098",
+      "query": "帮我查30多岁客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [
+          {
+            "field": "newValueLabel",
+            "operator": "MATCH",
+            "value": "A1"
+          },
+          {
+            "field": "pCategorys",
+            "operator": "MATCH",
+            "value": "意外伤害保险"
+          }
+        ],
+        "cost_times": 9383.0,
+        "intent_summary": "客户价值标签为A1\n并且产品类别为意外伤害保险的客户",
+        "matched_level": 2,
+        "matched_patterns": null,
+        "query_logic": "AND",
+        "rewritten_query": "A1意外伤害保险客户"
+      },
+      "comparison": null,
+      "elapsed_ms": 9481.870249961503,
+      "error": null,
+      "expected": null,
+      "graded": false,
+      "id": "q_0099",
+      "query": "A1意外险客户",
+      "tags": [
+        "ungraded"
+      ]
+    },
+    {
+      "actual": {
+        "conditions": [
+          {
+            "field": "polNoInfo.totmodalpremsum",
+            "operator": "GT",
+            "value": 5000
+          }
+        ],
+        "cost_times": 13908.0,
+        "intent_summary": "期交保费>5000的客户\n提示：投保日期暂不支持搜索，系统将按可支持字段搜索。",
+        "matched_level": 4,
+        "matched_patterns": "### 当前时间\n2026-05-17 13:27:22 (Asia/Shanghai)\n### 今天星期\n周日\n\n### 相对时间规则\n- 必须直接输出具体日期时间范围，禁止输出尖括号占位符。\n- 下周/下星期/下个星期：表示下一个自然周，输出 {\"min\":\"2026-05-18 00:00:00\",\"max\":\"2026-05-24 00:00:00\"}，不要理解为从今天开始的未来7天。\n- 未来一周/未来7天/接下来7天：才表示从今天开始连续7天，输出 {\"min\":\"2026-05-17 00:00:00\",\"max\":\"2026-05-23 00:00:00\"}。\n- 下个月/下月：表示下个自然月，输出 {\"min\":\"2026-06-01 00:00:00\",\"max\":\"2026-06-30 00:00:00\"}。\n- 未来一个月/未来30天：表示从今天开始连续30天，输出 {\"min\":\"2026-05-17 00:00:00\",\"max\":\"2026-06-15 00:00:00\"}。\n\n### 相关字段参考（根据查询内容动态召回）\n\n\n- **searchClientName** | 操作符: MATCH | 值类型: extract | 定义: 表示客户本人完整姓名，不表示家庭成员、被保人、投保人姓名 | 说明: 当查询直接出现完整中文姓名时，必须保留全名原样输出；如\"陈成\"\"李保\"\"张无\"\"金美\"应输出完整姓名，不能截断为\"陈\"\"李\"\"张\"\"金\"，也不能因为名字较少见而省略、跳过或判定为无效。只有明确出现\"姓张\"\"姓李\"这类姓氏表达时，才可只取姓。\n\n  示例: \"叫张三的客户\" → {\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"张三\"}\n\n  示例: \"名字是李四的客户\" → {\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"李四\"}\n\n  示例: \"陈成\" → {\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"陈成\"}\n\n  示例: \"姓张的客户\" → {\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"张\"}\n\n  示例: \"名字带伟的客户\" → {\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"伟\"}\n\n  示例: \"姓zhang的客户\" → {\"field\": \"searchClientName\", \"operator\": \"MATCH\", \"value\": \"zhang\"}\n\n  反例: \"子女叫张三的客户\" → 不输出该字段；原因: 这是家庭成员姓名，应映射到 familyInfo.familyclientname 并组合 familyInfo.familyrelation\n\n- **idNo** | 操作符: MATCH | 值类型: extract | 定义: 表示客户证件号码或身份证号文本匹配，不表示证件类型、证件有效期或出生日期。 | 说明: 裸证件号可使用 MATCH；如果用户问证件类型，应映射到 idType；问证件到期/有效期，应映射到 idValidDate。\n\n  示例: \"身份证号以320开头的客户\" → {\"field\": \"idNo\", \"operator\": \"MATCH\", \"value\": \"320\"}\n\n- **annPremSegNum** | 操作符: GTE | 值类型: numeric | 单位: 元，万=×10000，千=×1000，若为明确是万还是千单位，则默认是元 | 定义: 表示年缴保费金额（大于等于），不表示总保费、产品总保额\n\n  示例: \"年缴保费1万及以上的客户\" → {\"field\": \"annPremSegNum\", \"operator\": \"GTE\", \"value\": 10000}\n\n  示例: \"年缴保费1万以上的客户\" → {\"field\": \"annPremSegNum\", \"operator\": \"GTE\", \"value\": 10000}\n\n  示例: \"保费超过5万的客户\" → {\"field\": \"annPremSegNum\", \"operator\": \"GTE\", \"value\": 50000}\n\n  示例: \"年交保费大于1000的客户（没有万或千单位，默认是元，不用做运算）\" → {\"field\": \"annPremSegNum\", \"operator\": \"GTE\", \"value\": 1000}\n\n  反例: \"总保费为50万的客户\" → 不输出该字段；原因: 这是总保费语义，不是年缴保费；当前不能映射到 annPremSegNum\n\n  反例: \"总保费90万以上\" → 不输出该字段；原因: 这是总保费语义，不是年缴保费；当前不能映射到 annPremSegNum\n\n- **polNoInfo.applicantname** | 操作符: MATCH | 值类型: extract | 定义: 保单投保人姓名，嵌套字段\n\n  示例: \"投保人叫张三的客户\" → {\"field\": \"polNoInfo.applicantname\", \"operator\": \"MATCH\", \"value\": \"张三\"}\n\n- **is_life_insured** | 操作符: MATCH | 值类型: enum | 枚举: ['仅投保人', '仅被保人', '投被保人'] | 定义: 表示客户在寿险保单中的投保人/被保人身份关系。 | 说明: 仅投保人、仅被保人、投被保人是身份关系枚举，不表示客户是否购买寿险或是否为寿险客户。\n\n  示例: \"仅仅是投保人的客户\" → {\"field\": \"is_life_insured\", \"operator\": \"MATCH\", \"value\": \"仅投保人\"}\n\n  示例: \"仅仅是被保人的客户\" → {\"field\": \"is_life_insured\", \"operator\": \"MATCH\", \"value\": \"投被保人\"}\n\n- **latelyUndwrtSegTime** | 操作符: RANGE | 值类型: date | 格式: yyyy-MM-dd | 定义: 保单承保日期，嵌套字段 | 说明: 本月取当月1日至月末；下月取下月1日至月末；下周取下周一至周天；未来一周取今天至往后顺延6天；未来一个月取今天至往后延顺29天；承保时间不等于退保时间\n\n  示例: \"本月承保的客户（当前时间为2026-04-20）\" → {\"field\": \"latelyUndwrtSegTime\", \"operator\": \"RANGE\", \"value\": {\"min\": \"2026-04-01\", \"max\": \"2026-04-30\"}}\n\n  示例: \"今年承保的客户（当前时间为2026-04-20）\" → {\"field\": \"latelyUndwrtSegTime\", \"operator\": \"RANGE\", \"value\": {\"min\": \"2026-01-01\", \"max\": \"2026-12-31\"}}\n\n  示例: \"最近承保的客户（当前时间为2026-04-21）\" → {\"field\": \"latelyUndwrtSegTime\", \"operator\": \"RANGE\", \"value\": {\"min\": \"2026-04-21\", \"max\": \"2026-05-20\"}}\n\n  反例: \"曾经加费承保的客户\" → 不输出该字段；原因: 加费承保 不是承保时间\n\n- **polNoInfo.applicantphoneno** | 操作符: MATCH | 值类型: extract | 定义: 保单投保人手机号，嵌套字段\n\n  示例: \"投保人手机号13800138000的客户\" → {\"field\": \"polNoInfo.applicantphoneno\", \"operator\": \"MATCH\", \"value\": \"13800138000\"}\n\n- **polNoInfo.totmodalpremsum** | 操作符: GT | 值类型: numeric | 单位: 元，万=×10000，千=×1000，如果没有明确单位，则默认是元，不用做运算 | 定义: 期交保费金额，＞ 严格超过；区别于年交保费\n\n  示例: \"期交保费1万以上的客户\" → {\"field\": \"polNoInfo.totmodalpremsum\", \"operator\": \"GT\", \"value\": 10000}\n\n- **latelyUndwrtSegTime** | 操作符: LTE | 值类型: date | 格式: yyyy-MM-dd | 定义: 表示保单承保时间（保险公司正式承保的日期，非投保申请时间）早于或等于某个日期\n\n  示例: \"2020年及之前承保的客户\" → {\"field\": \"latelyUndwrtSegTime\", \"operator\": \"LTE\", \"value\": \"2020-12-31\"}\n\n  示例: \"2020年之前承保的客户\" → {\"field\": \"latelyUndwrtSegTime\", \"operator\": \"LTE\", \"value\": \"2020-12-31\"}\n\n  示例: \"承保时间小于等于2025年5月6号的客户\" → {\"field\": \"latelyUndwrtSegTime\", \"operator\": \"LTE\", \"value\": \"2025-05-06\"}\n\n- **polNoInfo.claimdatainfo.claimdate** | 操作符: RANGE | 值类型: date | 格式: yyyy-MM-dd HH:mm:ss | 定义: 理赔记录中的理赔时间，嵌套字段；若仅判断是否有理赔记录，用 EXISTS\n\n  示例: \"今年有理赔的客户（当前时间为2026-04-26）\" → {\"field\": \"polNoInfo.claimdatainfo.claimdate\", \"operator\": \"RANGE\", \"value\": {\"min\": \"2026-01-01 00:00:00\", \"max\": \"2026-12-31 23:59:59\"}}\n\n  示例: \"近30天理赔的客户（当前时间为2026-04-26）\" → {\"field\": \"polNoInfo.claimdatainfo.claimdate\", \"operator\": \"RANGE\", \"value\": {\"min\": \"2026-03-28 00:00:00\", \"max\": \"2026-04-26 23:59:59\"}}\n\n  示例: \"有没有最近理赔过的客户（当前时间为2026-05-06）\" → {\"field\": \"polNoInfo.claimdatainfo.claimdate\", \"operator\": \"RANGE\", \"value\": {\"min\": \"2026-04-06 00:00:00\", \"max\": \"2026-05-06 23:59:59\"}}\n\n  示例: \"最近一年有理赔记录的客户（当前时间为2026-05-11）\" → {\"field\": \"polNoInfo.claimdatainfo.claimdate\", \"operator\": \"RANGE\", \"value\": {\"min\": \"2025-05-11 00:00:00\", \"max\": \"2026-05-11 23:59:59\"}}\n\n- **policies_insure_date** | 操作符: RANGE | 值类型: date | 格式: yyyy-MM-dd HH:mm:ss | 定义: 保单投保日期，嵌套字段 | 说明: 本月取当月1日至月末；下月取下月1日至月末；下周取下周一至周天；未来一周取今天至往后顺延6天；未来一个月取今天至往后延顺29天\n\n  示例: \"今年投保的客户（当前时间为2026-04-29）\" → {\"field\": \"policies_insure_date\", \"operator\": \"RANGE\", \"value\": {\"min\": \"2026-01-01 00:00:00\", \"max\": \"2026-12-31 23:59:59\"}}\n\n  示例: \"去年投保的客户（当前时间为2026-04-29）\" → {\"field\": \"policies_insure_date\", \"operator\": \"RANGE\", \"value\": {\"min\": \"2025-01-01 00:00:00\", \"max\": \"2025-12-31 23:59:59\"}}\n\n  示例: \"最近一年买保险的人（当前时间为2026-04-29）\" → {\"field\": \"policies_insure_date\", \"operator\": \"RANGE\", \"value\": {\"min\": \"2025-04-29 00:00:00\", \"max\": \"2026-04-29 00:00:00\"}}\n\n### 用户查询\n最近投保保费5000以上有哪些人",
+        "query_logic": "AND",
+        "rewritten_query": "最近投保保费5000以上有哪些人"
+      },
+      "comparison": null,
+      "elapsed_ms": 14005.215040990151,
+      "error": null,
+      "expected": null,
+      "graded": false,
+      "id": "q_0100",
+      "query": "最近投保保费5000以上有哪些人",
+      "tags": [
+        "ungraded"
+      ]
+    }
+  ],
+  "failed_cases": [],
+  "summary": {
+    "avg_latency_ms": 29229.96664045495,
+    "empty_rate": null,
+    "error_count": 0,
+    "exact_match_rate": null,
+    "false_positive_rate": null,
+    "field_match_rate": null,
+    "graded_total": 0,
+    "level_distribution": {
+      "2": 3,
+      "4": 1,
+      "unknown": 96
+    },
+    "operator_match_rate": null,
+    "overall_accuracy": null,
+    "p95_latency_ms": 30009.435791987926,
+    "total": 100,
+    "total_accuracy": null,
+    "ungraded_total": 100
+  }
+}
