@@ -1321,6 +1321,10 @@ class Level2EnhancedMatcher:
                     if len(raw) != 10:
                         return None
                     year, month, day = map(int, raw.split("-"))
+                elif match.lastindex == 2 and config.get("current_year_if_missing"):
+                    year = date.today().year
+                    month = int(match.group(1))
+                    day = int(match.group(2) or 1)
                 else:
                     year = int(match.group(1))
                     month = int(match.group(2))

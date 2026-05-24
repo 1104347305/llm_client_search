@@ -1,0 +1,1164 @@
+id: clienttemperature_policies_insure_date_clientage
+title: 客户温度等字段自动生成
+reason: 支持新增3个字段筛选客户
+fields:
+- id: clienttemperature_match
+  field: clientTemperature
+  operator: MATCH
+  value_type: enum
+  enum_ref: clientTemperature
+  retrieval_text: 客户温度 等于 是 为 客户温度 clientTemperature 冷却 低温 中温 高温 冷却客户温度 低温客户温度 中温客户温度
+    高温客户温度
+  description: 表示客户客户温度，枚举值为：冷却、低温、中温、高温；支持 MATCH 查询
+  examples:
+  - query: 客户温度为冷却的客户
+    output:
+      field: clientTemperature
+      operator: MATCH
+      value: 冷却
+  negative_examples:
+  - query: 今天客户温度很高的客户
+    reason: 自然语言中的高低描述不一定是客户温度标准枚举值
+- id: clienttemperature_contains
+  field: clientTemperature
+  operator: CONTAINS
+  value_type: enum
+  enum_ref: clientTemperature
+  retrieval_text: 客户温度 包含 任一 其中之一 客户温度 clientTemperature 冷却 低温 中温 高温 冷却客户温度 低温客户温度
+    中温客户温度 高温客户温度
+  description: 表示客户客户温度，枚举值为：冷却、低温、中温、高温；支持 CONTAINS 查询
+  examples:
+  - query: 客户温度包含冷却或低温的客户
+    output:
+      field: clientTemperature
+      operator: CONTAINS
+      value:
+      - 冷却
+      - 低温
+- id: clienttemperature_not_contains
+  field: clientTemperature
+  operator: NOT_CONTAINS
+  value_type: enum
+  enum_ref: clientTemperature
+  retrieval_text: 客户温度 不包含 未配置 没有 缺少 非 客户温度 clientTemperature 冷却 低温 中温 高温 冷却客户温度 低温客户温度
+    中温客户温度 高温客户温度
+  description: 表示客户客户温度，枚举值为：冷却、低温、中温、高温；支持 NOT_CONTAINS 查询
+  examples:
+  - query: 未配置冷却客户温度的客户
+    output:
+      field: clientTemperature
+      operator: NOT_CONTAINS
+      value:
+      - 冷却
+- id: clienttemperature_exists
+  field: clientTemperature
+  operator: EXISTS
+  value_type: exists
+  retrieval_text: 有客户温度信息 客户温度不为空 已配置客户温度
+  description: 表示客户客户温度，枚举值为：冷却、低温、中温、高温；支持 EXISTS 查询
+  examples:
+  - query: 有客户温度信息的客户
+    output:
+      field: clientTemperature
+      operator: EXISTS
+- id: clienttemperature_not_exists
+  field: clientTemperature
+  operator: NOT_EXISTS
+  value_type: not_exists
+  retrieval_text: 没有客户温度信息 客户温度为空 未配置客户温度
+  description: 表示客户客户温度，枚举值为：冷却、低温、中温、高温；支持 NOT_EXISTS 查询
+  examples:
+  - query: 没有客户温度信息的客户
+    output:
+      field: clientTemperature
+      operator: NOT_EXISTS
+- id: policies_insure_date_gt
+  field: policies_insure_date
+  operator: GT
+  value_type: date
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 投保日期 晚于 之后 大于 超过 policies_insure_date
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 GT 查询
+  examples:
+  - query: 投保日期晚于2026年6月1日的客户
+    output:
+      field: policies_insure_date
+      operator: GT
+      value: '2026-06-01 00:00:00'
+- id: policies_insure_date_gte
+  field: policies_insure_date
+  operator: GTE
+  value_type: date
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 投保日期 不早于 之后及当天 大于等于 起始 policies_insure_date
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 GTE 查询
+  examples:
+  - query: 投保日期不早于2026年6月1日的客户
+    output:
+      field: policies_insure_date
+      operator: GTE
+      value: '2026-06-01 00:00:00'
+- id: policies_insure_date_lt
+  field: policies_insure_date
+  operator: LT
+  value_type: date
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 投保日期 早于 之前 小于 policies_insure_date
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 LT 查询
+  examples:
+  - query: 投保日期早于2026年6月1日的客户
+    output:
+      field: policies_insure_date
+      operator: LT
+      value: '2026-06-01 00:00:00'
+- id: policies_insure_date_lte
+  field: policies_insure_date
+  operator: LTE
+  value_type: date
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 投保日期 不晚于 之前及当天 小于等于 截止 policies_insure_date
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 LTE 查询
+  examples:
+  - query: 投保日期不晚于2026年6月1日的客户
+    output:
+      field: policies_insure_date
+      operator: LTE
+      value: '2026-06-01 00:00:00'
+- id: policies_insure_date_range
+  field: policies_insure_date
+  operator: RANGE
+  value_type: date
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 投保日期 区间 范围 今年 去年 本月 最近一年 policies_insure_date
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 RANGE 查询
+  examples:
+  - query: 今年投保日期的客户
+    output:
+      field: policies_insure_date
+      operator: RANGE
+      value:
+        min: '2026-01-01 00:00:00'
+        max: '2026-12-31 23:59:59'
+- id: policies_insure_date_exists
+  field: policies_insure_date
+  operator: EXISTS
+  value_type: exists
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 有投保日期信息 投保日期不为空
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 EXISTS 查询
+  examples:
+  - query: 有投保日期信息的客户
+    output:
+      field: policies_insure_date
+      operator: EXISTS
+- id: policies_insure_date_not_exists
+  field: policies_insure_date
+  operator: NOT_EXISTS
+  value_type: not_exists
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 没有投保日期信息 投保日期为空
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 NOT_EXISTS 查询
+  examples:
+  - query: 没有投保日期信息的客户
+    output:
+      field: policies_insure_date
+      operator: NOT_EXISTS
+- id: clientage_gt
+  field: clientAge
+  operator: GT
+  value_type: numeric
+  unit: 单位：岁
+  retrieval_text: 客户年龄 大于 大于 小于 不少于 不超过 clientAge
+  description: 表示客户客户年龄大于筛选，单位：岁
+  examples:
+  - query: 客户年龄30以上的客户
+    output:
+      field: clientAge
+      operator: GT
+      value: 30
+- id: clientage_gte
+  field: clientAge
+  operator: GTE
+  value_type: numeric
+  unit: 单位：岁
+  retrieval_text: 客户年龄 以上 大于 小于 不少于 不超过 clientAge
+  description: 表示客户客户年龄以上筛选，单位：岁
+  examples:
+  - query: 客户年龄30以上的客户
+    output:
+      field: clientAge
+      operator: GTE
+      value: 30
+- id: clientage_lt
+  field: clientAge
+  operator: LT
+  value_type: numeric
+  unit: 单位：岁
+  retrieval_text: 客户年龄 小于 大于 小于 不少于 不超过 clientAge
+  description: 表示客户客户年龄小于筛选，单位：岁
+  examples:
+  - query: 客户年龄30以上的客户
+    output:
+      field: clientAge
+      operator: LT
+      value: 30
+- id: clientage_lte
+  field: clientAge
+  operator: LTE
+  value_type: numeric
+  unit: 单位：岁
+  retrieval_text: 客户年龄 以下 大于 小于 不少于 不超过 clientAge
+  description: 表示客户客户年龄以下筛选，单位：岁
+  examples:
+  - query: 客户年龄30以上的客户
+    output:
+      field: clientAge
+      operator: LTE
+      value: 30
+- id: clientage_range
+  field: clientAge
+  operator: RANGE
+  value_type: numeric
+  unit: 单位：岁
+  retrieval_text: 客户年龄 区间 范围 之间 从 到 clientAge
+  description: 表示客户客户年龄区间筛选，单位：岁
+  examples:
+  - query: 客户年龄10到30的客户
+    output:
+      field: clientAge
+      operator: RANGE
+      value:
+        min: 10
+        max: 30
+- id: clientage_exists
+  field: clientAge
+  operator: EXISTS
+  value_type: exists
+  retrieval_text: 有客户年龄信息 客户年龄不为空 clientAge
+  description: 表示客户存在客户年龄信息
+  examples:
+  - query: 有客户年龄信息的客户
+    output:
+      field: clientAge
+      operator: EXISTS
+- id: clientage_not_exists
+  field: clientAge
+  operator: NOT_EXISTS
+  value_type: not_exists
+  retrieval_text: 没有客户年龄信息 客户年龄为空 clientAge
+  description: 表示客户不存在客户年龄信息
+  examples:
+  - query: 没有客户年龄信息的客户
+    output:
+      field: clientAge
+      operator: NOT_EXISTS
+enums:
+  clientTemperature:
+    values:
+    - 冷却
+    - 低温
+    - 中温
+    - 高温
+    ordered: false
+l2_rules:
+- name: 客户温度-枚举匹配
+  field: clientTemperature
+  operator: MATCH
+  value_type: capture
+  enum_ref: clientTemperature
+  patterns_template:
+  - '{SEARCH}客户温度[为是：:]?{enum}(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(?:想找|帮我找|筛选)?{enum}客户温度(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}{enum}客户'
+  value:
+    group: 1
+  priority: 9
+  merge_to_llm: false
+- name: 客户温度-枚举包含
+  field: clientTemperature
+  operator: CONTAINS
+  value_type: capture
+  enum_ref: clientTemperature
+  patterns_template:
+  - '{SEARCH}客户温度(?:包含|含有|有|任一|其中之一)[：:]?{multi_enum}(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(?:配置了|持有|买了|购买了|有){multi_enum}(?:客户温度)?(?:的客户|客户|名单|的人|人)?'
+  value:
+    group: 1
+  priority: 9
+  merge_to_llm: false
+- name: 客户温度-枚举不包含
+  field: clientTemperature
+  operator: NOT_CONTAINS
+  value_type: capture
+  enum_ref: clientTemperature
+  patterns_template:
+  - '{SEARCH}(?:未配置|未持有|未购买|没有|没买|缺少|不含|不包含){multi_enum}(?:客户温度)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}客户温度(?:不包含|不含|没有|缺少)[：:]?{multi_enum}(?:的客户|客户|名单|的人|人)?'
+  value:
+    group: 1
+  priority: 10
+  merge_to_llm: false
+- name: 客户温度-存在
+  patterns:
+  - '{SEARCH}(?:有|存在|已维护|已配置)客户温度(?:信息|标签|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}客户温度(?:不为空|非空|有值)(?:的客户|客户|名单|的人|人)?'
+  field: clientTemperature
+  operator: EXISTS
+  value_type: static
+  priority: 8
+  merge_to_llm: false
+- name: 客户温度-不存在
+  patterns:
+  - '{SEARCH}(?:没有|无|未维护|未配置)客户温度(?:信息|标签|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}客户温度(?:为空|空白|没值|无值)(?:的客户|客户|名单|的人|人)?'
+  field: clientTemperature
+  operator: NOT_EXISTS
+  value_type: static
+  priority: 9
+  merge_to_llm: false
+- name: 投保日期-GT
+  patterns:
+  - '{SEARCH}投保日期(?:晚于|在.*之后|大于|超过)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:晚于|在.*之后|大于|超过)投保日期(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: GT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-GTE
+  patterns:
+  - '{SEARCH}投保日期(?:不早于|不小于|大于等于|从)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不早于|不小于|大于等于|从)投保日期(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: GTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-LT
+  patterns:
+  - '{SEARCH}投保日期(?:早于|在.*之前|小于)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:早于|在.*之前|小于)投保日期(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: LT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-LTE
+  patterns:
+  - '{SEARCH}投保日期(?:不晚于|不大于|小于等于|截止到|截至)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不晚于|不大于|小于等于|截止到|截至)投保日期(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: LTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-今年
+  field: policies_insure_date
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_year
+    format: yyyy-MM-dd HH:mm:ss
+  patterns:
+  - '{SEARCH}(?:今年){CW}{0,2}投保日期(?:的客户|客户)?'
+  - '{SEARCH}投保日期{CW}{0,2}(?:在)?今年(?:的客户|客户)?'
+  priority: 9
+- name: 投保日期-去年
+  field: policies_insure_date
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: last_year
+    format: yyyy-MM-dd HH:mm:ss
+  patterns:
+  - '{SEARCH}(?:去年){CW}{0,2}投保日期(?:的客户|客户)?'
+  - '{SEARCH}投保日期{CW}{0,2}(?:在)?去年(?:的客户|客户)?'
+  priority: 9
+- name: 投保日期-本月
+  field: policies_insure_date
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_month
+    format: yyyy-MM-dd HH:mm:ss
+  patterns:
+  - '{SEARCH}(?:本月){CW}{0,2}投保日期(?:的客户|客户)?'
+  - '{SEARCH}投保日期{CW}{0,2}(?:在)?本月(?:的客户|客户)?'
+  priority: 9
+- name: 投保日期-存在
+  patterns:
+  - '{SEARCH}(?:有|存在|已维护)投保日期(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}投保日期(?:不为空|非空|有值)(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: EXISTS
+  value_type: static
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-不存在
+  patterns:
+  - '{SEARCH}(?:没有|无|未维护)投保日期(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}投保日期(?:为空|空白|没值|无值)(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: NOT_EXISTS
+  value_type: static
+  priority: 9
+  merge_to_llm: false
+- name: 客户年龄-GT
+  patterns:
+  - '{SEARCH}客户年龄{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:大于|超过|高于|多于)(?:的客户|客户)?'
+  field: clientAge
+  operator: GT
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 客户年龄-GTE
+  patterns:
+  - '{SEARCH}客户年龄{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:以上|及以上|不少于|大于等于)(?:的客户|客户)?'
+  field: clientAge
+  operator: GTE
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 客户年龄-LT
+  patterns:
+  - '{SEARCH}客户年龄{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:小于|低于|少于|不足)(?:的客户|客户)?'
+  field: clientAge
+  operator: LT
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 客户年龄-LTE
+  patterns:
+  - '{SEARCH}客户年龄{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:以下|及以下|不超过|小于等于)(?:的客户|客户)?'
+  field: clientAge
+  operator: LTE
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 客户年龄-RANGE
+  patterns:
+  - '{SEARCH}客户年龄{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:到|至|-|~)(\d+)(?:元|万|岁|次|分)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}客户年龄(?:在)?(\d+)(?:元|万|岁|次|分)?(?:和|到|至)(\d+)(?:元|万|岁|次|分)?之间(?:的客户|客户|名单|的人|人)?'
+  field: clientAge
+  operator: RANGE
+  value_type: range
+  value:
+    min_group: 1
+    max_group: 2
+    transform: int
+  priority: 9
+  merge_to_llm: false
+- name: 客户年龄-存在
+  patterns:
+  - '{SEARCH}(?:有|存在|已维护)客户年龄(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}客户年龄(?:不为空|非空|有值)(?:的客户|客户|名单|的人|人)?'
+  field: clientAge
+  operator: EXISTS
+  value_type: static
+  priority: 8
+  merge_to_llm: false
+- name: 客户年龄-不存在
+  patterns:
+  - '{SEARCH}(?:没有|无|未维护)客户年龄(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}客户年龄(?:为空|空白|没值|无值)(?:的客户|客户|名单|的人|人)?'
+  field: clientAge
+  operator: NOT_EXISTS
+  value_type: static
+  priority: 9
+  merge_to_llm: false
+testset_path: generated_testset.jsonl
+test_cases:
+- id: clienttemperature_001
+  query: 客户温度为冷却的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientTemperature
+      operator: MATCH
+      value: 冷却
+  tags:
+  - positive
+  - l2
+  - enum
+- id: clienttemperature_002
+  query: 客户温度包含冷却或低温的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientTemperature
+      operator: CONTAINS
+      value:
+      - 冷却
+      - 低温
+  tags:
+  - positive
+  - l2
+  - enum
+- id: clienttemperature_003
+  query: 未配置中温客户温度的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientTemperature
+      operator: NOT_CONTAINS
+      value:
+      - 中温
+  tags:
+  - positive
+  - l2
+  - enum
+- id: clienttemperature_004
+  query: 有客户温度信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientTemperature
+      operator: EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: clienttemperature_005
+  query: 没有客户温度信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientTemperature
+      operator: NOT_EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: clienttemperature_negative_001
+  query: 今天客户温度很高的客户
+  expected:
+    query_logic: AND
+    conditions: []
+  tags:
+  - negative
+  - boundary
+- id: policies_insure_date_001
+  query: 投保日期晚于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: GT
+      value: '2026-06-01 00:00:00'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_insure_date_002
+  query: 投保日期不早于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: GTE
+      value: '2026-06-01 00:00:00'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_insure_date_003
+  query: 投保日期早于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: LT
+      value: '2026-06-01 00:00:00'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_insure_date_004
+  query: 投保日期不晚于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: LTE
+      value: '2026-06-01 00:00:00'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_insure_date_005
+  query: 今年投保日期的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: RANGE
+      value:
+        min: '2026-01-01 00:00:00'
+        max: '2026-12-31 23:59:59'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_insure_date_006
+  query: 去年投保日期的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: RANGE
+      value:
+        min: '2025-01-01 00:00:00'
+        max: '2025-12-31 23:59:59'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_insure_date_007
+  query: 有投保日期信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: policies_insure_date_008
+  query: 没有投保日期信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: NOT_EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: clientage_001
+  query: 客户年龄大于30岁的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientAge
+      operator: GT
+      value: 30
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: clientage_002
+  query: 客户年龄30岁以上的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientAge
+      operator: GTE
+      value: 30
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: clientage_003
+  query: 客户年龄小于10岁的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientAge
+      operator: LT
+      value: 10
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: clientage_004
+  query: 客户年龄10岁以下的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientAge
+      operator: LTE
+      value: 10
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: clientage_005
+  query: 客户年龄10到30岁的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientAge
+      operator: RANGE
+      value:
+        min: 10
+        max: 30
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: clientage_006
+  query: 有客户年龄信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientAge
+      operator: EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: clientage_007
+  query: 没有客户年龄信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientAge
+      operator: NOT_EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: multi_existing_gender_001
+  query: 男性客户并且客户温度为冷却的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientSex
+      operator: MATCH
+      value: 男
+    - field: clientTemperature
+      operator: MATCH
+      value: 冷却
+  tags:
+  - positive
+  - multi_condition
+  - existing_field
+- id: multi_generated_fields_001
+  query: 客户温度为冷却的客户并且投保日期晚于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientTemperature
+      operator: MATCH
+      value: 冷却
+    - field: policies_insure_date
+      operator: GT
+      value: '2026-06-01 00:00:00'
+  tags:
+  - positive
+  - multi_condition
+  - generated_fields
+acceptance:
+  min_exact_match_rate: 0.95
+  max_empty_rate: 0.05
+  max_false_positive_rate: 0.02
+  max_avg_latency_ms: 3000
+codex_enhancement:
+  field_enhancements:
+  - field: clientTemperature
+    examples:
+    - query: 客户温度是高温的客户
+      output:
+        field: clientTemperature
+        operator: MATCH
+        value: 高温
+    - query: 客户温度为中温的客户
+      output:
+        field: clientTemperature
+        operator: MATCH
+        value: 中温
+    - query: 客户温度属于低温的客户
+      output:
+        field: clientTemperature
+        operator: MATCH
+        value: 低温
+    - query: 客户温度是冷却的客户
+      output:
+        field: clientTemperature
+        operator: MATCH
+        value: 冷却
+    - query: 客户温度包含高温和中温的客户
+      output:
+        field: clientTemperature
+        operator: CONTAINS
+        value:
+        - 高温
+        - 中温
+    - query: 客户温度不包含冷却的客户
+      output:
+        field: clientTemperature
+        operator: NOT_CONTAINS
+        value:
+        - 冷却
+    - query: 客户温度不包含低温和中温的客户
+      output:
+        field: clientTemperature
+        operator: NOT_CONTAINS
+        value:
+        - 低温
+        - 中温
+    negative_examples:
+    - query: 客户温度很高
+      reason: ‘很高’是自然语言描述，非标准枚举值‘高温’
+    - query: 客户温度偏低
+      reason: ‘偏低’是模糊描述，非标准枚举值‘低温’或‘冷却’
+    - query: 客户温度不是特别高
+      reason: 否定性模糊描述，无法映射到标准枚举值
+  - field: policies_insure_date
+    examples:
+    - query: 投保日期在2026年7月1日之后的客户
+      output:
+        field: policies_insure_date
+        operator: GT
+        value: '2026-07-01 00:00:00'
+    - query: 投保日期在2026年7月1日当天或之后的客户
+      output:
+        field: policies_insure_date
+        operator: GTE
+        value: '2026-07-01 00:00:00'
+    - query: 投保日期在2026年5月1日之前的客户
+      output:
+        field: policies_insure_date
+        operator: LT
+        value: '2026-05-01 00:00:00'
+    - query: 投保日期在2026年5月1日当天或之前的客户
+      output:
+        field: policies_insure_date
+        operator: LTE
+        value: '2026-05-01 00:00:00'
+    - query: 投保日期在2026年1月到2026年6月之间的客户
+      output:
+        field: policies_insure_date
+        operator: RANGE
+        value:
+          min: '2026-01-01 00:00:00'
+          max: '2026-06-30 23:59:59'
+    negative_examples:
+    - query: 客户最近投了保
+      reason: ‘最近’无明确时间边界，无法映射到具体日期
+    - query: 客户投保时间比较早
+      reason: ‘比较早’是主观描述，无精确日期对应
+  - field: clientAge
+    examples:
+    - query: 客户年龄大于35岁的客户
+      output:
+        field: clientAge
+        operator: GT
+        value: 35
+    - query: 客户年龄不小于35岁的客户
+      output:
+        field: clientAge
+        operator: GTE
+        value: 35
+    - query: 客户年龄小于25岁的客户
+      output:
+        field: clientAge
+        operator: LT
+        value: 25
+    - query: 客户年龄不超过25岁的客户
+      output:
+        field: clientAge
+        operator: LTE
+        value: 25
+    - query: 客户年龄在20到40岁之间的客户
+      output:
+        field: clientAge
+        operator: RANGE
+        value:
+          min: 20
+          max: 40
+    negative_examples:
+    - query: 客户年龄偏大
+      reason: ‘偏大’是模糊描述，无具体数值对应
+    - query: 客户年纪不小了
+      reason: 口语化表达，无法映射到精确年龄数值
+  l2_rules:
+  - name: 客户温度-模糊匹配增强
+    field: clientTemperature
+    operator: MATCH
+    value_type: capture
+    patterns:
+    - 客户温度是{SEARCH}
+    - 客户温度为{SEARCH}
+    - 客户温度属于{SEARCH}
+    - 客户温度是{SEARCH}的客户
+    - 客户温度为{SEARCH}的客户
+    - 客户温度属于{SEARCH}的客户
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  - name: 投保日期-GT增强
+    field: policies_insure_date
+    operator: GT
+    value_type: capture
+    patterns:
+    - 投保日期晚于{SEARCH}
+    - 投保日期在{SEARCH}之后
+    - 投保日期大于{SEARCH}
+    - 投保日期超过{SEARCH}
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  - name: 投保日期-GTE增强
+    field: policies_insure_date
+    operator: GTE
+    value_type: capture
+    patterns:
+    - 投保日期不早于{SEARCH}
+    - 投保日期在{SEARCH}当天或之后
+    - 投保日期大于等于{SEARCH}
+    - 投保日期起始于{SEARCH}
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  - name: 投保日期-LT增强
+    field: policies_insure_date
+    operator: LT
+    value_type: capture
+    patterns:
+    - 投保日期早于{SEARCH}
+    - 投保日期在{SEARCH}之前
+    - 投保日期小于{SEARCH}
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  - name: 投保日期-LTE增强
+    field: policies_insure_date
+    operator: LTE
+    value_type: capture
+    patterns:
+    - 投保日期不晚于{SEARCH}
+    - 投保日期在{SEARCH}当天或之前
+    - 投保日期小于等于{SEARCH}
+    - 投保日期截止于{SEARCH}
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  - name: 客户年龄-GT增强
+    field: clientAge
+    operator: GT
+    value_type: capture
+    patterns:
+    - 客户年龄大于{SEARCH}岁
+    - 客户年龄超过{SEARCH}岁
+    - 客户年龄大于{SEARCH}
+    - 客户年龄超过{SEARCH}
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  - name: 客户年龄-GTE增强
+    field: clientAge
+    operator: GTE
+    value_type: capture
+    patterns:
+    - 客户年龄{SEARCH}岁以上
+    - 客户年龄不小于{SEARCH}岁
+    - 客户年龄{SEARCH}及以上
+    - 客户年龄{SEARCH}以上
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  - name: 客户年龄-LT增强
+    field: clientAge
+    operator: LT
+    value_type: capture
+    patterns:
+    - 客户年龄小于{SEARCH}岁
+    - 客户年龄低于{SEARCH}岁
+    - 客户年龄小于{SEARCH}
+    - 客户年龄低于{SEARCH}
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  - name: 客户年龄-LTE增强
+    field: clientAge
+    operator: LTE
+    value_type: capture
+    patterns:
+    - 客户年龄{SEARCH}岁以下
+    - 客户年龄不超过{SEARCH}岁
+    - 客户年龄{SEARCH}及以下
+    - 客户年龄{SEARCH}以下
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  test_cases:
+  - id: clienttemperature_codex_candidate_001
+    query: 客户温度是高温的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: clientTemperature
+        operator: MATCH
+        value: 高温
+    tags:
+    - positive
+    - codex_candidate
+  - id: clienttemperature_codex_candidate_002
+    query: 客户温度包含高温和中温的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: clientTemperature
+        operator: CONTAINS
+        value:
+        - 高温
+        - 中温
+    tags:
+    - positive
+    - codex_candidate
+  - id: clienttemperature_codex_candidate_003
+    query: 客户温度不包含冷却的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: clientTemperature
+        operator: NOT_CONTAINS
+        value:
+        - 冷却
+    tags:
+    - positive
+    - codex_candidate
+  - id: policies_insure_date_codex_candidate_001
+    query: 投保日期晚于2026年7月1日的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: policies_insure_date
+        operator: GT
+        value: '2026-07-01 00:00:00'
+    tags:
+    - positive
+    - codex_candidate
+  - id: policies_insure_date_codex_candidate_002
+    query: 投保日期在2026年1月到2026年6月之间的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: policies_insure_date
+        operator: RANGE
+        value:
+          min: '2026-01-01 00:00:00'
+          max: '2026-06-30 23:59:59'
+    tags:
+    - positive
+    - codex_candidate
+  - id: clientage_codex_candidate_001
+    query: 客户年龄大于35岁的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: clientAge
+        operator: GT
+        value: 35
+    tags:
+    - positive
+    - codex_candidate
+  - id: clientage_codex_candidate_002
+    query: 客户年龄在20到40岁之间的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: clientAge
+        operator: RANGE
+        value:
+          min: 20
+          max: 40
+    tags:
+    - positive
+    - codex_candidate
+  - id: multi_clienttemperature_age_codex_candidate_001
+    query: 客户温度为高温且年龄大于30岁的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: clientTemperature
+        operator: MATCH
+        value: 高温
+      - field: clientAge
+        operator: GT
+        value: 30
+    tags:
+    - positive
+    - codex_candidate
+  - id: multi_clienttemperature_date_codex_candidate_001
+    query: 客户温度为低温且投保日期在2026年之后的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: clientTemperature
+        operator: MATCH
+        value: 低温
+      - field: policies_insure_date
+        operator: GT
+        value: '2026-01-01 00:00:00'
+    tags:
+    - positive
+    - codex_candidate
+  - id: multi_age_date_codex_candidate_001
+    query: 客户年龄在25到40岁之间且投保日期不晚于2026年6月1日的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: clientAge
+        operator: RANGE
+        value:
+          min: 25
+          max: 40
+      - field: policies_insure_date
+        operator: LTE
+        value: '2026-06-01 23:59:59'
+    tags:
+    - positive
+    - codex_candidate
+  - id: multi_all_three_codex_candidate_001
+    query: 客户温度为高温、年龄大于35岁、投保日期在2026年之后的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: clientTemperature
+        operator: MATCH
+        value: 高温
+      - field: clientAge
+        operator: GT
+        value: 35
+      - field: policies_insure_date
+        operator: GT
+        value: '2026-01-01 00:00:00'
+    tags:
+    - positive
+    - codex_candidate

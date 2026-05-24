@@ -16,7 +16,7 @@ def build_change_set_from_field_spec(
     field: str,
     chinese_name: str,
     field_type: str,
-    output: Path,
+    output: Path | None = None,
     enum_values: list[str] | None = None,
     date_format: str | None = None,
     numeric_unit: str | None = None,
@@ -50,7 +50,7 @@ def build_change_set_from_field_spec(
 def build_change_set_from_field_specs(
     *,
     specs: list[dict[str, Any]],
-    output: Path,
+    output: Path | None = None,
     owner: str | None = None,
     change_id: str | None = None,
     title: str | None = None,
@@ -110,14 +110,15 @@ def build_change_set_from_field_specs(
     if not change_set["enums"]:
         change_set.pop("enums")
 
-    _write_yaml(output, change_set)
+    if output is not None:
+        _write_yaml(output, change_set)
     return change_set
 
 
 def build_change_set_from_spec_file(
     *,
     spec_path: Path,
-    output: Path,
+    output: Path | None = None,
     owner: str | None = None,
     change_id: str | None = None,
     title: str | None = None,
@@ -165,6 +166,7 @@ def _spec_enum_values(spec: dict[str, Any]) -> list[str]:
 
 def _add_enum_field(change_set: dict[str, Any], field: str, chinese_name: str, values: list[str], ordered: bool) -> None:
     retrieval_text = " ".join([chinese_name, field, *values, *(f"{value}{chinese_name}" for value in values)])
+    semantic_name = _semantic_name(chinese_name)
     first_value = values[0]
     second_value = values[1] if len(values) > 1 else values[0]
     third_value = values[2] if len(values) > 2 else second_value
@@ -185,7 +187,7 @@ def _add_enum_field(change_set: dict[str, Any], field: str, chinese_name: str, v
                 "value_type": value_type,
                 "enum_ref": field if operator in {"MATCH", "CONTAINS", "NOT_CONTAINS"} else None,
                 "retrieval_text": operator_text,
-                "description": f"表示客户{chinese_name}，枚举值为：{'、'.join(values)}；支持 {operator} 查询",
+                "description": f"表示{semantic_name}，枚举值为：{'、'.join(values)}；支持 {operator} 查询",
                 "examples": [
                     {
                         "query": query,
@@ -244,6 +246,7 @@ def _add_enum_field(change_set: dict[str, Any], field: str, chinese_name: str, v
 
 
 def _add_date_field(change_set: dict[str, Any], field: str, chinese_name: str, date_format: str, today: date) -> None:
+    semantic_name = _semantic_name(chinese_name)
     year_min = _format_date_value(date(today.year, 1, 1), date_format, end=False)
     year_max = _format_date_value(date(today.year, 12, 31), date_format, end=True)
     last_year_min = _format_date_value(date(today.year - 1, 1, 1), date_format, end=False)
@@ -268,7 +271,7 @@ def _add_date_field(change_set: dict[str, Any], field: str, chinese_name: str, d
                 "value_type": "date" if operator not in {"EXISTS", "NOT_EXISTS"} else ("exists" if operator == "EXISTS" else "not_exists"),
                 "format": date_format,
                 "retrieval_text": retrieval_text,
-                "description": f"表示客户{chinese_name}，日期格式 {date_format}；支持 {operator} 查询",
+                "description": f"表示{semantic_name}，日期格式 {date_format}；支持 {operator} 查询",
                 "examples": [{"query": query, "output": _condition(field, operator, value)}],
             }
         )
@@ -352,6 +355,7 @@ def _add_numeric_field(change_set: dict[str, Any], field: str, chinese_name: str
 
 def _add_text_field(change_set: dict[str, Any], field: str, chinese_name: str) -> None:
     intent_id = f"{_slug(field)}_match"
+    semantic_name = _semantic_name(chinese_name)
     change_set["fields"].append(
         {
             "id": intent_id,
@@ -359,7 +363,7 @@ def _add_text_field(change_set: dict[str, Any], field: str, chinese_name: str) -
             "operator": "MATCH",
             "value_type": "extract",
             "retrieval_text": f"{chinese_name} {field} {chinese_name}是 {chinese_name}为 {chinese_name}包含",
-            "description": f"表示客户{chinese_name}，从查询文本中提取匹配值",
+            "description": f"表示{semantic_name}，从查询文本中提取匹配值",
             "examples": [
                 {
                     "query": f"{chinese_name}为示例值的客户",
@@ -386,6 +390,7 @@ def _add_text_field(change_set: dict[str, Any], field: str, chinese_name: str) -
 
 
 def _numeric_intent(intent_base: str, field: str, chinese_name: str, operator: str, label: str, unit_note: str) -> dict[str, Any]:
+    semantic_name = _semantic_name(chinese_name)
     return {
         "id": f"{intent_base}_{operator.lower()}",
         "field": field,
@@ -393,7 +398,7 @@ def _numeric_intent(intent_base: str, field: str, chinese_name: str, operator: s
         "value_type": "numeric",
         "unit": unit_note.lstrip("，") or None,
         "retrieval_text": f"{chinese_name} {label} 大于 小于 不少于 不超过 {field}",
-        "description": f"表示客户{chinese_name}{label}筛选{unit_note}",
+        "description": f"表示{semantic_name}{label}筛选{unit_note}",
         "examples": [
             {
                 "query": f"{chinese_name}30以上的客户",
@@ -404,6 +409,7 @@ def _numeric_intent(intent_base: str, field: str, chinese_name: str, operator: s
 
 
 def _numeric_range_intent(intent_base: str, field: str, chinese_name: str, unit_note: str) -> dict[str, Any]:
+    semantic_name = _semantic_name(chinese_name)
     return {
         "id": f"{intent_base}_range",
         "field": field,
@@ -411,7 +417,7 @@ def _numeric_range_intent(intent_base: str, field: str, chinese_name: str, unit_
         "value_type": "numeric",
         "unit": unit_note.lstrip("，") or None,
         "retrieval_text": f"{chinese_name} 区间 范围 之间 从 到 {field}",
-        "description": f"表示客户{chinese_name}区间筛选{unit_note}",
+        "description": f"表示{semantic_name}区间筛选{unit_note}",
         "examples": [
             {
                 "query": f"{chinese_name}10到30的客户",
@@ -423,13 +429,14 @@ def _numeric_range_intent(intent_base: str, field: str, chinese_name: str, unit_
 
 def _exists_intent(intent_base: str, field: str, chinese_name: str, operator: str) -> dict[str, Any]:
     is_exists = operator == "EXISTS"
+    semantic_name = _semantic_name(chinese_name)
     return {
         "id": f"{intent_base}_{operator.lower()}",
         "field": field,
         "operator": operator,
         "value_type": "exists" if is_exists else "not_exists",
         "retrieval_text": f"{'有' if is_exists else '没有'}{chinese_name}信息 {chinese_name}{'不为空' if is_exists else '为空'} {field}",
-        "description": f"表示客户{'存在' if is_exists else '不存在'}{chinese_name}信息",
+        "description": f"表示{semantic_name}{'存在' if is_exists else '不存在'}信息",
         "examples": [
             {
                 "query": f"{'有' if is_exists else '没有'}{chinese_name}信息的客户",
@@ -608,6 +615,10 @@ def _format_date_value(value: date, date_format: str, *, end: bool) -> str:
 def _slug(value: str) -> str:
     normalized = re.sub(r"[^0-9A-Za-z]+", "_", value).strip("_").lower()
     return normalized or "field"
+
+
+def _semantic_name(chinese_name: str) -> str:
+    return chinese_name if chinese_name.startswith("客户") else f"客户{chinese_name}"
 
 
 def _write_yaml(output: Path, data: dict[str, Any]) -> Path:

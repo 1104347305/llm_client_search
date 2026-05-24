@@ -1,0 +1,565 @@
+你是客户搜索意图解析配置专家。请基于输入 change_set 生成候选增强，不要修改字段英文名，不要编造不存在字段。
+目标：补充代理人常见问法、反例、多条件测试，以及可执行的 L2 候选规则。
+要求：
+1. 只输出 JSON 对象，不要 Markdown。
+2. 所有 condition.field 必须来自输入字段，除多条件测试可额外使用既有字段 clientSex。
+3. operator 必须是 MATCH、CONTAINS、NOT_CONTAINS、GT、GTE、LT、LTE、RANGE、EXISTS、NOT_EXISTS 之一。
+4. 枚举值必须来自输入 enums；EXISTS/NOT_EXISTS 不要带 value。
+5. L2 patterns 要沿用项目占位符 {SEARCH}、{CW}，避免过宽泛裸词误召回。
+6. 输出内容作为候选，需要带 codex_candidate tag 或清晰命名。
+
+输入：
+{
+  "change_set": {
+    "id": "clienttemperature_policies_insure_date_clientage",
+    "title": "客户温度等字段自动生成",
+    "fields": [
+      {
+        "id": "clienttemperature_match",
+        "field": "clientTemperature",
+        "operator": "MATCH",
+        "value_type": "enum",
+        "enum_ref": "clientTemperature",
+        "format": null,
+        "unit": null,
+        "description": "表示客户客户温度，枚举值为：冷却、低温、中温、高温；支持 MATCH 查询",
+        "retrieval_text": "客户温度 等于 是 为 客户温度 clientTemperature 冷却 低温 中温 高温 冷却客户温度 低温客户温度 中温客户温度 高温客户温度",
+        "examples": [
+          {
+            "query": "客户温度为冷却的客户",
+            "output": {
+              "field": "clientTemperature",
+              "operator": "MATCH",
+              "value": "冷却"
+            }
+          }
+        ],
+        "negative_examples": [
+          {
+            "query": "今天客户温度很高的客户",
+            "reason": "自然语言中的高低描述不一定是客户温度标准枚举值"
+          }
+        ]
+      },
+      {
+        "id": "clienttemperature_contains",
+        "field": "clientTemperature",
+        "operator": "CONTAINS",
+        "value_type": "enum",
+        "enum_ref": "clientTemperature",
+        "format": null,
+        "unit": null,
+        "description": "表示客户客户温度，枚举值为：冷却、低温、中温、高温；支持 CONTAINS 查询",
+        "retrieval_text": "客户温度 包含 任一 其中之一 客户温度 clientTemperature 冷却 低温 中温 高温 冷却客户温度 低温客户温度 中温客户温度 高温客户温度",
+        "examples": [
+          {
+            "query": "客户温度包含冷却或低温的客户",
+            "output": {
+              "field": "clientTemperature",
+              "operator": "CONTAINS",
+              "value": [
+                "冷却",
+                "低温"
+              ]
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "clienttemperature_not_contains",
+        "field": "clientTemperature",
+        "operator": "NOT_CONTAINS",
+        "value_type": "enum",
+        "enum_ref": "clientTemperature",
+        "format": null,
+        "unit": null,
+        "description": "表示客户客户温度，枚举值为：冷却、低温、中温、高温；支持 NOT_CONTAINS 查询",
+        "retrieval_text": "客户温度 不包含 未配置 没有 缺少 非 客户温度 clientTemperature 冷却 低温 中温 高温 冷却客户温度 低温客户温度 中温客户温度 高温客户温度",
+        "examples": [
+          {
+            "query": "未配置冷却客户温度的客户",
+            "output": {
+              "field": "clientTemperature",
+              "operator": "NOT_CONTAINS",
+              "value": [
+                "冷却"
+              ]
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "clienttemperature_exists",
+        "field": "clientTemperature",
+        "operator": "EXISTS",
+        "value_type": "exists",
+        "enum_ref": null,
+        "format": null,
+        "unit": null,
+        "description": "表示客户客户温度，枚举值为：冷却、低温、中温、高温；支持 EXISTS 查询",
+        "retrieval_text": "有客户温度信息 客户温度不为空 已配置客户温度",
+        "examples": [
+          {
+            "query": "有客户温度信息的客户",
+            "output": {
+              "field": "clientTemperature",
+              "operator": "EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "clienttemperature_not_exists",
+        "field": "clientTemperature",
+        "operator": "NOT_EXISTS",
+        "value_type": "not_exists",
+        "enum_ref": null,
+        "format": null,
+        "unit": null,
+        "description": "表示客户客户温度，枚举值为：冷却、低温、中温、高温；支持 NOT_EXISTS 查询",
+        "retrieval_text": "没有客户温度信息 客户温度为空 未配置客户温度",
+        "examples": [
+          {
+            "query": "没有客户温度信息的客户",
+            "output": {
+              "field": "clientTemperature",
+              "operator": "NOT_EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_gt",
+        "field": "policies_insure_date",
+        "operator": "GT",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 GT 查询",
+        "retrieval_text": "投保日期 晚于 之后 大于 超过 policies_insure_date",
+        "examples": [
+          {
+            "query": "投保日期晚于2026年6月1日的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "GT",
+              "value": "2026-06-01 00:00:00"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_gte",
+        "field": "policies_insure_date",
+        "operator": "GTE",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 GTE 查询",
+        "retrieval_text": "投保日期 不早于 之后及当天 大于等于 起始 policies_insure_date",
+        "examples": [
+          {
+            "query": "投保日期不早于2026年6月1日的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "GTE",
+              "value": "2026-06-01 00:00:00"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_lt",
+        "field": "policies_insure_date",
+        "operator": "LT",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 LT 查询",
+        "retrieval_text": "投保日期 早于 之前 小于 policies_insure_date",
+        "examples": [
+          {
+            "query": "投保日期早于2026年6月1日的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "LT",
+              "value": "2026-06-01 00:00:00"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_lte",
+        "field": "policies_insure_date",
+        "operator": "LTE",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 LTE 查询",
+        "retrieval_text": "投保日期 不晚于 之前及当天 小于等于 截止 policies_insure_date",
+        "examples": [
+          {
+            "query": "投保日期不晚于2026年6月1日的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "LTE",
+              "value": "2026-06-01 00:00:00"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_range",
+        "field": "policies_insure_date",
+        "operator": "RANGE",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 RANGE 查询",
+        "retrieval_text": "投保日期 区间 范围 今年 去年 本月 最近一年 policies_insure_date",
+        "examples": [
+          {
+            "query": "今年投保日期的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "RANGE",
+              "value": {
+                "min": "2026-01-01 00:00:00",
+                "max": "2026-12-31 23:59:59"
+              }
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_exists",
+        "field": "policies_insure_date",
+        "operator": "EXISTS",
+        "value_type": "exists",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 EXISTS 查询",
+        "retrieval_text": "有投保日期信息 投保日期不为空",
+        "examples": [
+          {
+            "query": "有投保日期信息的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_not_exists",
+        "field": "policies_insure_date",
+        "operator": "NOT_EXISTS",
+        "value_type": "not_exists",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 NOT_EXISTS 查询",
+        "retrieval_text": "没有投保日期信息 投保日期为空",
+        "examples": [
+          {
+            "query": "没有投保日期信息的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "NOT_EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "clientage_gt",
+        "field": "clientAge",
+        "operator": "GT",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：岁",
+        "description": "表示客户客户年龄大于筛选，单位：岁",
+        "retrieval_text": "客户年龄 大于 大于 小于 不少于 不超过 clientAge",
+        "examples": [
+          {
+            "query": "客户年龄30以上的客户",
+            "output": {
+              "field": "clientAge",
+              "operator": "GT",
+              "value": 30
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "clientage_gte",
+        "field": "clientAge",
+        "operator": "GTE",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：岁",
+        "description": "表示客户客户年龄以上筛选，单位：岁",
+        "retrieval_text": "客户年龄 以上 大于 小于 不少于 不超过 clientAge",
+        "examples": [
+          {
+            "query": "客户年龄30以上的客户",
+            "output": {
+              "field": "clientAge",
+              "operator": "GTE",
+              "value": 30
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "clientage_lt",
+        "field": "clientAge",
+        "operator": "LT",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：岁",
+        "description": "表示客户客户年龄小于筛选，单位：岁",
+        "retrieval_text": "客户年龄 小于 大于 小于 不少于 不超过 clientAge",
+        "examples": [
+          {
+            "query": "客户年龄30以上的客户",
+            "output": {
+              "field": "clientAge",
+              "operator": "LT",
+              "value": 30
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "clientage_lte",
+        "field": "clientAge",
+        "operator": "LTE",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：岁",
+        "description": "表示客户客户年龄以下筛选，单位：岁",
+        "retrieval_text": "客户年龄 以下 大于 小于 不少于 不超过 clientAge",
+        "examples": [
+          {
+            "query": "客户年龄30以上的客户",
+            "output": {
+              "field": "clientAge",
+              "operator": "LTE",
+              "value": 30
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "clientage_range",
+        "field": "clientAge",
+        "operator": "RANGE",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：岁",
+        "description": "表示客户客户年龄区间筛选，单位：岁",
+        "retrieval_text": "客户年龄 区间 范围 之间 从 到 clientAge",
+        "examples": [
+          {
+            "query": "客户年龄10到30的客户",
+            "output": {
+              "field": "clientAge",
+              "operator": "RANGE",
+              "value": {
+                "min": 10,
+                "max": 30
+              }
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "clientage_exists",
+        "field": "clientAge",
+        "operator": "EXISTS",
+        "value_type": "exists",
+        "enum_ref": null,
+        "format": null,
+        "unit": null,
+        "description": "表示客户存在客户年龄信息",
+        "retrieval_text": "有客户年龄信息 客户年龄不为空 clientAge",
+        "examples": [
+          {
+            "query": "有客户年龄信息的客户",
+            "output": {
+              "field": "clientAge",
+              "operator": "EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "clientage_not_exists",
+        "field": "clientAge",
+        "operator": "NOT_EXISTS",
+        "value_type": "not_exists",
+        "enum_ref": null,
+        "format": null,
+        "unit": null,
+        "description": "表示客户不存在客户年龄信息",
+        "retrieval_text": "没有客户年龄信息 客户年龄为空 clientAge",
+        "examples": [
+          {
+            "query": "没有客户年龄信息的客户",
+            "output": {
+              "field": "clientAge",
+              "operator": "NOT_EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      }
+    ],
+    "enums": {
+      "clientTemperature": {
+        "values": [
+          "冷却",
+          "低温",
+          "中温",
+          "高温"
+        ],
+        "ordered": false
+      }
+    },
+    "existing_l2_rule_names": [
+      "客户温度-枚举匹配",
+      "客户温度-枚举包含",
+      "客户温度-枚举不包含",
+      "客户温度-存在",
+      "客户温度-不存在",
+      "投保日期-GT",
+      "投保日期-GTE",
+      "投保日期-LT",
+      "投保日期-LTE",
+      "投保日期-今年",
+      "投保日期-去年",
+      "投保日期-本月",
+      "投保日期-存在",
+      "投保日期-不存在",
+      "客户年龄-GT",
+      "客户年龄-GTE",
+      "客户年龄-LT",
+      "客户年龄-LTE",
+      "客户年龄-RANGE",
+      "客户年龄-存在",
+      "客户年龄-不存在"
+    ],
+    "existing_test_case_ids": [
+      "clienttemperature_001",
+      "clienttemperature_002",
+      "clienttemperature_003",
+      "clienttemperature_004",
+      "clienttemperature_005",
+      "clienttemperature_negative_001",
+      "policies_insure_date_001",
+      "policies_insure_date_002",
+      "policies_insure_date_003",
+      "policies_insure_date_004",
+      "policies_insure_date_005",
+      "policies_insure_date_006",
+      "policies_insure_date_007",
+      "policies_insure_date_008",
+      "clientage_001",
+      "clientage_002",
+      "clientage_003",
+      "clientage_004",
+      "clientage_005",
+      "clientage_006",
+      "clientage_007",
+      "multi_existing_gender_001",
+      "multi_generated_fields_001"
+    ]
+  },
+  "required_json_schema": {
+    "field_enhancements": [
+      {
+        "field": "fieldName",
+        "examples": [
+          {
+            "query": "代理人常见问法",
+            "output": {
+              "field": "fieldName",
+              "operator": "MATCH",
+              "value": "标准值"
+            }
+          }
+        ],
+        "negative_examples": [
+          {
+            "query": "容易误召回问法",
+            "reason": "为什么不是该字段"
+          }
+        ]
+      }
+    ],
+    "l2_rules": [
+      {
+        "name": "规则名",
+        "field": "fieldName",
+        "operator": "MATCH",
+        "value_type": "capture",
+        "patterns": [
+          "{SEARCH}..."
+        ],
+        "value": {
+          "group": 1
+        },
+        "priority": 8,
+        "merge_to_llm": false
+      }
+    ],
+    "test_cases": [
+      {
+        "id": "case_id",
+        "query": "测试问题",
+        "expected": {
+          "query_logic": "AND",
+          "conditions": [
+            {
+              "field": "fieldName",
+              "operator": "MATCH",
+              "value": "标准值"
+            }
+          ]
+        },
+        "tags": [
+          "positive",
+          "codex_candidate"
+        ]
+      }
+    ]
+  }
+}

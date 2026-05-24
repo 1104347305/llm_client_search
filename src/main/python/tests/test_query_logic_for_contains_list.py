@@ -76,7 +76,7 @@ class _StubLevel2:
             )
         ]
 
-    def recall_candidate_conditions(self, query: str):
+    def recall_candidate_conditions(self, query: str, **kwargs):
         return []
 
 
@@ -95,7 +95,7 @@ class _StubFieldRegistry:
         return query
 
 
-def test_contains_list_does_not_promote_outer_query_logic_to_or(monkeypatch):
+def test_single_value_field_contains_list_promotes_outer_query_logic_to_or(monkeypatch):
     monkeypatch.setattr(settings, "ENABLE_L1", True)
     monkeypatch.setattr(settings, "ENABLE_L2", True)
     monkeypatch.setattr(settings, "ENABLE_L3", False)
@@ -110,9 +110,45 @@ def test_contains_list_does_not_promote_outer_query_logic_to_or(monkeypatch):
     router._valid_fields = {"newValueLabel"}
     router._enum_values = {"newValueLabel": ["A1", "A2", "A3", "A4", "B", "C", "D", "E", "F"]}
 
-    parsed = asyncio.run(router.route_with_peeling("A类客户"))
+    parsed = asyncio.run(router.route_with_peeling("A类客户", ""))
 
-    assert parsed.query_logic == QueryLogic.AND
+    assert parsed.query_logic == QueryLogic.OR
     assert len(parsed.conditions) == 1
     assert parsed.conditions[0].field == "newValueLabel"
     assert parsed.conditions[0].value == ["A1", "A2", "A3", "A4"]
+
+
+def test_contains_list_keeps_and_for_non_single_value_field(monkeypatch):
+    monkeypatch.setattr(settings, "ENABLE_L1", True)
+    monkeypatch.setattr(settings, "ENABLE_L2", True)
+    monkeypatch.setattr(settings, "ENABLE_L3", False)
+    monkeypatch.setattr(settings, "ENABLE_L4", False)
+
+    class _StubLevel2Product:
+        async def match(self, query: str):
+            return [
+                Condition(
+                    field="pCategorys",
+                    operator=Operator.CONTAINS,
+                    value=["疾病保险", "医疗保险"],
+                )
+            ]
+
+        def recall_candidate_conditions(self, query: str, **kwargs):
+            return []
+
+    router = QueryRouter.__new__(QueryRouter)
+    router.level1 = _StubLevel1()
+    router.level2 = _StubLevel2Product()
+    router.level3 = _StubLevel3()
+    router.level4 = _StubLevel4()
+    router.field_registry = _StubFieldRegistry()
+    router._valid_fields = {"pCategorys"}
+    router._enum_values = {}
+
+    parsed = asyncio.run(router.route_with_peeling("买了重疾和医疗险的客户", ""))
+
+    assert parsed.query_logic == QueryLogic.AND
+    assert len(parsed.conditions) == 1
+    assert parsed.conditions[0].field == "pCategorys"
+    assert parsed.conditions[0].value == ["疾病保险", "医疗保险"]

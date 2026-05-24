@@ -2680,6 +2680,7 @@ intents:
     is_supported: true
     retrieval_text: >
       应缴日 缴费日 应缴时间 缴费到期 本月应缴 下个月缴费 即将缴费
+      要交保费 需要交保费 交保费 缴保费 5月18号交保费
     field: polNoInfo.paytodate
     operator: RANGE
     value_type: date
@@ -2693,6 +2694,10 @@ intents:
         output: {field: polNoInfo.paytodate, operator: RANGE, value: {min: "2026-05-01 00:00:00", max: "2026-05-31 23:59:59"}}
       - query: "近30天需要缴费的客户（当前时间为2026-04-27）"
         output: { field: polNoInfo.paytodate, operator: RANGE, value: { min: "2026-04-27 00:00:00", max: "2026-05-26 23:59:59" } }
+      - query: "5月18号交保费的客户（当前时间为2026年）"
+        output: { field: polNoInfo.paytodate, operator: RANGE, value: { min: "2026-05-18 00:00:00", max: "2026-05-18 00:00:00" } }
+      - query: "要交保费的客户"
+        output: { field: polNoInfo.paytodate, operator: EXISTS, value: "" }
 
   # ==================== 核保结论 ====================
 

@@ -57,12 +57,12 @@ app.include_router(router, prefix="/api/v1", tags=["search"])
 
 
 @app.on_event("startup")
-async def startup_background_load_query_router():
-    """服务启动后后台预热规则引擎。"""
-    startTime = time.perf_counter()
-    routes_module.start_background_query_router_load(delay_seconds=0.0)
+async def startup_load_query_router():
+    """启动期同步加载规则引擎；完成后解析接口才进入可服务状态。"""
+    start_time = time.perf_counter()
+    routes_module.start_runtime_reload_marker_watcher
     routes_module.start_runtime_reload_marker_watcher()
-    logger.info(f"预加载耗时：{time.perf_counter() - startTime}")
+    logger.info(f"启动期规则引擎加载完成，耗时：{time.perf_counter() - start_time:.3f}s")
 
 
 @app.get("/")

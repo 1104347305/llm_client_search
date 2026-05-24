@@ -1,0 +1,448 @@
+rules:
+- name: 保单犹豫期截止时间-GT
+  patterns:
+  - '{SEARCH}保单犹豫期截止时间(?:晚于|在.*之后|大于|超过)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:晚于|在.*之后|大于|超过)保单犹豫期截止时间(?:的客户|客户|名单|的人|人)?'
+  field: policies_cooling_off
+  operator: GT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 保单犹豫期截止时间-GTE
+  patterns:
+  - '{SEARCH}保单犹豫期截止时间(?:不早于|不小于|大于等于|从)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不早于|不小于|大于等于|从)保单犹豫期截止时间(?:的客户|客户|名单|的人|人)?'
+  field: policies_cooling_off
+  operator: GTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 保单犹豫期截止时间-LT
+  patterns:
+  - '{SEARCH}保单犹豫期截止时间(?:早于|在.*之前|小于)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:早于|在.*之前|小于)保单犹豫期截止时间(?:的客户|客户|名单|的人|人)?'
+  field: policies_cooling_off
+  operator: LT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 保单犹豫期截止时间-LTE
+  patterns:
+  - '{SEARCH}保单犹豫期截止时间(?:不晚于|不大于|小于等于|截止到|截至)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不晚于|不大于|小于等于|截止到|截至)保单犹豫期截止时间(?:的客户|客户|名单|的人|人)?'
+  field: policies_cooling_off
+  operator: LTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 保单犹豫期截止时间-今年
+  field: policies_cooling_off
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_year
+    format: yyyy-MM-dd
+  patterns:
+  - '{SEARCH}(?:今年){CW}{0,2}保单犹豫期截止时间(?:的客户|客户)?'
+  - '{SEARCH}保单犹豫期截止时间{CW}{0,2}(?:在)?今年(?:的客户|客户)?'
+  priority: 9
+- name: 保单犹豫期截止时间-去年
+  field: policies_cooling_off
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: last_year
+    format: yyyy-MM-dd
+  patterns:
+  - '{SEARCH}(?:去年){CW}{0,2}保单犹豫期截止时间(?:的客户|客户)?'
+  - '{SEARCH}保单犹豫期截止时间{CW}{0,2}(?:在)?去年(?:的客户|客户)?'
+  priority: 9
+- name: 保单犹豫期截止时间-本月
+  field: policies_cooling_off
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_month
+    format: yyyy-MM-dd
+  patterns:
+  - '{SEARCH}(?:本月){CW}{0,2}保单犹豫期截止时间(?:的客户|客户)?'
+  - '{SEARCH}保单犹豫期截止时间{CW}{0,2}(?:在)?本月(?:的客户|客户)?'
+  priority: 9
+- name: 保单犹豫期截止时间-存在
+  patterns:
+  - '{SEARCH}(?:有|存在|已维护)保单犹豫期截止时间(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}保单犹豫期截止时间(?:不为空|非空|有值)(?:的客户|客户|名单|的人|人)?'
+  field: policies_cooling_off
+  operator: EXISTS
+  value_type: static
+  priority: 8
+  merge_to_llm: false
+- name: 保单犹豫期截止时间-不存在
+  patterns:
+  - '{SEARCH}(?:没有|无|未维护)保单犹豫期截止时间(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}保单犹豫期截止时间(?:为空|空白|没值|无值)(?:的客户|客户|名单|的人|人)?'
+  field: policies_cooling_off
+  operator: NOT_EXISTS
+  value_type: static
+  priority: 9
+  merge_to_llm: false
+- name: 车险到期时间-GT
+  patterns:
+  - '{SEARCH}车险到期时间(?:晚于|在.*之后|大于|超过)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:晚于|在.*之后|大于|超过)车险到期时间(?:的客户|客户|名单|的人|人)?'
+  field: carInsuranceMatuDateTime
+  operator: GT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 车险到期时间-GTE
+  patterns:
+  - '{SEARCH}车险到期时间(?:不早于|不小于|大于等于|从)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不早于|不小于|大于等于|从)车险到期时间(?:的客户|客户|名单|的人|人)?'
+  field: carInsuranceMatuDateTime
+  operator: GTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 车险到期时间-LT
+  patterns:
+  - '{SEARCH}车险到期时间(?:早于|在.*之前|小于)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:早于|在.*之前|小于)车险到期时间(?:的客户|客户|名单|的人|人)?'
+  field: carInsuranceMatuDateTime
+  operator: LT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 车险到期时间-LTE
+  patterns:
+  - '{SEARCH}车险到期时间(?:不晚于|不大于|小于等于|截止到|截至)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不晚于|不大于|小于等于|截止到|截至)车险到期时间(?:的客户|客户|名单|的人|人)?'
+  field: carInsuranceMatuDateTime
+  operator: LTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 车险到期时间-今年
+  field: carInsuranceMatuDateTime
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_year
+    format: yyyy-MM-dd
+  patterns:
+  - '{SEARCH}(?:今年){CW}{0,2}车险到期时间(?:的客户|客户)?'
+  - '{SEARCH}车险到期时间{CW}{0,2}(?:在)?今年(?:的客户|客户)?'
+  priority: 9
+- name: 车险到期时间-去年
+  field: carInsuranceMatuDateTime
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: last_year
+    format: yyyy-MM-dd
+  patterns:
+  - '{SEARCH}(?:去年){CW}{0,2}车险到期时间(?:的客户|客户)?'
+  - '{SEARCH}车险到期时间{CW}{0,2}(?:在)?去年(?:的客户|客户)?'
+  priority: 9
+- name: 车险到期时间-本月
+  field: carInsuranceMatuDateTime
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_month
+    format: yyyy-MM-dd
+  patterns:
+  - '{SEARCH}(?:本月){CW}{0,2}车险到期时间(?:的客户|客户)?'
+  - '{SEARCH}车险到期时间{CW}{0,2}(?:在)?本月(?:的客户|客户)?'
+  priority: 9
+- name: 车险到期时间-存在
+  patterns:
+  - '{SEARCH}(?:有|存在|已维护)车险到期时间(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}车险到期时间(?:不为空|非空|有值)(?:的客户|客户|名单|的人|人)?'
+  field: carInsuranceMatuDateTime
+  operator: EXISTS
+  value_type: static
+  priority: 8
+  merge_to_llm: false
+- name: 车险到期时间-不存在
+  patterns:
+  - '{SEARCH}(?:没有|无|未维护)车险到期时间(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}车险到期时间(?:为空|空白|没值|无值)(?:的客户|客户|名单|的人|人)?'
+  field: carInsuranceMatuDateTime
+  operator: NOT_EXISTS
+  value_type: static
+  priority: 9
+  merge_to_llm: false
+- name: 年收入-GT
+  patterns:
+  - '{SEARCH}年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:大于|超过|高于|多于)(?:的客户|客户)?'
+  field: annual_income
+  operator: GT
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 年收入-GTE
+  patterns:
+  - '{SEARCH}年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:以上|及以上|不少于|大于等于)(?:的客户|客户)?'
+  field: annual_income
+  operator: GTE
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 年收入-LT
+  patterns:
+  - '{SEARCH}年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:小于|低于|少于|不足)(?:的客户|客户)?'
+  field: annual_income
+  operator: LT
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 年收入-LTE
+  patterns:
+  - '{SEARCH}年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:以下|及以下|不超过|小于等于)(?:的客户|客户)?'
+  field: annual_income
+  operator: LTE
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 年收入-RANGE
+  patterns:
+  - '{SEARCH}年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:到|至|-|~)(\d+)(?:元|万|岁|次|分)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}年收入(?:在)?(\d+)(?:元|万|岁|次|分)?(?:和|到|至)(\d+)(?:元|万|岁|次|分)?之间(?:的客户|客户|名单|的人|人)?'
+  field: annual_income
+  operator: RANGE
+  value_type: range
+  value:
+    min_group: 1
+    max_group: 2
+    transform: int
+  priority: 9
+  merge_to_llm: false
+- name: 年收入-存在
+  patterns:
+  - '{SEARCH}(?:有|存在|已维护)年收入(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}年收入(?:不为空|非空|有值)(?:的客户|客户|名单|的人|人)?'
+  field: annual_income
+  operator: EXISTS
+  value_type: static
+  priority: 8
+  merge_to_llm: false
+- name: 年收入-不存在
+  patterns:
+  - '{SEARCH}(?:没有|无|未维护)年收入(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}年收入(?:为空|空白|没值|无值)(?:的客户|客户|名单|的人|人)?'
+  field: annual_income
+  operator: NOT_EXISTS
+  value_type: static
+  priority: 9
+  merge_to_llm: false
+- name: 家庭年收入-GT
+  patterns:
+  - '{SEARCH}家庭年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:大于|超过|高于|多于)(?:的客户|客户)?'
+  field: household_income
+  operator: GT
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 家庭年收入-GTE
+  patterns:
+  - '{SEARCH}家庭年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:以上|及以上|不少于|大于等于)(?:的客户|客户)?'
+  field: household_income
+  operator: GTE
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 家庭年收入-LT
+  patterns:
+  - '{SEARCH}家庭年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:小于|低于|少于|不足)(?:的客户|客户)?'
+  field: household_income
+  operator: LT
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 家庭年收入-LTE
+  patterns:
+  - '{SEARCH}家庭年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:以下|及以下|不超过|小于等于)(?:的客户|客户)?'
+  field: household_income
+  operator: LTE
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 家庭年收入-RANGE
+  patterns:
+  - '{SEARCH}家庭年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:到|至|-|~)(\d+)(?:元|万|岁|次|分)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}家庭年收入(?:在)?(\d+)(?:元|万|岁|次|分)?(?:和|到|至)(\d+)(?:元|万|岁|次|分)?之间(?:的客户|客户|名单|的人|人)?'
+  field: household_income
+  operator: RANGE
+  value_type: range
+  value:
+    min_group: 1
+    max_group: 2
+    transform: int
+  priority: 9
+  merge_to_llm: false
+- name: 家庭年收入-存在
+  patterns:
+  - '{SEARCH}(?:有|存在|已维护)家庭年收入(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}家庭年收入(?:不为空|非空|有值)(?:的客户|客户|名单|的人|人)?'
+  field: household_income
+  operator: EXISTS
+  value_type: static
+  priority: 8
+  merge_to_llm: false
+- name: 家庭年收入-不存在
+  patterns:
+  - '{SEARCH}(?:没有|无|未维护)家庭年收入(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}家庭年收入(?:为空|空白|没值|无值)(?:的客户|客户|名单|的人|人)?'
+  field: household_income
+  operator: NOT_EXISTS
+  value_type: static
+  priority: 9
+  merge_to_llm: false
+- name: 投保日期-GT
+  patterns:
+  - '{SEARCH}投保日期(?:晚于|在.*之后|大于|超过)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:晚于|在.*之后|大于|超过)投保日期(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: GT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-GTE
+  patterns:
+  - '{SEARCH}投保日期(?:不早于|不小于|大于等于|从)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不早于|不小于|大于等于|从)投保日期(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: GTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-LT
+  patterns:
+  - '{SEARCH}投保日期(?:早于|在.*之前|小于)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:早于|在.*之前|小于)投保日期(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: LT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-LTE
+  patterns:
+  - '{SEARCH}投保日期(?:不晚于|不大于|小于等于|截止到|截至)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不晚于|不大于|小于等于|截止到|截至)投保日期(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: LTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-今年
+  field: policies_insure_date
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_year
+    format: yyyy-MM-dd HH:mm:ss
+  patterns:
+  - '{SEARCH}(?:今年){CW}{0,2}投保日期(?:的客户|客户)?'
+  - '{SEARCH}投保日期{CW}{0,2}(?:在)?今年(?:的客户|客户)?'
+  priority: 9
+- name: 投保日期-去年
+  field: policies_insure_date
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: last_year
+    format: yyyy-MM-dd HH:mm:ss
+  patterns:
+  - '{SEARCH}(?:去年){CW}{0,2}投保日期(?:的客户|客户)?'
+  - '{SEARCH}投保日期{CW}{0,2}(?:在)?去年(?:的客户|客户)?'
+  priority: 9
+- name: 投保日期-本月
+  field: policies_insure_date
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_month
+    format: yyyy-MM-dd HH:mm:ss
+  patterns:
+  - '{SEARCH}(?:本月){CW}{0,2}投保日期(?:的客户|客户)?'
+  - '{SEARCH}投保日期{CW}{0,2}(?:在)?本月(?:的客户|客户)?'
+  priority: 9
+- name: 投保日期-存在
+  patterns:
+  - '{SEARCH}(?:有|存在|已维护)投保日期(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}投保日期(?:不为空|非空|有值)(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: EXISTS
+  value_type: static
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-不存在
+  patterns:
+  - '{SEARCH}(?:没有|无|未维护)投保日期(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}投保日期(?:为空|空白|没值|无值)(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: NOT_EXISTS
+  value_type: static
+  priority: 9
+  merge_to_llm: false

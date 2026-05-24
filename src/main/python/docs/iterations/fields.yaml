@@ -1,0 +1,25 @@
+fields:
+  - field: policies_cooling_off
+    name: 保单犹豫期截止时间
+    type: date
+    enum_values: "yyyy-MM-dd HH:mm:ss"
+
+  - field: carInsuranceMatuDateTime
+    name: 车险到期时间
+    type: date
+    format: "yyyy-MM-dd"
+
+  - field: annual_income
+    name: 年收入
+    type: numeric
+    unit: 元
+
+  - field: household_income
+    name: 家庭年收入
+    type: numeric
+    unit: 元
+
+  - field: policies_insure_date
+    name: 投保日期
+    type: date
+    format: "yyyy-MM-dd HH:mm:ss"

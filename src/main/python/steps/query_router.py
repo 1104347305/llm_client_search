@@ -12,7 +12,7 @@ from src.main.python.steps.level3_semantic_cache import Level3SemanticCache
 from src.main.python.steps.level4_llm_parser import Level4LLMParser
 from src.main.python.steps.field_registry import FieldRegistry, get_field_registry
 from src.main.python.config.settings import settings
-from src.main.python.models.field_mapping import get_query_field, QUERY_FIELDS
+from src.main.python.models.field_mapping import get_query_field, get_single_value_or_fields, QUERY_FIELDS
 from typing import List, Tuple, Optional, Set, Dict, Any
 from pathlib import Path
 import re
@@ -301,6 +301,22 @@ class QueryRouter:
         finalized = self.normalize_date_condition_formats(finalized)
         return self.normalize_conditions_for_summary(finalized)
 
+    def _postprocess_query_logic(self, query_logic: QueryLogic, conditions: List[Condition]) -> QueryLogic:
+        fields = {cond.field for cond in conditions}
+        if len(fields) != 1:
+            return query_logic
+
+        if next(iter(fields)) not in get_single_value_or_fields():
+            return query_logic
+
+        values = []
+        for cond in conditions:
+            if isinstance(cond.value, list):
+                values.extend(value for value in cond.value if value is not None)
+            elif cond.value is not None:
+                values.append(cond.value)
+        return QueryLogic.OR if len(values) > 1 else query_logic
+
     def _load_validation_data(self):
         """从配置指定的 field_definitions 和 enums 目录加载校验基准"""
         # 1. 从 field_definitions.yaml 收集合法字段名
@@ -530,6 +546,10 @@ class QueryRouter:
                 parsed.conditions = self._materialize_name_candidate_if_needed(parsed.conditions, state)
                 parsed.conditions = self._validate_conditions(parsed.conditions)
                 parsed.conditions = self.normalize_conditions_for_summary(parsed.conditions)
+                parsed.query_logic = self._postprocess_query_logic(
+                    parsed.query_logic,
+                    parsed.conditions,
+                )
                 parsed.rewritten_query = state.rewritten_query
                 parsed.matched_patterns = state.matched_patterns
 
@@ -558,9 +578,14 @@ class QueryRouter:
         all_conditions = self._validate_conditions(all_conditions)
         all_conditions = self.normalize_conditions_for_summary(all_conditions)
 
+        query_logic = self._postprocess_query_logic(
+            QueryLogic.AND,
+            all_conditions,
+        )
+
         return ParsedQuery(
             conditions=all_conditions,
-            query_logic=QueryLogic.AND,
+            query_logic=query_logic,
             logic_tree=None,
             confidence=confidence,
             matched_level=matched_level,

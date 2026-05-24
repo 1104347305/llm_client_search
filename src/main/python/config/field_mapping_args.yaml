@@ -42,6 +42,13 @@ sensitive_field_groups:
     - clientNo
     - customer_id
 
+# 单个客户不可能同时拥有多个值的字段。
+# 当最终解析结果只有这一类字段，且出现多个候选值时，将外层 query_logic 修正为 OR。
+single_value_or_fields:
+  - searchClientName
+  - clientTemperature
+  - newValueLabel
+
 negation_words:
   - 没
   - 未

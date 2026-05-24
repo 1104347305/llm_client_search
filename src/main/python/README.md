@@ -182,7 +182,9 @@ curl -X POST http://localhost:8000/api/v1/config/reload \
 说明：
 - 默认不会更新 RAG ES 索引，避免服务启动或配置热更新时改写线上索引
 - `force_reindex_fields=true` 时，会按最新内容重载全部 YAML 配置，并同步重建字段意图索引
-- 会刷新运行时配置、字段注册表、查询路由器和搜索服务实例
+- 会在后台构建新的运行时配置、字段注册表、查询路由器和摘要服务，全部构建成功后再切换
+- 热更新期间解析接口继续使用旧运行时；热更新失败时旧运行时继续服务，错误会记录在 reload 状态中
+- 多 worker 通过 `.client_search_runtime_reload.json` marker 感知更新；`wait=true` 只保证当前 worker 完成，其它 worker 会随后后台刷新
 - 返回结果中会包含本次重载的 `reloaded_yaml_files`
 
 ### 重建字段意图索引

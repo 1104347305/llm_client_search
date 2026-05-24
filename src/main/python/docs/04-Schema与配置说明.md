@@ -142,6 +142,7 @@ src/main/python/config/field_mapping_args.yaml
 ```text
 query_fields: 12
 field_context_groups: 2
+single_value_or_fields: 3
 ```
 
 代码入口：
@@ -156,6 +157,7 @@ src/main/python/models/field_mapping.py
 get_query_field("customer_name")
 get_field_context_group("...")
 get_sensitive_field_group("...")
+get_single_value_or_fields()
 get_name_candidate_values("...")
 ```
 
@@ -164,6 +166,7 @@ get_name_candidate_values("...")
 - 给 L1 和部分后处理提供字段别名。
 - 配置敏感字段组。
 - 配置家庭成员/客户本人等上下文分组。
+- 配置单值互斥字段：当最终解析结果只有一个字段，且该字段有多个候选值时，后处理将 `query_logic` 修正为 `OR`。当前默认包含 `searchClientName`、`clientTemperature`、`newValueLabel`。
 - 配置裸姓名候选识别。
 
 ## L2 规则配置

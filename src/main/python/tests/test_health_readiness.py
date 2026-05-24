@@ -11,6 +11,22 @@ class _RunningTask:
 
 
 @pytest.mark.asyncio
+async def test_startup_waits_for_query_router_preload(monkeypatch):
+    calls = []
+
+    async def preload():
+        calls.append("preload")
+        return object()
+
+    monkeypatch.setattr(main.routes_module, "preload_query_router_for_startup", preload)
+    monkeypatch.setattr(main.routes_module, "start_runtime_reload_marker_watcher", lambda: calls.append("watcher"))
+
+    await main.startup_load_query_router()
+
+    assert calls == ["preload", "watcher"]
+
+
+@pytest.mark.asyncio
 async def test_health_returns_503_until_runtime_ready(monkeypatch):
     monkeypatch.setattr(
         main.routes_module,
@@ -91,6 +107,20 @@ def test_runtime_reload_keeps_health_ready_when_previous_runtime_exists(monkeypa
     assert status["status"] == "ready_reloading_previous_runtime_available"
     assert status["serving_previous_runtime"] is True
     assert status["reload_running"] is True
+
+
+def test_preflight_runtime_constructs_query_router_before_server_start(monkeypatch):
+    calls = []
+
+    class FakeQueryRouter:
+        def __init__(self):
+            calls.append("query_router")
+
+    monkeypatch.setattr(routes, "QueryRouter", FakeQueryRouter)
+
+    routes.preflight_runtime_for_server_start()
+
+    assert calls == ["query_router"]
 
 
 @pytest.mark.asyncio

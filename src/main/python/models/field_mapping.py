@@ -106,6 +106,12 @@ def get_sensitive_field_group(group: str) -> Set[str]:
         raise ValueError(f"字段映射配置项 'sensitive_field_groups.{group}' 必须是数组")
     return {str(item) for item in value}
 
+
+def get_single_value_or_fields() -> Set[str]:
+    """字段本身互斥时，同字段多值查询应按 OR 理解。"""
+    _ensure_config_loaded()
+    return {str(item) for item in _list_from(_CONFIG, "single_value_or_fields")}
+
 def _pipe_split(value: Any) -> List[str]:
     if isinstance(value, list):
         return [str(item).strip() for item in value if str(item).strip()]

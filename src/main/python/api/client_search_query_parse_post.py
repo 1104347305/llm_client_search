@@ -485,6 +485,23 @@ async def _load_query_router() -> QueryRouter:
     return _query_router
 
 
+async def preload_query_router_for_startup() -> QueryRouter:
+    """启动期同步加载规则引擎；加载完成前当前 worker 不进入可服务状态。"""
+    global _query_router_load_task, _query_router_load_delayed
+    _query_router_load_delayed = False
+    if _query_router_load_task is not None and not _query_router_load_task.done():
+        return await _query_router_load_task
+    _query_router_load_task = asyncio.create_task(_load_query_router())
+    return await _query_router_load_task
+
+
+# def preflight_runtime_for_server_start() -> None:
+#     """端口监听前预检运行时配置；失败时让启动进程直接退出。"""
+#     logger.info("Runtime preflight started before binding API port")
+#     QueryRouter()
+#     logger.info("Runtime preflight completed")
+
+
 async def _load_query_router_after_delay(delay_seconds: float) -> QueryRouter:
     """延迟预热，给 uvicorn 完成端口监听和健康检查响应留出时间。"""
     global _query_router_load_delayed

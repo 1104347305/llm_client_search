@@ -1,0 +1,964 @@
+你是客户搜索意图解析配置专家。请基于输入 change_set 生成候选增强，不要修改字段英文名，不要编造不存在字段。
+目标：补充代理人常见问法、反例、多条件测试，以及可执行的 L2 候选规则。
+要求：
+1. 只输出 JSON 对象，不要 Markdown。
+2. 生成格式必须与项目配置文件一致：RAG 使用 field_definitions_args.yaml.intents，L2 使用 enhanced_rules_args.yaml.rules，枚举使用 field_enums_args.yaml，别名映射使用 value_mappings_args.yaml。
+3. 所有 condition.field 必须来自输入字段，除多条件测试可额外使用既有字段 clientSex。
+4. operator 必须是 MATCH、CONTAINS、NOT_CONTAINS、GT、GTE、LT、LTE、RANGE、EXISTS、NOT_EXISTS 之一。
+5. 枚举值必须来自输入 enums；EXISTS/NOT_EXISTS 不要带 value。
+6. L2 patterns 要沿用项目占位符 {SEARCH}、{CW}，避免过宽泛裸词误召回。
+7. 输出内容作为候选，需要带 codex_candidate tag 或清晰命名。
+
+输入：
+{
+  "change_set": {
+    "id": "policies_cooling_off_carinsurancematudatetime_annual_income",
+    "title": "保单犹豫期截止时间等字段自动生成",
+    "fields": [
+      {
+        "id": "policies_cooling_off_gt",
+        "field": "policies_cooling_off",
+        "operator": "GT",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 GT 查询",
+        "retrieval_text": "保单犹豫期截止时间 晚于 之后 大于 超过 policies_cooling_off",
+        "examples": [
+          {
+            "query": "保单犹豫期截止时间晚于2026年6月1日的客户",
+            "output": {
+              "field": "policies_cooling_off",
+              "operator": "GT",
+              "value": "2026-06-01"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_cooling_off_gte",
+        "field": "policies_cooling_off",
+        "operator": "GTE",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 GTE 查询",
+        "retrieval_text": "保单犹豫期截止时间 不早于 之后及当天 大于等于 起始 policies_cooling_off",
+        "examples": [
+          {
+            "query": "保单犹豫期截止时间不早于2026年6月1日的客户",
+            "output": {
+              "field": "policies_cooling_off",
+              "operator": "GTE",
+              "value": "2026-06-01"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_cooling_off_lt",
+        "field": "policies_cooling_off",
+        "operator": "LT",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 LT 查询",
+        "retrieval_text": "保单犹豫期截止时间 早于 之前 小于 policies_cooling_off",
+        "examples": [
+          {
+            "query": "保单犹豫期截止时间早于2026年6月1日的客户",
+            "output": {
+              "field": "policies_cooling_off",
+              "operator": "LT",
+              "value": "2026-06-01"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_cooling_off_lte",
+        "field": "policies_cooling_off",
+        "operator": "LTE",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 LTE 查询",
+        "retrieval_text": "保单犹豫期截止时间 不晚于 之前及当天 小于等于 截止 policies_cooling_off",
+        "examples": [
+          {
+            "query": "保单犹豫期截止时间不晚于2026年6月1日的客户",
+            "output": {
+              "field": "policies_cooling_off",
+              "operator": "LTE",
+              "value": "2026-06-01"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_cooling_off_range",
+        "field": "policies_cooling_off",
+        "operator": "RANGE",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 RANGE 查询",
+        "retrieval_text": "保单犹豫期截止时间 区间 范围 今年 去年 本月 最近一年 policies_cooling_off",
+        "examples": [
+          {
+            "query": "今年保单犹豫期截止时间的客户",
+            "output": {
+              "field": "policies_cooling_off",
+              "operator": "RANGE",
+              "value": {
+                "min": "2026-01-01",
+                "max": "2026-12-31"
+              }
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_cooling_off_exists",
+        "field": "policies_cooling_off",
+        "operator": "EXISTS",
+        "value_type": "exists",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 EXISTS 查询",
+        "retrieval_text": "有保单犹豫期截止时间信息 保单犹豫期截止时间不为空",
+        "examples": [
+          {
+            "query": "有保单犹豫期截止时间信息的客户",
+            "output": {
+              "field": "policies_cooling_off",
+              "operator": "EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_cooling_off_not_exists",
+        "field": "policies_cooling_off",
+        "operator": "NOT_EXISTS",
+        "value_type": "not_exists",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 NOT_EXISTS 查询",
+        "retrieval_text": "没有保单犹豫期截止时间信息 保单犹豫期截止时间为空",
+        "examples": [
+          {
+            "query": "没有保单犹豫期截止时间信息的客户",
+            "output": {
+              "field": "policies_cooling_off",
+              "operator": "NOT_EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "carinsurancematudatetime_gt",
+        "field": "carInsuranceMatuDateTime",
+        "operator": "GT",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 GT 查询",
+        "retrieval_text": "车险到期时间 晚于 之后 大于 超过 carInsuranceMatuDateTime",
+        "examples": [
+          {
+            "query": "车险到期时间晚于2026年6月1日的客户",
+            "output": {
+              "field": "carInsuranceMatuDateTime",
+              "operator": "GT",
+              "value": "2026-06-01"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "carinsurancematudatetime_gte",
+        "field": "carInsuranceMatuDateTime",
+        "operator": "GTE",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 GTE 查询",
+        "retrieval_text": "车险到期时间 不早于 之后及当天 大于等于 起始 carInsuranceMatuDateTime",
+        "examples": [
+          {
+            "query": "车险到期时间不早于2026年6月1日的客户",
+            "output": {
+              "field": "carInsuranceMatuDateTime",
+              "operator": "GTE",
+              "value": "2026-06-01"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "carinsurancematudatetime_lt",
+        "field": "carInsuranceMatuDateTime",
+        "operator": "LT",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 LT 查询",
+        "retrieval_text": "车险到期时间 早于 之前 小于 carInsuranceMatuDateTime",
+        "examples": [
+          {
+            "query": "车险到期时间早于2026年6月1日的客户",
+            "output": {
+              "field": "carInsuranceMatuDateTime",
+              "operator": "LT",
+              "value": "2026-06-01"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "carinsurancematudatetime_lte",
+        "field": "carInsuranceMatuDateTime",
+        "operator": "LTE",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 LTE 查询",
+        "retrieval_text": "车险到期时间 不晚于 之前及当天 小于等于 截止 carInsuranceMatuDateTime",
+        "examples": [
+          {
+            "query": "车险到期时间不晚于2026年6月1日的客户",
+            "output": {
+              "field": "carInsuranceMatuDateTime",
+              "operator": "LTE",
+              "value": "2026-06-01"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "carinsurancematudatetime_range",
+        "field": "carInsuranceMatuDateTime",
+        "operator": "RANGE",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 RANGE 查询",
+        "retrieval_text": "车险到期时间 区间 范围 今年 去年 本月 最近一年 carInsuranceMatuDateTime",
+        "examples": [
+          {
+            "query": "今年车险到期时间的客户",
+            "output": {
+              "field": "carInsuranceMatuDateTime",
+              "operator": "RANGE",
+              "value": {
+                "min": "2026-01-01",
+                "max": "2026-12-31"
+              }
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "carinsurancematudatetime_exists",
+        "field": "carInsuranceMatuDateTime",
+        "operator": "EXISTS",
+        "value_type": "exists",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 EXISTS 查询",
+        "retrieval_text": "有车险到期时间信息 车险到期时间不为空",
+        "examples": [
+          {
+            "query": "有车险到期时间信息的客户",
+            "output": {
+              "field": "carInsuranceMatuDateTime",
+              "operator": "EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "carinsurancematudatetime_not_exists",
+        "field": "carInsuranceMatuDateTime",
+        "operator": "NOT_EXISTS",
+        "value_type": "not_exists",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd",
+        "unit": null,
+        "description": "表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 NOT_EXISTS 查询",
+        "retrieval_text": "没有车险到期时间信息 车险到期时间为空",
+        "examples": [
+          {
+            "query": "没有车险到期时间信息的客户",
+            "output": {
+              "field": "carInsuranceMatuDateTime",
+              "operator": "NOT_EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "annual_income_gt",
+        "field": "annual_income",
+        "operator": "GT",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：元",
+        "description": "表示客户年收入大于筛选，单位：元",
+        "retrieval_text": "年收入 大于 大于 小于 不少于 不超过 annual_income",
+        "examples": [
+          {
+            "query": "年收入30以上的客户",
+            "output": {
+              "field": "annual_income",
+              "operator": "GT",
+              "value": 30
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "annual_income_gte",
+        "field": "annual_income",
+        "operator": "GTE",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：元",
+        "description": "表示客户年收入以上筛选，单位：元",
+        "retrieval_text": "年收入 以上 大于 小于 不少于 不超过 annual_income",
+        "examples": [
+          {
+            "query": "年收入30以上的客户",
+            "output": {
+              "field": "annual_income",
+              "operator": "GTE",
+              "value": 30
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "annual_income_lt",
+        "field": "annual_income",
+        "operator": "LT",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：元",
+        "description": "表示客户年收入小于筛选，单位：元",
+        "retrieval_text": "年收入 小于 大于 小于 不少于 不超过 annual_income",
+        "examples": [
+          {
+            "query": "年收入30以上的客户",
+            "output": {
+              "field": "annual_income",
+              "operator": "LT",
+              "value": 30
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "annual_income_lte",
+        "field": "annual_income",
+        "operator": "LTE",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：元",
+        "description": "表示客户年收入以下筛选，单位：元",
+        "retrieval_text": "年收入 以下 大于 小于 不少于 不超过 annual_income",
+        "examples": [
+          {
+            "query": "年收入30以上的客户",
+            "output": {
+              "field": "annual_income",
+              "operator": "LTE",
+              "value": 30
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "annual_income_range",
+        "field": "annual_income",
+        "operator": "RANGE",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：元",
+        "description": "表示客户年收入区间筛选，单位：元",
+        "retrieval_text": "年收入 区间 范围 之间 从 到 annual_income",
+        "examples": [
+          {
+            "query": "年收入10到30的客户",
+            "output": {
+              "field": "annual_income",
+              "operator": "RANGE",
+              "value": {
+                "min": 10,
+                "max": 30
+              }
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "annual_income_exists",
+        "field": "annual_income",
+        "operator": "EXISTS",
+        "value_type": "exists",
+        "enum_ref": null,
+        "format": null,
+        "unit": null,
+        "description": "表示客户年收入存在信息",
+        "retrieval_text": "有年收入信息 年收入不为空 annual_income",
+        "examples": [
+          {
+            "query": "有年收入信息的客户",
+            "output": {
+              "field": "annual_income",
+              "operator": "EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "annual_income_not_exists",
+        "field": "annual_income",
+        "operator": "NOT_EXISTS",
+        "value_type": "not_exists",
+        "enum_ref": null,
+        "format": null,
+        "unit": null,
+        "description": "表示客户年收入不存在信息",
+        "retrieval_text": "没有年收入信息 年收入为空 annual_income",
+        "examples": [
+          {
+            "query": "没有年收入信息的客户",
+            "output": {
+              "field": "annual_income",
+              "operator": "NOT_EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "household_income_gt",
+        "field": "household_income",
+        "operator": "GT",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：元",
+        "description": "表示客户家庭年收入大于筛选，单位：元",
+        "retrieval_text": "家庭年收入 大于 大于 小于 不少于 不超过 household_income",
+        "examples": [
+          {
+            "query": "家庭年收入30以上的客户",
+            "output": {
+              "field": "household_income",
+              "operator": "GT",
+              "value": 30
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "household_income_gte",
+        "field": "household_income",
+        "operator": "GTE",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：元",
+        "description": "表示客户家庭年收入以上筛选，单位：元",
+        "retrieval_text": "家庭年收入 以上 大于 小于 不少于 不超过 household_income",
+        "examples": [
+          {
+            "query": "家庭年收入30以上的客户",
+            "output": {
+              "field": "household_income",
+              "operator": "GTE",
+              "value": 30
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "household_income_lt",
+        "field": "household_income",
+        "operator": "LT",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：元",
+        "description": "表示客户家庭年收入小于筛选，单位：元",
+        "retrieval_text": "家庭年收入 小于 大于 小于 不少于 不超过 household_income",
+        "examples": [
+          {
+            "query": "家庭年收入30以上的客户",
+            "output": {
+              "field": "household_income",
+              "operator": "LT",
+              "value": 30
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "household_income_lte",
+        "field": "household_income",
+        "operator": "LTE",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：元",
+        "description": "表示客户家庭年收入以下筛选，单位：元",
+        "retrieval_text": "家庭年收入 以下 大于 小于 不少于 不超过 household_income",
+        "examples": [
+          {
+            "query": "家庭年收入30以上的客户",
+            "output": {
+              "field": "household_income",
+              "operator": "LTE",
+              "value": 30
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "household_income_range",
+        "field": "household_income",
+        "operator": "RANGE",
+        "value_type": "numeric",
+        "enum_ref": null,
+        "format": null,
+        "unit": "单位：元",
+        "description": "表示客户家庭年收入区间筛选，单位：元",
+        "retrieval_text": "家庭年收入 区间 范围 之间 从 到 household_income",
+        "examples": [
+          {
+            "query": "家庭年收入10到30的客户",
+            "output": {
+              "field": "household_income",
+              "operator": "RANGE",
+              "value": {
+                "min": 10,
+                "max": 30
+              }
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "household_income_exists",
+        "field": "household_income",
+        "operator": "EXISTS",
+        "value_type": "exists",
+        "enum_ref": null,
+        "format": null,
+        "unit": null,
+        "description": "表示客户家庭年收入存在信息",
+        "retrieval_text": "有家庭年收入信息 家庭年收入不为空 household_income",
+        "examples": [
+          {
+            "query": "有家庭年收入信息的客户",
+            "output": {
+              "field": "household_income",
+              "operator": "EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "household_income_not_exists",
+        "field": "household_income",
+        "operator": "NOT_EXISTS",
+        "value_type": "not_exists",
+        "enum_ref": null,
+        "format": null,
+        "unit": null,
+        "description": "表示客户家庭年收入不存在信息",
+        "retrieval_text": "没有家庭年收入信息 家庭年收入为空 household_income",
+        "examples": [
+          {
+            "query": "没有家庭年收入信息的客户",
+            "output": {
+              "field": "household_income",
+              "operator": "NOT_EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_gt",
+        "field": "policies_insure_date",
+        "operator": "GT",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 GT 查询",
+        "retrieval_text": "投保日期 晚于 之后 大于 超过 policies_insure_date",
+        "examples": [
+          {
+            "query": "投保日期晚于2026年6月1日的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "GT",
+              "value": "2026-06-01 00:00:00"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_gte",
+        "field": "policies_insure_date",
+        "operator": "GTE",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 GTE 查询",
+        "retrieval_text": "投保日期 不早于 之后及当天 大于等于 起始 policies_insure_date",
+        "examples": [
+          {
+            "query": "投保日期不早于2026年6月1日的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "GTE",
+              "value": "2026-06-01 00:00:00"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_lt",
+        "field": "policies_insure_date",
+        "operator": "LT",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 LT 查询",
+        "retrieval_text": "投保日期 早于 之前 小于 policies_insure_date",
+        "examples": [
+          {
+            "query": "投保日期早于2026年6月1日的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "LT",
+              "value": "2026-06-01 00:00:00"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_lte",
+        "field": "policies_insure_date",
+        "operator": "LTE",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 LTE 查询",
+        "retrieval_text": "投保日期 不晚于 之前及当天 小于等于 截止 policies_insure_date",
+        "examples": [
+          {
+            "query": "投保日期不晚于2026年6月1日的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "LTE",
+              "value": "2026-06-01 00:00:00"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_range",
+        "field": "policies_insure_date",
+        "operator": "RANGE",
+        "value_type": "date",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 RANGE 查询",
+        "retrieval_text": "投保日期 区间 范围 今年 去年 本月 最近一年 policies_insure_date",
+        "examples": [
+          {
+            "query": "今年投保日期的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "RANGE",
+              "value": {
+                "min": "2026-01-01 00:00:00",
+                "max": "2026-12-31 23:59:59"
+              }
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_exists",
+        "field": "policies_insure_date",
+        "operator": "EXISTS",
+        "value_type": "exists",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 EXISTS 查询",
+        "retrieval_text": "有投保日期信息 投保日期不为空",
+        "examples": [
+          {
+            "query": "有投保日期信息的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      },
+      {
+        "id": "policies_insure_date_not_exists",
+        "field": "policies_insure_date",
+        "operator": "NOT_EXISTS",
+        "value_type": "not_exists",
+        "enum_ref": null,
+        "format": "yyyy-MM-dd HH:mm:ss",
+        "unit": null,
+        "description": "表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 NOT_EXISTS 查询",
+        "retrieval_text": "没有投保日期信息 投保日期为空",
+        "examples": [
+          {
+            "query": "没有投保日期信息的客户",
+            "output": {
+              "field": "policies_insure_date",
+              "operator": "NOT_EXISTS"
+            }
+          }
+        ],
+        "negative_examples": []
+      }
+    ],
+    "enums": {},
+    "existing_l2_rule_names": [
+      "保单犹豫期截止时间-GT",
+      "保单犹豫期截止时间-GTE",
+      "保单犹豫期截止时间-LT",
+      "保单犹豫期截止时间-LTE",
+      "保单犹豫期截止时间-今年",
+      "保单犹豫期截止时间-去年",
+      "保单犹豫期截止时间-本月",
+      "保单犹豫期截止时间-存在",
+      "保单犹豫期截止时间-不存在",
+      "车险到期时间-GT",
+      "车险到期时间-GTE",
+      "车险到期时间-LT",
+      "车险到期时间-LTE",
+      "车险到期时间-今年",
+      "车险到期时间-去年",
+      "车险到期时间-本月",
+      "车险到期时间-存在",
+      "车险到期时间-不存在",
+      "年收入-GT",
+      "年收入-GTE",
+      "年收入-LT",
+      "年收入-LTE",
+      "年收入-RANGE",
+      "年收入-存在",
+      "年收入-不存在",
+      "家庭年收入-GT",
+      "家庭年收入-GTE",
+      "家庭年收入-LT",
+      "家庭年收入-LTE",
+      "家庭年收入-RANGE",
+      "家庭年收入-存在",
+      "家庭年收入-不存在",
+      "投保日期-GT",
+      "投保日期-GTE",
+      "投保日期-LT",
+      "投保日期-LTE",
+      "投保日期-今年",
+      "投保日期-去年",
+      "投保日期-本月",
+      "投保日期-存在",
+      "投保日期-不存在"
+    ],
+    "existing_test_case_ids": [
+      "policies_cooling_off_001",
+      "policies_cooling_off_002",
+      "policies_cooling_off_003",
+      "policies_cooling_off_004",
+      "policies_cooling_off_005",
+      "policies_cooling_off_006",
+      "policies_cooling_off_007",
+      "policies_cooling_off_008",
+      "carinsurancematudatetime_001",
+      "carinsurancematudatetime_002",
+      "carinsurancematudatetime_003",
+      "carinsurancematudatetime_004",
+      "carinsurancematudatetime_005",
+      "carinsurancematudatetime_006",
+      "carinsurancematudatetime_007",
+      "carinsurancematudatetime_008",
+      "annual_income_001",
+      "annual_income_002",
+      "annual_income_003",
+      "annual_income_004",
+      "annual_income_005",
+      "annual_income_006",
+      "annual_income_007",
+      "household_income_001",
+      "household_income_002",
+      "household_income_003",
+      "household_income_004",
+      "household_income_005",
+      "household_income_006",
+      "household_income_007",
+      "policies_insure_date_001",
+      "policies_insure_date_002",
+      "policies_insure_date_003",
+      "policies_insure_date_004",
+      "policies_insure_date_005",
+      "policies_insure_date_006",
+      "policies_insure_date_007",
+      "policies_insure_date_008",
+      "multi_existing_gender_001",
+      "multi_generated_fields_001"
+    ]
+  },
+  "required_json_schema": {
+    "field_definitions_args.yaml": {
+      "intents": [
+        {
+          "id": "field_match",
+          "retrieval_text": "字段中文名 常见问法",
+          "field": "fieldName",
+          "operator": "MATCH",
+          "value_type": "enum",
+          "enum_ref": "fieldName",
+          "description": "字段语义说明",
+          "examples": [
+            {
+              "query": "代理人常见问法",
+              "output": {
+                "field": "fieldName",
+                "operator": "MATCH",
+                "value": "标准值"
+              }
+            }
+          ],
+          "negative_examples": [
+            {
+              "query": "容易误召回问法",
+              "reason": "为什么不是该字段"
+            }
+          ]
+        }
+      ]
+    },
+    "enhanced_rules_args.yaml": {
+      "rules": [
+        {
+          "name": "规则名",
+          "field": "fieldName",
+          "operator": "MATCH",
+          "value_type": "capture",
+          "patterns": [
+            "{SEARCH}..."
+          ],
+          "value": {
+            "group": 1
+          },
+          "priority": 8,
+          "merge_to_llm": false
+        }
+      ]
+    },
+    "field_enums_args.yaml": {
+      "fieldName": {
+        "values": [
+          "标准值1",
+          "标准值2"
+        ],
+        "ordered": false
+      }
+    },
+    "value_mappings_args.yaml": {
+      "fieldName": {
+        "口语别名": "标准值1"
+      }
+    },
+    "test_cases": [
+      {
+        "id": "case_id",
+        "query": "测试问题",
+        "expected": {
+          "query_logic": "AND",
+          "conditions": [
+            {
+              "field": "fieldName",
+              "operator": "MATCH",
+              "value": "标准值"
+            }
+          ]
+        },
+        "tags": [
+          "positive",
+          "codex_candidate"
+        ]
+      }
+    ]
+  }
+}

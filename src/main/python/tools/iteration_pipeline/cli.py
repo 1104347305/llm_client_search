@@ -15,7 +15,16 @@ from src.main.python.tools.iteration_pipeline.change_set_generator import (
     build_change_set_from_field_spec,
     parse_list_arg,
 )
+from src.main.python.tools.iteration_pipeline.change_set_enhancer import (
+    call_llm_for_enhancement,
+    render_enhancement_prompt,
+    write_enhanced_change_set,
+)
 from src.main.python.tools.iteration_pipeline.config_apply import apply_change_set_to_config
+from src.main.python.tools.iteration_pipeline.config_fragments import (
+    write_config_fragments,
+    write_config_fragments_from_raw,
+)
 from src.main.python.tools.iteration_pipeline.config_lint import has_errors, lint_change_set
 from src.main.python.tools.iteration_pipeline.evaluator import (
     EvalOptions,
@@ -114,6 +123,53 @@ def _cmd_generate_change_set(args: argparse.Namespace) -> int:
     return 0
 
 
+def _build_raw_change_from_generation_args(args: argparse.Namespace, *, output: Path | None = None) -> dict:
+    if args.spec_file:
+        return build_change_set_from_spec_file(
+            spec_path=Path(args.spec_file).resolve(),
+            output=output,
+            owner=args.owner,
+            change_id=args.id,
+            title=args.title,
+            reason=args.reason,
+        )
+
+    missing = [name for name in ("field", "name", "type") if not getattr(args, name)]
+    if missing:
+        raise SystemExit(f"--{', --'.join(missing)} required when --spec-file is not provided")
+    return build_change_set_from_field_spec(
+        field=args.field,
+        chinese_name=args.name,
+        field_type=args.type,
+        enum_values=parse_list_arg(args.enum_values),
+        date_format=args.format,
+        numeric_unit=args.unit,
+        ordered=args.ordered,
+        owner=args.owner,
+        change_id=args.id,
+        title=args.title,
+        reason=args.reason,
+        output=output,
+    )
+
+
+def _cmd_generate_config_fragments(args: argparse.Namespace) -> int:
+    output = Path(args.output).resolve()
+    generated = _build_raw_change_from_generation_args(args)
+    written = write_config_fragments_from_raw(
+        generated,
+        output,
+        split_files=not args.single_file,
+    )
+    for name, path in written.items():
+        print(f"{name}: {path}")
+    print(f"field_definitions_args.yaml.intents: {len(generated.get('fields') or [])}")
+    print(f"enhanced_rules_args.yaml.rules: {len(generated.get('l2_rules') or [])}")
+    print(f"field_enums_args.yaml fields: {len(generated.get('enums') or {})}")
+    print(f"value_mappings_args.yaml fields: {len(generated.get('value_mappings') or {})}")
+    return 0
+
+
 def _cmd_apply_change_set(args: argparse.Namespace) -> int:
     change_set = load_change_set(args.change_set)
     messages = lint_change_set(change_set.raw)
@@ -143,6 +199,58 @@ def _cmd_apply_change_set(args: argparse.Namespace) -> int:
     if not args.apply:
         print("dry-run only; add --apply to write config files")
     return 0
+
+
+def _cmd_export_config_fragments(args: argparse.Namespace) -> int:
+    change_set = load_change_set(args.change_set)
+    output = Path(args.output).resolve() if args.output else change_set.iteration_dir / "config_fragments.yaml"
+    written = write_config_fragments(change_set, output, split_files=args.split_files)
+    for name, path in written.items():
+        print(f"{name}: {path}")
+    return 0
+
+
+async def _run_enhance_change_set(args: argparse.Namespace) -> int:
+    from src.main.python.config.settings import settings
+
+    change_set = load_change_set(args.change_set)
+    output = Path(args.output).resolve() if args.output else change_set.path
+    prompt = render_enhancement_prompt(change_set)
+    if args.prompt_output:
+        Path(args.prompt_output).resolve().write_text(prompt, encoding="utf-8")
+
+    api_key = getattr(settings, "LLM_API_KEY", "") or ""
+    if args.api_key_env:
+        import os
+
+        api_key = os.environ.get(args.api_key_env, api_key)
+    if not api_key:
+        raise ValueError("missing LLM API key; set LLM_API_KEY or pass --api-key-env")
+
+    enhancement = await call_llm_for_enhancement(
+        prompt,
+        model=args.model or getattr(settings, "LLM_MODEL", ""),
+        api_key=api_key,
+        base_url=args.base_url or getattr(settings, "LLM_BASE_URL", None),
+        timeout_seconds=args.timeout,
+    )
+    enhanced = write_enhanced_change_set(
+        change_set,
+        enhancement,
+        output=output,
+        promote=args.promote,
+    )
+    print(f"enhanced change set: {output}")
+    print(f"field_enhancements: {len(enhanced.get('codex_enhancement', {}).get('field_enhancements') or [])}")
+    print(f"l2_rules: {len(enhanced.get('codex_enhancement', {}).get('l2_rules') or [])}")
+    print(f"test_cases: {len(enhanced.get('codex_enhancement', {}).get('test_cases') or [])}")
+    if not args.promote:
+        print("candidate only; add --promote to merge candidates into official fields/l2_rules/test_cases")
+    return 0
+
+
+def _cmd_enhance_change_set(args: argparse.Namespace) -> int:
+    return asyncio.run(_run_enhance_change_set(args))
 
 
 async def _reload_runtime_config(base_url: str, timeout_seconds: float, force_reindex_fields: bool) -> None:
@@ -712,6 +820,34 @@ def build_parser() -> argparse.ArgumentParser:
     spec_parser.add_argument("--reason")
     spec_parser.set_defaults(func=_cmd_generate_change_set)
 
+    config_spec_parser = subparsers.add_parser(
+        "generate-config-fragments",
+        help="generate config-file-shaped YAML fragments directly from minimal field metadata",
+    )
+    config_spec_parser.add_argument("--spec-file", help="YAML/JSON file containing a fields list for batch generation")
+    config_spec_parser.add_argument("--field", help="field English name")
+    config_spec_parser.add_argument("--name", help="field Chinese display name")
+    config_spec_parser.add_argument("--type", choices=["enum", "date", "numeric", "text", "string"])
+    config_spec_parser.add_argument(
+        "--output",
+        required=True,
+        help="output directory by default; output YAML file when --single-file is used",
+    )
+    config_spec_parser.add_argument("--enum-values", help="comma-separated enum values for enum fields")
+    config_spec_parser.add_argument("--ordered", action="store_true", help="mark enum values as ordered")
+    config_spec_parser.add_argument("--format", help="date format, e.g. yyyy-MM-dd HH:mm:ss")
+    config_spec_parser.add_argument("--unit", help="numeric unit, e.g. 岁/元/万")
+    config_spec_parser.add_argument("--id", help="generated batch id")
+    config_spec_parser.add_argument("--title")
+    config_spec_parser.add_argument("--owner")
+    config_spec_parser.add_argument("--reason")
+    config_spec_parser.add_argument(
+        "--single-file",
+        action="store_true",
+        help="write one YAML containing field_definitions_args.yaml/enhanced_rules_args.yaml/etc. sections",
+    )
+    config_spec_parser.set_defaults(func=_cmd_generate_config_fragments)
+
     apply_parser = subparsers.add_parser("apply-change-set", help="merge a change set into YAML config files")
     apply_parser.add_argument("--change-set", required=True)
     apply_parser.add_argument("--config-dir", help="config directory; defaults to src/main/python/config")
@@ -719,6 +855,33 @@ def build_parser() -> argparse.ArgumentParser:
     apply_parser.add_argument("--apply", action="store_true", help="write config files; default is dry-run")
     apply_parser.add_argument("--ignore-lint-errors", action="store_true")
     apply_parser.set_defaults(func=_cmd_apply_change_set)
+
+    fragments_parser = subparsers.add_parser(
+        "export-config-fragments",
+        help="export a change set using the same YAML shapes as runtime config files",
+    )
+    fragments_parser.add_argument("--change-set", required=True)
+    fragments_parser.add_argument("--output", help="output YAML file, or directory when --split-files is used")
+    fragments_parser.add_argument(
+        "--split-files",
+        action="store_true",
+        help="write field_definitions_args.yaml/enhanced_rules_args.yaml/etc. as separate files",
+    )
+    fragments_parser.set_defaults(func=_cmd_export_config_fragments)
+
+    enhance_parser = subparsers.add_parser(
+        "enhance-change-set",
+        help="use an OpenAI-compatible LLM/Codex-style generator to add candidate examples, rules, and tests",
+    )
+    enhance_parser.add_argument("--change-set", required=True)
+    enhance_parser.add_argument("--output", help="where to write enhanced change_set.yaml; defaults to in-place")
+    enhance_parser.add_argument("--promote", action="store_true", help="merge candidates into official fields/l2_rules/test_cases")
+    enhance_parser.add_argument("--prompt-output", help="optional path to save the LLM prompt for review")
+    enhance_parser.add_argument("--model", help="LLM model; default uses settings.LLM_MODEL")
+    enhance_parser.add_argument("--base-url", help="OpenAI-compatible base URL; default uses settings.LLM_BASE_URL")
+    enhance_parser.add_argument("--api-key-env", help="environment variable containing API key; default uses settings.LLM_API_KEY")
+    enhance_parser.add_argument("--timeout", type=float, default=60.0)
+    enhance_parser.set_defaults(func=_cmd_enhance_change_set)
 
     eval_parser = subparsers.add_parser("eval", help="evaluate parse API with a JSONL testset")
     eval_parser.add_argument("--change-set", required=True)

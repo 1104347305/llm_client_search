@@ -1,6 +1,6 @@
 # 批量问题自动化评估报告
 
-生成时间：2026-05-19 18:01:55
+生成时间：2026-05-20 16:20:41
 输入文件：/Users/mickey/project/PA-ALG/llm_client_search/src/main/python/docs/测试集.txt
 
 ## 概览
@@ -10,7 +10,7 @@
 - 未标注样本：427
 - graded_coverage_rate：0.00%
 - api_success_rate：100.00%
-- condition_non_empty_rate：97.19%
+- condition_non_empty_rate：96.72%
 - known_level_rate：100.00%
 - total_accuracy：N/A
 - exact_match_rate：N/A
@@ -18,16 +18,16 @@
 - operator_match_rate：N/A
 - empty_rate：N/A
 - false_positive_rate：N/A
-- avg_latency_ms：1054.09
-- p95_latency_ms：1883.34
+- avg_latency_ms：1160.06
+- p95_latency_ms：2101.13
 - error_count：0
 
 ## 层级分布
 
 | matched_level | 数量 |
 | --- | --- |
-| 2 | 111 |
-| 4 | 316 |
+| 2 | 112 |
+| 4 | 315 |
 
 ## 失败样本
 

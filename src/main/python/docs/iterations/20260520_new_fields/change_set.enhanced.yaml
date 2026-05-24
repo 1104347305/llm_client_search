@@ -1,0 +1,1650 @@
+id: policies_cooling_off_carinsurancematudatetime_annual_income
+title: 保单犹豫期截止时间等字段自动生成
+reason: 支持新增5个字段筛选客户
+fields:
+- id: policies_cooling_off_gt
+  field: policies_cooling_off
+  operator: GT
+  value_type: date
+  format: yyyy-MM-dd
+  retrieval_text: 保单犹豫期截止时间 晚于 之后 大于 超过 policies_cooling_off
+  description: 表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 GT 查询
+  examples:
+  - query: 保单犹豫期截止时间晚于2026年6月1日的客户
+    output:
+      field: policies_cooling_off
+      operator: GT
+      value: '2026-06-01'
+- id: policies_cooling_off_gte
+  field: policies_cooling_off
+  operator: GTE
+  value_type: date
+  format: yyyy-MM-dd
+  retrieval_text: 保单犹豫期截止时间 不早于 之后及当天 大于等于 起始 policies_cooling_off
+  description: 表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 GTE 查询
+  examples:
+  - query: 保单犹豫期截止时间不早于2026年6月1日的客户
+    output:
+      field: policies_cooling_off
+      operator: GTE
+      value: '2026-06-01'
+- id: policies_cooling_off_lt
+  field: policies_cooling_off
+  operator: LT
+  value_type: date
+  format: yyyy-MM-dd
+  retrieval_text: 保单犹豫期截止时间 早于 之前 小于 policies_cooling_off
+  description: 表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 LT 查询
+  examples:
+  - query: 保单犹豫期截止时间早于2026年6月1日的客户
+    output:
+      field: policies_cooling_off
+      operator: LT
+      value: '2026-06-01'
+- id: policies_cooling_off_lte
+  field: policies_cooling_off
+  operator: LTE
+  value_type: date
+  format: yyyy-MM-dd
+  retrieval_text: 保单犹豫期截止时间 不晚于 之前及当天 小于等于 截止 policies_cooling_off
+  description: 表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 LTE 查询
+  examples:
+  - query: 保单犹豫期截止时间不晚于2026年6月1日的客户
+    output:
+      field: policies_cooling_off
+      operator: LTE
+      value: '2026-06-01'
+- id: policies_cooling_off_range
+  field: policies_cooling_off
+  operator: RANGE
+  value_type: date
+  format: yyyy-MM-dd
+  retrieval_text: 保单犹豫期截止时间 区间 范围 今年 去年 本月 最近一年 policies_cooling_off
+  description: 表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 RANGE 查询
+  examples:
+  - query: 今年保单犹豫期截止时间的客户
+    output:
+      field: policies_cooling_off
+      operator: RANGE
+      value:
+        min: '2026-01-01'
+        max: '2026-12-31'
+- id: policies_cooling_off_exists
+  field: policies_cooling_off
+  operator: EXISTS
+  value_type: exists
+  format: yyyy-MM-dd
+  retrieval_text: 有保单犹豫期截止时间信息 保单犹豫期截止时间不为空
+  description: 表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 EXISTS 查询
+  examples:
+  - query: 有保单犹豫期截止时间信息的客户
+    output:
+      field: policies_cooling_off
+      operator: EXISTS
+- id: policies_cooling_off_not_exists
+  field: policies_cooling_off
+  operator: NOT_EXISTS
+  value_type: not_exists
+  format: yyyy-MM-dd
+  retrieval_text: 没有保单犹豫期截止时间信息 保单犹豫期截止时间为空
+  description: 表示客户保单犹豫期截止时间，日期格式 yyyy-MM-dd；支持 NOT_EXISTS 查询
+  examples:
+  - query: 没有保单犹豫期截止时间信息的客户
+    output:
+      field: policies_cooling_off
+      operator: NOT_EXISTS
+- id: carinsurancematudatetime_gt
+  field: carInsuranceMatuDateTime
+  operator: GT
+  value_type: date
+  format: yyyy-MM-dd
+  retrieval_text: 车险到期时间 晚于 之后 大于 超过 carInsuranceMatuDateTime
+  description: 表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 GT 查询
+  examples:
+  - query: 车险到期时间晚于2026年6月1日的客户
+    output:
+      field: carInsuranceMatuDateTime
+      operator: GT
+      value: '2026-06-01'
+- id: carinsurancematudatetime_gte
+  field: carInsuranceMatuDateTime
+  operator: GTE
+  value_type: date
+  format: yyyy-MM-dd
+  retrieval_text: 车险到期时间 不早于 之后及当天 大于等于 起始 carInsuranceMatuDateTime
+  description: 表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 GTE 查询
+  examples:
+  - query: 车险到期时间不早于2026年6月1日的客户
+    output:
+      field: carInsuranceMatuDateTime
+      operator: GTE
+      value: '2026-06-01'
+- id: carinsurancematudatetime_lt
+  field: carInsuranceMatuDateTime
+  operator: LT
+  value_type: date
+  format: yyyy-MM-dd
+  retrieval_text: 车险到期时间 早于 之前 小于 carInsuranceMatuDateTime
+  description: 表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 LT 查询
+  examples:
+  - query: 车险到期时间早于2026年6月1日的客户
+    output:
+      field: carInsuranceMatuDateTime
+      operator: LT
+      value: '2026-06-01'
+- id: carinsurancematudatetime_lte
+  field: carInsuranceMatuDateTime
+  operator: LTE
+  value_type: date
+  format: yyyy-MM-dd
+  retrieval_text: 车险到期时间 不晚于 之前及当天 小于等于 截止 carInsuranceMatuDateTime
+  description: 表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 LTE 查询
+  examples:
+  - query: 车险到期时间不晚于2026年6月1日的客户
+    output:
+      field: carInsuranceMatuDateTime
+      operator: LTE
+      value: '2026-06-01'
+- id: carinsurancematudatetime_range
+  field: carInsuranceMatuDateTime
+  operator: RANGE
+  value_type: date
+  format: yyyy-MM-dd
+  retrieval_text: 车险到期时间 区间 范围 今年 去年 本月 最近一年 carInsuranceMatuDateTime
+  description: 表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 RANGE 查询
+  examples:
+  - query: 今年车险到期时间的客户
+    output:
+      field: carInsuranceMatuDateTime
+      operator: RANGE
+      value:
+        min: '2026-01-01'
+        max: '2026-12-31'
+- id: carinsurancematudatetime_exists
+  field: carInsuranceMatuDateTime
+  operator: EXISTS
+  value_type: exists
+  format: yyyy-MM-dd
+  retrieval_text: 有车险到期时间信息 车险到期时间不为空
+  description: 表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 EXISTS 查询
+  examples:
+  - query: 有车险到期时间信息的客户
+    output:
+      field: carInsuranceMatuDateTime
+      operator: EXISTS
+- id: carinsurancematudatetime_not_exists
+  field: carInsuranceMatuDateTime
+  operator: NOT_EXISTS
+  value_type: not_exists
+  format: yyyy-MM-dd
+  retrieval_text: 没有车险到期时间信息 车险到期时间为空
+  description: 表示客户车险到期时间，日期格式 yyyy-MM-dd；支持 NOT_EXISTS 查询
+  examples:
+  - query: 没有车险到期时间信息的客户
+    output:
+      field: carInsuranceMatuDateTime
+      operator: NOT_EXISTS
+- id: annual_income_gt
+  field: annual_income
+  operator: GT
+  value_type: numeric
+  unit: 单位：元
+  retrieval_text: 年收入 大于 大于 小于 不少于 不超过 annual_income
+  description: 表示客户年收入大于筛选，单位：元
+  examples:
+  - query: 年收入30以上的客户
+    output:
+      field: annual_income
+      operator: GT
+      value: 30
+- id: annual_income_gte
+  field: annual_income
+  operator: GTE
+  value_type: numeric
+  unit: 单位：元
+  retrieval_text: 年收入 以上 大于 小于 不少于 不超过 annual_income
+  description: 表示客户年收入以上筛选，单位：元
+  examples:
+  - query: 年收入30以上的客户
+    output:
+      field: annual_income
+      operator: GTE
+      value: 30
+- id: annual_income_lt
+  field: annual_income
+  operator: LT
+  value_type: numeric
+  unit: 单位：元
+  retrieval_text: 年收入 小于 大于 小于 不少于 不超过 annual_income
+  description: 表示客户年收入小于筛选，单位：元
+  examples:
+  - query: 年收入30以上的客户
+    output:
+      field: annual_income
+      operator: LT
+      value: 30
+- id: annual_income_lte
+  field: annual_income
+  operator: LTE
+  value_type: numeric
+  unit: 单位：元
+  retrieval_text: 年收入 以下 大于 小于 不少于 不超过 annual_income
+  description: 表示客户年收入以下筛选，单位：元
+  examples:
+  - query: 年收入30以上的客户
+    output:
+      field: annual_income
+      operator: LTE
+      value: 30
+- id: annual_income_range
+  field: annual_income
+  operator: RANGE
+  value_type: numeric
+  unit: 单位：元
+  retrieval_text: 年收入 区间 范围 之间 从 到 annual_income
+  description: 表示客户年收入区间筛选，单位：元
+  examples:
+  - query: 年收入10到30的客户
+    output:
+      field: annual_income
+      operator: RANGE
+      value:
+        min: 10
+        max: 30
+- id: annual_income_exists
+  field: annual_income
+  operator: EXISTS
+  value_type: exists
+  retrieval_text: 有年收入信息 年收入不为空 annual_income
+  description: 表示客户存在年收入信息
+  examples:
+  - query: 有年收入信息的客户
+    output:
+      field: annual_income
+      operator: EXISTS
+- id: annual_income_not_exists
+  field: annual_income
+  operator: NOT_EXISTS
+  value_type: not_exists
+  retrieval_text: 没有年收入信息 年收入为空 annual_income
+  description: 表示客户不存在年收入信息
+  examples:
+  - query: 没有年收入信息的客户
+    output:
+      field: annual_income
+      operator: NOT_EXISTS
+- id: household_income_gt
+  field: household_income
+  operator: GT
+  value_type: numeric
+  unit: 单位：元
+  retrieval_text: 家庭年收入 大于 大于 小于 不少于 不超过 household_income
+  description: 表示客户家庭年收入大于筛选，单位：元
+  examples:
+  - query: 家庭年收入30以上的客户
+    output:
+      field: household_income
+      operator: GT
+      value: 30
+- id: household_income_gte
+  field: household_income
+  operator: GTE
+  value_type: numeric
+  unit: 单位：元
+  retrieval_text: 家庭年收入 以上 大于 小于 不少于 不超过 household_income
+  description: 表示客户家庭年收入以上筛选，单位：元
+  examples:
+  - query: 家庭年收入30以上的客户
+    output:
+      field: household_income
+      operator: GTE
+      value: 30
+- id: household_income_lt
+  field: household_income
+  operator: LT
+  value_type: numeric
+  unit: 单位：元
+  retrieval_text: 家庭年收入 小于 大于 小于 不少于 不超过 household_income
+  description: 表示客户家庭年收入小于筛选，单位：元
+  examples:
+  - query: 家庭年收入30以上的客户
+    output:
+      field: household_income
+      operator: LT
+      value: 30
+- id: household_income_lte
+  field: household_income
+  operator: LTE
+  value_type: numeric
+  unit: 单位：元
+  retrieval_text: 家庭年收入 以下 大于 小于 不少于 不超过 household_income
+  description: 表示客户家庭年收入以下筛选，单位：元
+  examples:
+  - query: 家庭年收入30以上的客户
+    output:
+      field: household_income
+      operator: LTE
+      value: 30
+- id: household_income_range
+  field: household_income
+  operator: RANGE
+  value_type: numeric
+  unit: 单位：元
+  retrieval_text: 家庭年收入 区间 范围 之间 从 到 household_income
+  description: 表示客户家庭年收入区间筛选，单位：元
+  examples:
+  - query: 家庭年收入10到30的客户
+    output:
+      field: household_income
+      operator: RANGE
+      value:
+        min: 10
+        max: 30
+- id: household_income_exists
+  field: household_income
+  operator: EXISTS
+  value_type: exists
+  retrieval_text: 有家庭年收入信息 家庭年收入不为空 household_income
+  description: 表示客户存在家庭年收入信息
+  examples:
+  - query: 有家庭年收入信息的客户
+    output:
+      field: household_income
+      operator: EXISTS
+- id: household_income_not_exists
+  field: household_income
+  operator: NOT_EXISTS
+  value_type: not_exists
+  retrieval_text: 没有家庭年收入信息 家庭年收入为空 household_income
+  description: 表示客户不存在家庭年收入信息
+  examples:
+  - query: 没有家庭年收入信息的客户
+    output:
+      field: household_income
+      operator: NOT_EXISTS
+- id: policies_insure_date_gt
+  field: policies_insure_date
+  operator: GT
+  value_type: date
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 投保日期 晚于 之后 大于 超过 policies_insure_date
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 GT 查询
+  examples:
+  - query: 投保日期晚于2026年6月1日的客户
+    output:
+      field: policies_insure_date
+      operator: GT
+      value: '2026-06-01 00:00:00'
+- id: policies_insure_date_gte
+  field: policies_insure_date
+  operator: GTE
+  value_type: date
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 投保日期 不早于 之后及当天 大于等于 起始 policies_insure_date
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 GTE 查询
+  examples:
+  - query: 投保日期不早于2026年6月1日的客户
+    output:
+      field: policies_insure_date
+      operator: GTE
+      value: '2026-06-01 00:00:00'
+- id: policies_insure_date_lt
+  field: policies_insure_date
+  operator: LT
+  value_type: date
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 投保日期 早于 之前 小于 policies_insure_date
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 LT 查询
+  examples:
+  - query: 投保日期早于2026年6月1日的客户
+    output:
+      field: policies_insure_date
+      operator: LT
+      value: '2026-06-01 00:00:00'
+- id: policies_insure_date_lte
+  field: policies_insure_date
+  operator: LTE
+  value_type: date
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 投保日期 不晚于 之前及当天 小于等于 截止 policies_insure_date
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 LTE 查询
+  examples:
+  - query: 投保日期不晚于2026年6月1日的客户
+    output:
+      field: policies_insure_date
+      operator: LTE
+      value: '2026-06-01 00:00:00'
+- id: policies_insure_date_range
+  field: policies_insure_date
+  operator: RANGE
+  value_type: date
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 投保日期 区间 范围 今年 去年 本月 最近一年 policies_insure_date
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 RANGE 查询
+  examples:
+  - query: 今年投保日期的客户
+    output:
+      field: policies_insure_date
+      operator: RANGE
+      value:
+        min: '2026-01-01 00:00:00'
+        max: '2026-12-31 23:59:59'
+- id: policies_insure_date_exists
+  field: policies_insure_date
+  operator: EXISTS
+  value_type: exists
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 有投保日期信息 投保日期不为空
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 EXISTS 查询
+  examples:
+  - query: 有投保日期信息的客户
+    output:
+      field: policies_insure_date
+      operator: EXISTS
+- id: policies_insure_date_not_exists
+  field: policies_insure_date
+  operator: NOT_EXISTS
+  value_type: not_exists
+  format: yyyy-MM-dd HH:mm:ss
+  retrieval_text: 没有投保日期信息 投保日期为空
+  description: 表示客户投保日期，日期格式 yyyy-MM-dd HH:mm:ss；支持 NOT_EXISTS 查询
+  examples:
+  - query: 没有投保日期信息的客户
+    output:
+      field: policies_insure_date
+      operator: NOT_EXISTS
+l2_rules:
+- name: 保单犹豫期截止时间-GT
+  patterns:
+  - '{SEARCH}保单犹豫期截止时间(?:晚于|在.*之后|大于|超过)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:晚于|在.*之后|大于|超过)保单犹豫期截止时间(?:的客户|客户|名单|的人|人)?'
+  field: policies_cooling_off
+  operator: GT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 保单犹豫期截止时间-GTE
+  patterns:
+  - '{SEARCH}保单犹豫期截止时间(?:不早于|不小于|大于等于|从)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不早于|不小于|大于等于|从)保单犹豫期截止时间(?:的客户|客户|名单|的人|人)?'
+  field: policies_cooling_off
+  operator: GTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 保单犹豫期截止时间-LT
+  patterns:
+  - '{SEARCH}保单犹豫期截止时间(?:早于|在.*之前|小于)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:早于|在.*之前|小于)保单犹豫期截止时间(?:的客户|客户|名单|的人|人)?'
+  field: policies_cooling_off
+  operator: LT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 保单犹豫期截止时间-LTE
+  patterns:
+  - '{SEARCH}保单犹豫期截止时间(?:不晚于|不大于|小于等于|截止到|截至)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不晚于|不大于|小于等于|截止到|截至)保单犹豫期截止时间(?:的客户|客户|名单|的人|人)?'
+  field: policies_cooling_off
+  operator: LTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 保单犹豫期截止时间-今年
+  field: policies_cooling_off
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_year
+    format: yyyy-MM-dd
+  patterns:
+  - '{SEARCH}(?:今年){CW}{0,2}保单犹豫期截止时间(?:的客户|客户)?'
+  - '{SEARCH}保单犹豫期截止时间{CW}{0,2}(?:在)?今年(?:的客户|客户)?'
+  priority: 9
+- name: 保单犹豫期截止时间-去年
+  field: policies_cooling_off
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: last_year
+    format: yyyy-MM-dd
+  patterns:
+  - '{SEARCH}(?:去年){CW}{0,2}保单犹豫期截止时间(?:的客户|客户)?'
+  - '{SEARCH}保单犹豫期截止时间{CW}{0,2}(?:在)?去年(?:的客户|客户)?'
+  priority: 9
+- name: 保单犹豫期截止时间-本月
+  field: policies_cooling_off
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_month
+    format: yyyy-MM-dd
+  patterns:
+  - '{SEARCH}(?:本月){CW}{0,2}保单犹豫期截止时间(?:的客户|客户)?'
+  - '{SEARCH}保单犹豫期截止时间{CW}{0,2}(?:在)?本月(?:的客户|客户)?'
+  priority: 9
+- name: 保单犹豫期截止时间-存在
+  patterns:
+  - '{SEARCH}(?:有|存在|已维护)保单犹豫期截止时间(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}保单犹豫期截止时间(?:不为空|非空|有值)(?:的客户|客户|名单|的人|人)?'
+  field: policies_cooling_off
+  operator: EXISTS
+  value_type: static
+  priority: 8
+  merge_to_llm: false
+- name: 保单犹豫期截止时间-不存在
+  patterns:
+  - '{SEARCH}(?:没有|无|未维护)保单犹豫期截止时间(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}保单犹豫期截止时间(?:为空|空白|没值|无值)(?:的客户|客户|名单|的人|人)?'
+  field: policies_cooling_off
+  operator: NOT_EXISTS
+  value_type: static
+  priority: 9
+  merge_to_llm: false
+- name: 车险到期时间-GT
+  patterns:
+  - '{SEARCH}车险到期时间(?:晚于|在.*之后|大于|超过)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:晚于|在.*之后|大于|超过)车险到期时间(?:的客户|客户|名单|的人|人)?'
+  field: carInsuranceMatuDateTime
+  operator: GT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 车险到期时间-GTE
+  patterns:
+  - '{SEARCH}车险到期时间(?:不早于|不小于|大于等于|从)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不早于|不小于|大于等于|从)车险到期时间(?:的客户|客户|名单|的人|人)?'
+  field: carInsuranceMatuDateTime
+  operator: GTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 车险到期时间-LT
+  patterns:
+  - '{SEARCH}车险到期时间(?:早于|在.*之前|小于)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:早于|在.*之前|小于)车险到期时间(?:的客户|客户|名单|的人|人)?'
+  field: carInsuranceMatuDateTime
+  operator: LT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 车险到期时间-LTE
+  patterns:
+  - '{SEARCH}车险到期时间(?:不晚于|不大于|小于等于|截止到|截至)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不晚于|不大于|小于等于|截止到|截至)车险到期时间(?:的客户|客户|名单|的人|人)?'
+  field: carInsuranceMatuDateTime
+  operator: LTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 车险到期时间-今年
+  field: carInsuranceMatuDateTime
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_year
+    format: yyyy-MM-dd
+  patterns:
+  - '{SEARCH}(?:今年){CW}{0,2}车险到期时间(?:的客户|客户)?'
+  - '{SEARCH}车险到期时间{CW}{0,2}(?:在)?今年(?:的客户|客户)?'
+  priority: 9
+- name: 车险到期时间-去年
+  field: carInsuranceMatuDateTime
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: last_year
+    format: yyyy-MM-dd
+  patterns:
+  - '{SEARCH}(?:去年){CW}{0,2}车险到期时间(?:的客户|客户)?'
+  - '{SEARCH}车险到期时间{CW}{0,2}(?:在)?去年(?:的客户|客户)?'
+  priority: 9
+- name: 车险到期时间-本月
+  field: carInsuranceMatuDateTime
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_month
+    format: yyyy-MM-dd
+  patterns:
+  - '{SEARCH}(?:本月){CW}{0,2}车险到期时间(?:的客户|客户)?'
+  - '{SEARCH}车险到期时间{CW}{0,2}(?:在)?本月(?:的客户|客户)?'
+  priority: 9
+- name: 车险到期时间-存在
+  patterns:
+  - '{SEARCH}(?:有|存在|已维护)车险到期时间(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}车险到期时间(?:不为空|非空|有值)(?:的客户|客户|名单|的人|人)?'
+  field: carInsuranceMatuDateTime
+  operator: EXISTS
+  value_type: static
+  priority: 8
+  merge_to_llm: false
+- name: 车险到期时间-不存在
+  patterns:
+  - '{SEARCH}(?:没有|无|未维护)车险到期时间(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}车险到期时间(?:为空|空白|没值|无值)(?:的客户|客户|名单|的人|人)?'
+  field: carInsuranceMatuDateTime
+  operator: NOT_EXISTS
+  value_type: static
+  priority: 9
+  merge_to_llm: false
+- name: 年收入-GT
+  patterns:
+  - '{SEARCH}年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:大于|超过|高于|多于)(?:的客户|客户)?'
+  field: annual_income
+  operator: GT
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 年收入-GTE
+  patterns:
+  - '{SEARCH}年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:以上|及以上|不少于|大于等于)(?:的客户|客户)?'
+  field: annual_income
+  operator: GTE
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 年收入-LT
+  patterns:
+  - '{SEARCH}年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:小于|低于|少于|不足)(?:的客户|客户)?'
+  field: annual_income
+  operator: LT
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 年收入-LTE
+  patterns:
+  - '{SEARCH}年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:以下|及以下|不超过|小于等于)(?:的客户|客户)?'
+  field: annual_income
+  operator: LTE
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 年收入-RANGE
+  patterns:
+  - '{SEARCH}年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:到|至|-|~)(\d+)(?:元|万|岁|次|分)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}年收入(?:在)?(\d+)(?:元|万|岁|次|分)?(?:和|到|至)(\d+)(?:元|万|岁|次|分)?之间(?:的客户|客户|名单|的人|人)?'
+  field: annual_income
+  operator: RANGE
+  value_type: range
+  value:
+    min_group: 1
+    max_group: 2
+    transform: int
+  priority: 9
+  merge_to_llm: false
+- name: 年收入-存在
+  patterns:
+  - '{SEARCH}(?:有|存在|已维护)年收入(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}年收入(?:不为空|非空|有值)(?:的客户|客户|名单|的人|人)?'
+  field: annual_income
+  operator: EXISTS
+  value_type: static
+  priority: 8
+  merge_to_llm: false
+- name: 年收入-不存在
+  patterns:
+  - '{SEARCH}(?:没有|无|未维护)年收入(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}年收入(?:为空|空白|没值|无值)(?:的客户|客户|名单|的人|人)?'
+  field: annual_income
+  operator: NOT_EXISTS
+  value_type: static
+  priority: 9
+  merge_to_llm: false
+- name: 家庭年收入-GT
+  patterns:
+  - '{SEARCH}家庭年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:大于|超过|高于|多于)(?:的客户|客户)?'
+  field: household_income
+  operator: GT
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 家庭年收入-GTE
+  patterns:
+  - '{SEARCH}家庭年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:以上|及以上|不少于|大于等于)(?:的客户|客户)?'
+  field: household_income
+  operator: GTE
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 家庭年收入-LT
+  patterns:
+  - '{SEARCH}家庭年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:小于|低于|少于|不足)(?:的客户|客户)?'
+  field: household_income
+  operator: LT
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 家庭年收入-LTE
+  patterns:
+  - '{SEARCH}家庭年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:以下|及以下|不超过|小于等于)(?:的客户|客户)?'
+  field: household_income
+  operator: LTE
+  value_type: capture
+  value:
+    group: 1
+    transform: int
+  priority: 8
+  merge_to_llm: false
+- name: 家庭年收入-RANGE
+  patterns:
+  - '{SEARCH}家庭年收入{CW}{0,2}(\d+)(?:元|万|岁|次|分)?(?:到|至|-|~)(\d+)(?:元|万|岁|次|分)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}家庭年收入(?:在)?(\d+)(?:元|万|岁|次|分)?(?:和|到|至)(\d+)(?:元|万|岁|次|分)?之间(?:的客户|客户|名单|的人|人)?'
+  field: household_income
+  operator: RANGE
+  value_type: range
+  value:
+    min_group: 1
+    max_group: 2
+    transform: int
+  priority: 9
+  merge_to_llm: false
+- name: 家庭年收入-存在
+  patterns:
+  - '{SEARCH}(?:有|存在|已维护)家庭年收入(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}家庭年收入(?:不为空|非空|有值)(?:的客户|客户|名单|的人|人)?'
+  field: household_income
+  operator: EXISTS
+  value_type: static
+  priority: 8
+  merge_to_llm: false
+- name: 家庭年收入-不存在
+  patterns:
+  - '{SEARCH}(?:没有|无|未维护)家庭年收入(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}家庭年收入(?:为空|空白|没值|无值)(?:的客户|客户|名单|的人|人)?'
+  field: household_income
+  operator: NOT_EXISTS
+  value_type: static
+  priority: 9
+  merge_to_llm: false
+- name: 投保日期-GT
+  patterns:
+  - '{SEARCH}投保日期(?:晚于|在.*之后|大于|超过)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:晚于|在.*之后|大于|超过)投保日期(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: GT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-GTE
+  patterns:
+  - '{SEARCH}投保日期(?:不早于|不小于|大于等于|从)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不早于|不小于|大于等于|从)投保日期(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: GTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_start_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-LT
+  patterns:
+  - '{SEARCH}投保日期(?:早于|在.*之前|小于)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:早于|在.*之前|小于)投保日期(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: LT
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-LTE
+  patterns:
+  - '{SEARCH}投保日期(?:不晚于|不大于|小于等于|截止到|截至)(\d{4})年(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}(\d{4})年(?:不晚于|不大于|小于等于|截止到|截至)投保日期(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: LTE
+  value_type: capture
+  value:
+    group: 1
+    transform: year_end_datetime
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-今年
+  field: policies_insure_date
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_year
+    format: yyyy-MM-dd HH:mm:ss
+  patterns:
+  - '{SEARCH}(?:今年){CW}{0,2}投保日期(?:的客户|客户)?'
+  - '{SEARCH}投保日期{CW}{0,2}(?:在)?今年(?:的客户|客户)?'
+  priority: 9
+- name: 投保日期-去年
+  field: policies_insure_date
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: last_year
+    format: yyyy-MM-dd HH:mm:ss
+  patterns:
+  - '{SEARCH}(?:去年){CW}{0,2}投保日期(?:的客户|客户)?'
+  - '{SEARCH}投保日期{CW}{0,2}(?:在)?去年(?:的客户|客户)?'
+  priority: 9
+- name: 投保日期-本月
+  field: policies_insure_date
+  operator: RANGE
+  value_type: date_range_dynamic
+  value:
+    date_range: current_month
+    format: yyyy-MM-dd HH:mm:ss
+  patterns:
+  - '{SEARCH}(?:本月){CW}{0,2}投保日期(?:的客户|客户)?'
+  - '{SEARCH}投保日期{CW}{0,2}(?:在)?本月(?:的客户|客户)?'
+  priority: 9
+- name: 投保日期-存在
+  patterns:
+  - '{SEARCH}(?:有|存在|已维护)投保日期(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}投保日期(?:不为空|非空|有值)(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: EXISTS
+  value_type: static
+  priority: 8
+  merge_to_llm: false
+- name: 投保日期-不存在
+  patterns:
+  - '{SEARCH}(?:没有|无|未维护)投保日期(?:信息|字段)?(?:的客户|客户|名单|的人|人)?'
+  - '{SEARCH}投保日期(?:为空|空白|没值|无值)(?:的客户|客户|名单|的人|人)?'
+  field: policies_insure_date
+  operator: NOT_EXISTS
+  value_type: static
+  priority: 9
+  merge_to_llm: false
+testset_path: generated_testset.jsonl
+test_cases:
+- id: policies_cooling_off_001
+  query: 保单犹豫期截止时间晚于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_cooling_off
+      operator: GT
+      value: '2026-06-01'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_cooling_off_002
+  query: 保单犹豫期截止时间不早于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_cooling_off
+      operator: GTE
+      value: '2026-06-01'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_cooling_off_003
+  query: 保单犹豫期截止时间早于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_cooling_off
+      operator: LT
+      value: '2026-06-01'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_cooling_off_004
+  query: 保单犹豫期截止时间不晚于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_cooling_off
+      operator: LTE
+      value: '2026-06-01'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_cooling_off_005
+  query: 今年保单犹豫期截止时间的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_cooling_off
+      operator: RANGE
+      value:
+        min: '2026-01-01'
+        max: '2026-12-31'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_cooling_off_006
+  query: 去年保单犹豫期截止时间的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_cooling_off
+      operator: RANGE
+      value:
+        min: '2025-01-01'
+        max: '2025-12-31'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_cooling_off_007
+  query: 有保单犹豫期截止时间信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_cooling_off
+      operator: EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: policies_cooling_off_008
+  query: 没有保单犹豫期截止时间信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_cooling_off
+      operator: NOT_EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: carinsurancematudatetime_001
+  query: 车险到期时间晚于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: carInsuranceMatuDateTime
+      operator: GT
+      value: '2026-06-01'
+  tags:
+  - positive
+  - l2
+  - date
+- id: carinsurancematudatetime_002
+  query: 车险到期时间不早于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: carInsuranceMatuDateTime
+      operator: GTE
+      value: '2026-06-01'
+  tags:
+  - positive
+  - l2
+  - date
+- id: carinsurancematudatetime_003
+  query: 车险到期时间早于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: carInsuranceMatuDateTime
+      operator: LT
+      value: '2026-06-01'
+  tags:
+  - positive
+  - l2
+  - date
+- id: carinsurancematudatetime_004
+  query: 车险到期时间不晚于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: carInsuranceMatuDateTime
+      operator: LTE
+      value: '2026-06-01'
+  tags:
+  - positive
+  - l2
+  - date
+- id: carinsurancematudatetime_005
+  query: 今年车险到期时间的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: carInsuranceMatuDateTime
+      operator: RANGE
+      value:
+        min: '2026-01-01'
+        max: '2026-12-31'
+  tags:
+  - positive
+  - l2
+  - date
+- id: carinsurancematudatetime_006
+  query: 去年车险到期时间的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: carInsuranceMatuDateTime
+      operator: RANGE
+      value:
+        min: '2025-01-01'
+        max: '2025-12-31'
+  tags:
+  - positive
+  - l2
+  - date
+- id: carinsurancematudatetime_007
+  query: 有车险到期时间信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: carInsuranceMatuDateTime
+      operator: EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: carinsurancematudatetime_008
+  query: 没有车险到期时间信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: carInsuranceMatuDateTime
+      operator: NOT_EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: annual_income_001
+  query: 年收入大于30元的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: annual_income
+      operator: GT
+      value: 30
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: annual_income_002
+  query: 年收入30元以上的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: annual_income
+      operator: GTE
+      value: 30
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: annual_income_003
+  query: 年收入小于10元的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: annual_income
+      operator: LT
+      value: 10
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: annual_income_004
+  query: 年收入10元以下的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: annual_income
+      operator: LTE
+      value: 10
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: annual_income_005
+  query: 年收入10到30元的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: annual_income
+      operator: RANGE
+      value:
+        min: 10
+        max: 30
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: annual_income_006
+  query: 有年收入信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: annual_income
+      operator: EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: annual_income_007
+  query: 没有年收入信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: annual_income
+      operator: NOT_EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: household_income_001
+  query: 家庭年收入大于30元的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: household_income
+      operator: GT
+      value: 30
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: household_income_002
+  query: 家庭年收入30元以上的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: household_income
+      operator: GTE
+      value: 30
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: household_income_003
+  query: 家庭年收入小于10元的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: household_income
+      operator: LT
+      value: 10
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: household_income_004
+  query: 家庭年收入10元以下的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: household_income
+      operator: LTE
+      value: 10
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: household_income_005
+  query: 家庭年收入10到30元的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: household_income
+      operator: RANGE
+      value:
+        min: 10
+        max: 30
+  tags:
+  - positive
+  - l2
+  - numeric
+- id: household_income_006
+  query: 有家庭年收入信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: household_income
+      operator: EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: household_income_007
+  query: 没有家庭年收入信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: household_income
+      operator: NOT_EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: policies_insure_date_001
+  query: 投保日期晚于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: GT
+      value: '2026-06-01 00:00:00'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_insure_date_002
+  query: 投保日期不早于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: GTE
+      value: '2026-06-01 00:00:00'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_insure_date_003
+  query: 投保日期早于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: LT
+      value: '2026-06-01 00:00:00'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_insure_date_004
+  query: 投保日期不晚于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: LTE
+      value: '2026-06-01 00:00:00'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_insure_date_005
+  query: 今年投保日期的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: RANGE
+      value:
+        min: '2026-01-01 00:00:00'
+        max: '2026-12-31 23:59:59'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_insure_date_006
+  query: 去年投保日期的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: RANGE
+      value:
+        min: '2025-01-01 00:00:00'
+        max: '2025-12-31 23:59:59'
+  tags:
+  - positive
+  - l2
+  - date
+- id: policies_insure_date_007
+  query: 有投保日期信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: policies_insure_date_008
+  query: 没有投保日期信息的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_insure_date
+      operator: NOT_EXISTS
+  tags:
+  - positive
+  - l2
+  - exists
+- id: multi_existing_gender_001
+  query: 男性客户并且保单犹豫期截止时间晚于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: clientSex
+      operator: MATCH
+      value: 男
+    - field: policies_cooling_off
+      operator: GT
+      value: '2026-06-01'
+  tags:
+  - positive
+  - multi_condition
+  - existing_field
+- id: multi_generated_fields_001
+  query: 保单犹豫期截止时间晚于2026年6月1日的客户并且车险到期时间晚于2026年6月1日的客户
+  expected:
+    query_logic: AND
+    conditions:
+    - field: policies_cooling_off
+      operator: GT
+      value: '2026-06-01'
+    - field: carInsuranceMatuDateTime
+      operator: GT
+      value: '2026-06-01'
+  tags:
+  - positive
+  - multi_condition
+  - generated_fields
+acceptance:
+  min_exact_match_rate: 0.95
+  max_empty_rate: 0.05
+  max_false_positive_rate: 0.02
+  max_avg_latency_ms: 3000
+codex_enhancement:
+  field_enhancements:
+  - field: policies_cooling_off
+    examples:
+    - query: 保单还没过犹豫期的客户
+      output:
+        field: policies_cooling_off
+        operator: GT
+        value: '2024-06-01'
+    - query: 犹豫期还剩不到一个月的客户
+      output:
+        field: policies_cooling_off
+        operator: GT
+        value: '2024-06-30'
+    negative_examples:
+    - query: 保单刚买的客户
+      reason: 未明确提及犹豫期截止时间，可能指向投保日期而非犹豫期截止
+  - field: carInsuranceMatuDateTime
+    examples:
+    - query: 车险快到期的客户
+      output:
+        field: carInsuranceMatuDateTime
+        operator: LTE
+        value: '2024-06-30'
+    - query: 车险下个月到期的客户
+      output:
+        field: carInsuranceMatuDateTime
+        operator: RANGE
+        value:
+          min: '2024-07-01'
+          max: '2024-07-31'
+    negative_examples:
+    - query: 车险买过的客户
+      reason: 未指定时间范围，可能误召回所有有车险记录的客户
+  - field: annual_income
+    examples:
+    - query: 年收入超过50万的客户
+      output:
+        field: annual_income
+        operator: GT
+        value: 500000
+    - query: 年收入在20万到80万之间的客户
+      output:
+        field: annual_income
+        operator: RANGE
+        value:
+          min: 200000
+          max: 800000
+    negative_examples:
+    - query: 收入高的客户
+      reason: ‘高’为模糊词，无明确数值，易误召回
+  - field: household_income
+    examples:
+    - query: 家庭年收入低于10万的客户
+      output:
+        field: household_income
+        operator: LT
+        value: 100000
+    - query: 家庭年收入在30万以上的客户
+      output:
+        field: household_income
+        operator: GTE
+        value: 300000
+    negative_examples:
+    - query: 家里有钱的客户
+      reason: ‘有钱’为口语化模糊表达，无量化依据
+  - field: policies_insure_date
+    examples:
+    - query: 最近半年内投保的客户
+      output:
+        field: policies_insure_date
+        operator: RANGE
+        value:
+          min: '2023-12-01 00:00:00'
+          max: '2024-06-01 23:59:59'
+    - query: 去年投保的客户
+      output:
+        field: policies_insure_date
+        operator: RANGE
+        value:
+          min: '2023-01-01 00:00:00'
+          max: '2023-12-31 23:59:59'
+    negative_examples:
+    - query: 买过保险的客户
+      reason: 未限定时间，可能误召回所有投保客户，非意图聚焦
+  l2_rules:
+  - name: 保单犹豫期截止时间-近期
+    field: policies_cooling_off
+    operator: GT
+    value_type: capture
+    patterns:
+    - 保单犹豫期截止时间{SEARCH}晚于{CW}
+    - 犹豫期还剩{CW}之后
+    - 犹豫期{CW}之后未过
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  - name: 车险到期时间-临近
+    field: carInsuranceMatuDateTime
+    operator: LTE
+    value_type: capture
+    patterns:
+    - 车险{SEARCH}快到期
+    - 车险{CW}内到期
+    - 车险{CW}前到期
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  - name: 年收入-区间
+    field: annual_income
+    operator: RANGE
+    value_type: capture
+    patterns:
+    - 年收入{CW}到{CW}
+    - 年收入在{CW}至{CW}
+    - 年收入{CW}以上{CW}以下
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  - name: 家庭年收入-区间
+    field: household_income
+    operator: RANGE
+    value_type: capture
+    patterns:
+    - 家庭年收入{CW}到{CW}
+    - 家庭年收入在{CW}至{CW}
+    - 家庭年收入{CW}以上{CW}以下
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  - name: 投保日期-时间段
+    field: policies_insure_date
+    operator: RANGE
+    value_type: capture
+    patterns:
+    - '{SEARCH}投保日期在{CW}到{CW}'
+    - 去年{SEARCH}投保的客户
+    - 最近{CW}内投保的客户
+    value:
+      group: 1
+    priority: 8
+    merge_to_llm: false
+  test_cases:
+  - id: policies_cooling_off_codex_candidate_001
+    query: 保单犹豫期截止时间晚于2024年12月31日的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: policies_cooling_off
+        operator: GT
+        value: '2024-12-31'
+    tags:
+    - positive
+    - codex_candidate
+  - id: carinsurancematudatetime_codex_candidate_001
+    query: 车险到期时间不晚于2024年7月15日的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: carInsuranceMatuDateTime
+        operator: LTE
+        value: '2024-07-15'
+    tags:
+    - positive
+    - codex_candidate
+  - id: annual_income_codex_candidate_001
+    query: 年收入在40万到60万之间的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: annual_income
+        operator: RANGE
+        value:
+          min: 400000
+          max: 600000
+    tags:
+    - positive
+    - codex_candidate
+  - id: household_income_codex_candidate_001
+    query: 家庭年收入低于20万的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: household_income
+        operator: LT
+        value: 200000
+    tags:
+    - positive
+    - codex_candidate
+  - id: policies_insure_date_codex_candidate_001
+    query: 今年投保的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: policies_insure_date
+        operator: RANGE
+        value:
+          min: '2024-01-01 00:00:00'
+          max: '2024-12-31 23:59:59'
+    tags:
+    - positive
+    - codex_candidate
+  - id: multi_condition_codex_candidate_001
+    query: 有车险到期时间且年收入超过50万的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: carInsuranceMatuDateTime
+        operator: EXISTS
+      - field: annual_income
+        operator: GT
+        value: 500000
+    tags:
+    - positive
+    - codex_candidate
+  - id: multi_condition_codex_candidate_002
+    query: 没有年收入信息但车险即将到期的客户
+    expected:
+      query_logic: AND
+      conditions:
+      - field: annual_income
+        operator: NOT_EXISTS
+      - field: carInsuranceMatuDateTime
+        operator: LTE
+        value: '2024-06-30'
+    tags:
+    - positive
+    - codex_candidate
+  - id: multi_condition_codex_candidate_003
+    query: 女性客户且家庭年收入在30万到80万之间
+    expected:
+      query_logic: AND
+      conditions:
+      - field: clientSex
+        operator: MATCH
+        value: 女
+      - field: household_income
+        operator: RANGE
+        value:
+          min: 300000
+          max: 800000
+    tags:
+    - positive
+    - codex_candidate

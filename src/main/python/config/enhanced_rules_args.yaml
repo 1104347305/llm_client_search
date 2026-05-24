@@ -2583,7 +2583,7 @@ rules:
 
   - name: "康养达标-泛称"
     patterns:
-      - '{SEARCH}(?<![没无非])(?<!不是)(?:康养客户|康养达标客户|康养会员|康养会员客户|有康养权益的客户)(?:的客户|客户|有哪些|有哪些人)?'
+      - '{SEARCH}(?<![没无非])(?<!不是)(?:康养客户|康养达标客户|康养会员|康养会员客户|有康养权益的客户|康养达标)(?:的客户|客户|有哪些|有哪些人)?'
     field: "kangyangClientGrade"
     operator: "CONTAINS"
     value_type: "static"
@@ -6019,6 +6019,8 @@ rules:
       - '{SEARCH}(?:保单)?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日)(?:为|是|在|：|:)?(\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2}:\d{2})?)(?:的保单客户|保单客户|的客户|客户)?'
       - '{SEARCH}(\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2}:\d{2})?)(?:应缴|缴费)(?:的客户|客户)?'
       - '{SEARCH}(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日)(?:在)?(\d{4})年(\d{1,2})月(\d{1,2})?日?(?:的客户|客户)?'
+      - '{SEARCH}(\d{4})年(\d{1,2})月(\d{1,2})[号日]?(?:要|需要|该|应)?(?:交|缴)(?:保费|费)(?:的保单客户|保单客户|的客户|客户|名单|的人|人)?'
+      - '{SEARCH}(?:要|需要|该|应)?(?:交|缴)(?:保费|费)(?:的)?(?:客户)?(?:在|是|为)?(\d{4})年(\d{1,2})月(\d{1,2})[号日]?(?:的保单客户|保单客户|的客户|客户|名单|的人|人)?'
     field: "polNoInfo.paytodate"
     operator: "RANGE"
     value_type: "date_range_dynamic"
@@ -6028,13 +6030,42 @@ rules:
     priority: 10
     merge_to_llm: true
 
+  - name: "应缴日-月日精确"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(\d{1,2})月(\d{1,2})[号日]?(?:要|需要|该|应)?(?:交|缴)(?:保费|费)(?:的保单客户|保单客户|的客户|客户|名单|的人|人)?'
+      - '{SEARCH}(?:要|需要|该|应)?(?:交|缴)(?:保费|费)(?:的)?(?:客户)?(?:在|是|为)?(\d{1,2})月(\d{1,2})[号日]?(?:的保单客户|保单客户|的客户|客户|名单|的人|人)?'
+    field: "polNoInfo.paytodate"
+    operator: "RANGE"
+    value_type: "date_range_dynamic"
+    value:
+      date_range: "year_month_day"
+      current_year_if_missing: true
+      format: "yyyy-MM-dd HH:mm:ss"
+    priority: 10
+    merge_to_llm: true
+
+  - name: "应缴日-存在"
+    is_supported: true
+    patterns:
+      - '{SEARCH}(?:要|需要|该|应)(?:交|缴)(?:保费|费)(?:的保单客户|保单客户|的客户|客户|名单|的人|人)?'
+      - '{SEARCH}(?:待|需)(?:交|缴)(?:保费|费)(?:的保单客户|保单客户|的客户|客户|名单|的人|人)?'
+    field: "polNoInfo.paytodate"
+    operator: "EXISTS"
+    value_type: "static"
+    value: ""
+    priority: 6
+    merge_to_llm: true
+
   - name: "应缴日-本月"
     is_supported: true
     patterns:
       - '{SEARCH}本月{CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}本月{CW}{0,2}(?:要|需要|该|应)(?:交|缴)(?:保费|费)(?:的客户|客户|名单|的人|人)?'
       - '{SEARCH}(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在本月(?:的客户|客户)?'
       - '{SEARCH}有?(?:应缴日|缴费日|应缴时间|下次缴费时间|交费时间|交费日|应交时间|下次交费时间|应交日){CW}{0,2}在?本月(?:的客户|客户)?'
       - '{SEARCH}这个?月{CW}{0,2}(?:应缴|缴费|应交|交费)(?:的客户|客户)?'
+      - '{SEARCH}这个?月{CW}{0,2}(?:要|需要|该|应)(?:交|缴)(?:保费|费)(?:的客户|客户|名单|的人|人)?'
     field: "polNoInfo.paytodate"
     operator: "RANGE"
     value_type: "date_range_dynamic"
