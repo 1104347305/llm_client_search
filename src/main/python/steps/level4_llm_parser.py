@@ -38,7 +38,7 @@ except ImportError:  # pragma: no cover - 开发环境未安装 openai 时降级
     AsyncOpenAI = None
 from pydantic import BaseModel, Field
 from src.main.python.config.settings import settings
-from src.main.python.models.schemas import ParsedQuery, Condition, QueryLogic, Operator, RangeValue
+from src.main.python.models.schemas import ParsedQuery, Condition, QueryLogic, Operator, RangeValue, GeoRadiusValue
 from src.main.python.steps.field_registry import FieldRegistry, get_field_registry
 from src.main.python.steps.level2_enhanced_matcher import Level2EnhancedMatcher
 from src.main.python.steps.time_range_resolver import resolve_dynamic_date_placeholder
@@ -517,6 +517,11 @@ class Level4LLMParser:
                     value = RangeValue(
                         min=self._normalize_field_value(field, self._resolve_dynamic_date_placeholder(value.get("min"))),
                         max=self._normalize_field_value(field, self._resolve_dynamic_date_placeholder(value.get("max"))),
+                    )
+                elif isinstance(value, dict) and "radius" in value:
+                    value = GeoRadiusValue(
+                        place_name=value.get("place_name"),
+                        radius=value.get("radius"),
                     )
                 else:
                     value = self._resolve_dynamic_date_placeholder(value)

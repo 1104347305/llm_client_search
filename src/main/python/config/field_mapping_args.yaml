@@ -11,6 +11,8 @@ query_fields:
   family_sex: familyInfo.familyclientsex
   family_age: familyInfo.familyclientage
   family_birthday: familyInfo.familyclientbirthday
+  customerAddress: customerAddress
+  customerLocation: customerLocation
 
 field_context_groups:
   client:

@@ -13,7 +13,7 @@ from typing import Any, Optional
 import yaml
 
 from src.main.python.config.settings import settings
-from src.main.python.models.schemas import Condition, Operator, QueryLogic, RangeValue
+from src.main.python.models.schemas import Condition, GeoRadiusValue, Operator, QueryLogic, RangeValue
 
 
 class IntentSummaryService:
@@ -525,6 +525,13 @@ class IntentSummaryService:
             return f"{prefix}{field_label}"
 
         value = cond.value
+        if isinstance(value, GeoRadiusValue):
+            center = "我" if value.place_name is None else str(value.place_name)
+            radius_text = self._format_radius_for_summary(value.radius)
+            if op == "NOT_GEO_RADIUS":
+                return f"{center}周围{radius_text}外"
+            return f"{center}周围{radius_text}内"
+
         if isinstance(value, RangeValue):
             min_v = self._format_value_for_summary(value.min) if value.min is not None else ""
             max_v = self._format_value_for_summary(value.max) if value.max is not None else ""
@@ -570,6 +577,14 @@ class IntentSummaryService:
             val_str = "、".join(str(v) for v in value)
             return f"{field_label}{op_label}{val_str}"
         return f"{field_label}{op_label}{self._format_value_for_summary(value)}"
+
+    @staticmethod
+    def _format_radius_for_summary(radius: Optional[int]) -> str:
+        if radius is None:
+            return "指定半径"
+        if radius >= 1000 and radius % 1000 == 0:
+            return f"{radius // 1000}公里"
+        return f"{radius}米"
 
 
 _intent_summary_service: Optional[IntentSummaryService] = None

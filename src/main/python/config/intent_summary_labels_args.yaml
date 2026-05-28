@@ -11,6 +11,8 @@ field_labels:
   clientSex: "客户性别"
   clientAge: "客户年龄"
   clientBirthday: "客户出生日期"
+  customerAddress: "地址"
+  customerLocation: "位置坐标"
   birthdayMd: "客户生日"
   education: "客户学历"
   mariSts: "客户婚姻状况"
@@ -105,6 +107,8 @@ op_labels:
   NOT_CONTAINS: "不包含"
   EXISTS:       "有"
   NOT_EXISTS:   "没有"
+  GEO_RADIUS:   "半径内"
+  NOT_GEO_RADIUS: "半径外"
 
 messages:
   no_conditions:        "未识别到明确查询条件"

@@ -27,6 +27,73 @@
 
 intents:
 
+  # ==================== 客户地址 ====================
+
+  - id: customer_address_match
+    is_supported: true
+    retrieval_text: >
+      地址 住址 家庭地址 居住地址 小区 社区 花园 街道 路 巷 村 镇 省 市 区 县
+      住在 居住在 住 位于 位置 地址是 地址为
+    field: customerAddress
+    operator: MATCH
+    value_type: extract
+    description: "客户居住地址模糊匹配，不表示地理半径搜索"
+    examples:
+      - query: "住在天通苑小区的客户"
+        output: { field: customerAddress, operator: MATCH, value: "天通苑" }
+      - query: "地址在望京的客户"
+        output: { field: customerAddress, operator: MATCH, value: "望京" }
+
+  - id: customer_address_contains
+    is_supported: true
+    retrieval_text: >
+      地址包含 地址里有 地址中 多个地址 或 或者 任意一个 朝阳区或者望京
+    field: customerAddress
+    operator: CONTAINS
+    value_type: extract
+    description: "客户地址包含任意指定关键词，多个地址关键词用 CONTAINS 列表表示"
+    examples:
+      - query: "地址中包含朝阳区或者望京的客户"
+        output: { field: customerAddress, operator: CONTAINS, value: ["朝阳区", "望京"] }
+
+  - id: customer_location_geo_radius
+    is_supported: true
+    retrieval_text: >
+      周围 附近 周边 方圆 范围 半径 公里 千米 km 米 m 以内 之内 内
+      我周围 我附近 代理人附近 坐席附近 当前用户附近
+    field: customerLocation
+    operator: GEO_RADIUS
+    value_type: geo_radius
+    description: >
+      以某地名或当前用户/代理人/坐席位置为中心搜索指定半径内的客户。
+      place_name 有值时后端需自行地理编码转经纬度。
+      place_name 为 null 时表示以后端请求上下文中的当前用户/代理人/坐席位置为中心。
+      radius 单位为米，需将用户原始表达中的米/公里/km等单位标准化为米。
+    examples:
+      - query: "天通苑周围1公里以内的客户"
+        output: { field: customerLocation, operator: GEO_RADIUS, value: { place_name: "天通苑", radius: 1000 } }
+      - query: "我周围500米内的客户"
+        output: { field: customerLocation, operator: GEO_RADIUS, value: { place_name: null, radius: 500 } }
+
+  - id: customer_location_not_geo_radius
+    is_supported: true
+    retrieval_text: >
+      周围 附近 周边 方圆 范围 半径 公里 千米 km 米 m 以外 之外 外
+      我周围以外 我附近以外 代理人附近以外 坐席附近以外 当前用户附近以外
+    field: customerLocation
+    operator: NOT_GEO_RADIUS
+    value_type: geo_radius
+    description: >
+      以某地名或当前用户/代理人/坐席位置为中心，排除指定半径内客户，搜索半径外客户。
+      place_name 有值时后端需自行地理编码转经纬度。
+      place_name 为 null 时表示以后端请求上下文中的当前用户/代理人/坐席位置为中心。
+      radius 单位为米，需将用户原始表达中的米/公里/km等单位标准化为米。
+    examples:
+      - query: "天通苑附近2公里以外的客户"
+        output: { field: customerLocation, operator: NOT_GEO_RADIUS, value: { place_name: "天通苑", radius: 2000 } }
+      - query: "附近3公里以外的客户"
+        output: { field: customerLocation, operator: NOT_GEO_RADIUS, value: { place_name: null, radius: 3000 } }
+
   # ==================== 姓名 ====================
 
   - id: name_exact

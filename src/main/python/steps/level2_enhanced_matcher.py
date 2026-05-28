@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from loguru import logger
 from src.main.python.config.settings import settings
-from src.main.python.models.schemas import Condition, Operator, RangeValue
+from src.main.python.models.schemas import Condition, GeoRadiusValue, Operator, RangeValue
 from src.main.python.models.field_mapping import NEGATION_WORDS
 from src.main.python.steps.time_range_resolver import resolve_dynamic_date_range
 
@@ -1177,7 +1177,9 @@ class Level2EnhancedMatcher:
             "CONTAINS": Operator.CONTAINS,
             "NOT_CONTAINS": Operator.NOT_CONTAINS,
             "EXISTS": Operator.EXISTS,
-            "NOT_EXISTS": Operator.NOT_EXISTS
+            "NOT_EXISTS": Operator.NOT_EXISTS,
+            "GEO_RADIUS": Operator.GEO_RADIUS,
+            "NOT_GEO_RADIUS": Operator.NOT_GEO_RADIUS,
         }
         return operator_map.get(operator_str, Operator.MATCH)
 
@@ -1256,6 +1258,42 @@ class Level2EnhancedMatcher:
         elif value_type == "date_range_dynamic":
             # 动态日期范围（运行时计算）：next_month / current_month / next_n_days
             return self._compute_dynamic_date_range(value_config or {}, match)
+
+        elif value_type == "geo_radius_place":
+            if not isinstance(value_config, dict):
+                return None
+            place_group = value_config.get("place_group", 1)
+            radius_group = value_config.get("radius_group", 2)
+            unit_group = value_config.get("unit_group", 3)
+            try:
+                place = match.group(place_group)
+                radius_str = match.group(radius_group)
+                unit = match.group(unit_group)
+                if not place or not radius_str:
+                    return None
+                radius = float(radius_str)
+                if str(unit).lower() in ("公里", "千米", "km"):
+                    radius *= 1000
+                return GeoRadiusValue(place_name=place.strip(), radius=int(radius))
+            except (IndexError, ValueError):
+                return None
+
+        elif value_type == "geo_radius_self":
+            if not isinstance(value_config, dict):
+                return None
+            radius_group = value_config.get("radius_group", 1)
+            unit_group = value_config.get("unit_group", 2)
+            try:
+                radius_str = match.group(radius_group)
+                unit = match.group(unit_group)
+                if not radius_str:
+                    return None
+                radius = float(radius_str)
+                if str(unit).lower() in ("公里", "千米", "km"):
+                    radius *= 1000
+                return GeoRadiusValue(place_name=None, radius=int(radius))
+            except (IndexError, ValueError):
+                return None
 
         elif value_type == "exact_range":
             if isinstance(value_config, dict):

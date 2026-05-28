@@ -5,7 +5,7 @@ import httpx
 from typing import Dict, Any
 from loguru import logger
 from src.main.python.config.settings import settings
-from src.main.python.models.schemas import SearchRequest, Operator, RangeValue
+from src.main.python.models.schemas import SearchRequest, Operator, RangeValue, GeoRadiusValue
 from src.main.python.utils.sensitive_masking import mask_for_log
 
 
@@ -80,6 +80,11 @@ class SearchAPIClient:
                 }
                 if isinstance(condition.value, RangeValue):
                     cond_dict["value"] = {"min": condition.value.min, "max": condition.value.max}
+                elif isinstance(condition.value, GeoRadiusValue):
+                    cond_dict["value"] = {
+                        "place_name": condition.value.place_name,
+                        "radius": condition.value.radius,
+                    }
                 else:
                     cond_dict["value"] = condition.value
                 conditions.append(cond_dict)

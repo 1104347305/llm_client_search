@@ -14,6 +14,9 @@ pattern_vars:
   CW: '[，,。\.？\?\！! ：\:\u4e00-\u9fa5]'
   SEARCH: '(?:查找|查询|查|找|找一下|查一下|检索|搜索|帮我查询|帮我查查|帮我查|帮我找|帮我搜索|给我看看|帮我看看|看看|哪些是|谁是|给我捞一批|捞一批)?(?:一下)?'
   CUSTOMER_SUFFIX: '(?:的客户|客户|有哪些客户|有哪些人|名单|的人|人)?'
+  PLACE_NAME: '([\u4e00-\u9fa5A-Za-z0-9_~·\-]{2,30}?)'
+  DISTANCE: '(\d+(?:\.\d+)?)'
+  DISTANCE_UNIT: '(公里|千米|km|米|m)'
 
 bare_value_weak_match:
   pattern: '[A-Za-z0-9*]{1,64}'
@@ -27,6 +30,75 @@ bare_value_weak_match:
 
 
 rules:
+
+  # ==================== 地址 (customerAddress / customerLocation) ====================
+
+  - name: "地址-地点周围-半径内"
+    patterns:
+      - '{SEARCH}{PLACE_NAME}(?:的)?(?:周围|附近|周边|方圆|范围内)(?:的)?{DISTANCE}{DISTANCE_UNIT}(?:内|以内|之内)?{CUSTOMER_SUFFIX}'
+      - '{SEARCH}{PLACE_NAME}(?:的)?{DISTANCE}{DISTANCE_UNIT}(?:内|以内|之内)(?:周围|附近|周边)?{CUSTOMER_SUFFIX}'
+    field: "customerLocation"
+    operator: "GEO_RADIUS"
+    value_type: "geo_radius_place"
+    value:
+      place_group: 1
+      radius_group: 2
+      unit_group: 3
+    priority: 12
+    merge_to_llm: false
+
+  - name: "地址-地点周围-半径外"
+    patterns:
+      - '{SEARCH}{PLACE_NAME}(?:的)?(?:周围|附近|周边|方圆|范围内)(?:的)?{DISTANCE}{DISTANCE_UNIT}(?:外|以外|之外){CUSTOMER_SUFFIX}'
+      - '{SEARCH}{PLACE_NAME}(?:的)?{DISTANCE}{DISTANCE_UNIT}(?:外|以外|之外)(?:周围|附近|周边)?{CUSTOMER_SUFFIX}'
+    field: "customerLocation"
+    operator: "NOT_GEO_RADIUS"
+    value_type: "geo_radius_place"
+    value:
+      place_group: 1
+      radius_group: 2
+      unit_group: 3
+    priority: 12
+    merge_to_llm: false
+
+  - name: "地址-我周围-半径内"
+    patterns:
+      - '{SEARCH}(?:我|本人|当前用户|坐席|代理人)(?:的)?(?:周围|附近|周边|方圆)(?:的)?{DISTANCE}{DISTANCE_UNIT}(?:内|以内|之内)?{CUSTOMER_SUFFIX}'
+      - '{SEARCH}(?:附近|周边)(?:的)?{DISTANCE}{DISTANCE_UNIT}(?:内|以内|之内){CUSTOMER_SUFFIX}'
+    field: "customerLocation"
+    operator: "GEO_RADIUS"
+    value_type: "geo_radius_self"
+    value:
+      radius_group: 1
+      unit_group: 2
+    priority: 13
+    merge_to_llm: false
+
+  - name: "地址-我周围-半径外"
+    patterns:
+      - '{SEARCH}(?:我|本人|当前用户|坐席|代理人)(?:的)?(?:周围|附近|周边|方圆)(?:的)?{DISTANCE}{DISTANCE_UNIT}(?:外|以外|之外){CUSTOMER_SUFFIX}'
+      - '{SEARCH}(?:附近|周边)(?:的)?{DISTANCE}{DISTANCE_UNIT}(?:外|以外|之外){CUSTOMER_SUFFIX}'
+    field: "customerLocation"
+    operator: "NOT_GEO_RADIUS"
+    value_type: "geo_radius_self"
+    value:
+      radius_group: 1
+      unit_group: 2
+    priority: 13
+    merge_to_llm: false
+
+  - name: "地址-小区社区街道匹配"
+    patterns:
+      - '{SEARCH}([\u4e00-\u9fa5A-Za-z0-9_~·\-]{2,30})(?:小区|社区|花园|街道|村|镇){CUSTOMER_SUFFIX}'
+      - '{SEARCH}(?:住在|居住在|住|地址在|住址在|家庭地址在|居住地址在|位于)([\u4e00-\u9fa5A-Za-z0-9_~·\-]{2,30}?)(?:的客户|客户|名单|的人|人)'
+      - '{SEARCH}(?:地址|住址|家庭地址|居住地址)(?:在|是|为|匹配|包含|含有)?[：:\s]?([\u4e00-\u9fa5A-Za-z0-9_~·\-]{2,30}?)(?:的客户|客户|名单|的人|人)'
+    field: "customerAddress"
+    operator: "MATCH"
+    value_type: "capture"
+    value:
+      group: 1
+    priority: 9
+    merge_to_llm: false
 
   # ==================== 姓名 (searchClientName) ====================
 
