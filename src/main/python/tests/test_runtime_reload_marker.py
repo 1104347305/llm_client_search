@@ -255,6 +255,15 @@ def test_resolve_reload_file_selection_accepts_file_name():
     assert selected[0]["alias"] == "enhanced_rules"
 
 
+def test_resolve_reload_file_selection_accepts_time_knowledge():
+    selected, scope = routes._resolve_reload_file_selection(["time_knowledge"])
+
+    assert scope == "full"
+    assert len(selected) == 1
+    assert selected[0]["alias"] == "time_knowledge"
+    assert selected[0]["path"].endswith("time_knowledge_args.yaml")
+
+
 def test_resolve_reload_file_selection_rejects_unknown_file():
     try:
         routes._resolve_reload_file_selection(["unknown.yaml"])

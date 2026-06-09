@@ -1508,6 +1508,21 @@ class Level2EnhancedMatcher:
                 max=f"{month:02d}-{day:02d}",
             )
 
+        elif transform == "month_range_to_md":
+            matched = re.match(r'(\d{1,2})月?[-~到至](\d{1,2})月', value)
+            if not matched:
+                return value
+            start_month = int(matched.group(1))
+            end_month = int(matched.group(2))
+            if not (1 <= start_month <= end_month <= 12):
+                return value
+            from calendar import monthrange
+            last_day = monthrange(2000, end_month)[1]
+            return RangeValue(
+                min=f"{start_month:02d}-01",
+                max=f"{end_month:02d}-{last_day:02d}",
+            )
+
         elif transform == "month_day_cn_to_md":
             cn_month_map = {
                 '正': 1, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4,

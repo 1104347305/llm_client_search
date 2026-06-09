@@ -41,6 +41,7 @@ from src.main.python.config.settings import settings
 from src.main.python.models.schemas import ParsedQuery, Condition, QueryLogic, Operator, RangeValue
 from src.main.python.steps.field_registry import FieldRegistry, get_field_registry
 from src.main.python.steps.level2_enhanced_matcher import Level2EnhancedMatcher
+from src.main.python.steps.time_knowledge_retriever import TimeKnowledgeRetriever
 from src.main.python.steps.time_range_resolver import resolve_dynamic_date_placeholder
 from src.main.python.utils.sensitive_masking import mask_for_log
 
@@ -83,6 +84,7 @@ class Level4LLMParser:
         self.level2_recall = level2_recall if settings.ENABLE_L4_RAG_L2 else None
         if settings.ENABLE_L4_RAG_L2 and self.level2_recall is None:
             self.level2_recall = Level2EnhancedMatcher()
+        self.time_retriever = TimeKnowledgeRetriever()
 
         # 创建查询分析 Agent (使用基础静态指令)
         # self.agent = Agent(
@@ -171,6 +173,10 @@ class Level4LLMParser:
             _retrieve_trie(),
             _retrieve_l2(),
         )
+        time_hits = []
+        time_retriever = getattr(self, "time_retriever", None)
+        if time_retriever is not None:
+            time_hits = await asyncio.to_thread(time_retriever.recall, query, 5)
 
         merged = self._merge_rag_intents_by_field(
             trie_intents=trie_intents,
@@ -187,13 +193,21 @@ class Level4LLMParser:
 
             budget = settings.L4_PROMPT_CHAR_BUDGET
             field_section_budget = budget - 200 if budget > 0 else 0  # 预留 200 字符给时间+查询头
-            field_section = self.field_registry.format_prompt_section(
-                merged, query=query, max_chars=field_section_budget,
-            )
+            try:
+                field_section = self.field_registry.format_prompt_section(
+                    merged, query=query, max_chars=field_section_budget,
+                )
+            except TypeError:
+                field_section = self.field_registry.format_prompt_section(
+                    merged, query=query,
+                )
+            time_section = self._format_time_knowledge_section(time_hits)
+            if time_section:
+                time_section = f"\n\n{time_section}"
             message = (
                 f"### 当前时间\n{current_time} (Asia/Shanghai)\n"
                 f"### 今天星期\n{current_weekday}\n\n"
-                f"{field_section}\n\n### 用户查询\n{query}"
+                f"{field_section}{time_section}\n\n### 用户查询\n{query}"
             )
             logger.debug(
                 f"RAG merged {len(merged)} fields "
@@ -208,6 +222,19 @@ class Level4LLMParser:
         else:
             logger.debug(f"RAG found no relevant intents for query: {mask_for_log(query)}")
             return query, False
+
+    @staticmethod
+    def _format_time_knowledge_section(time_hits: List[Dict[str, Any]]) -> str:
+        if not time_hits:
+            return ""
+        lines = ["### 时间知识"]
+        for item in time_hits:
+            matched = str(item.get("matched", "")).strip()
+            start = str(item.get("min", "")).strip()
+            end = str(item.get("max", "")).strip()
+            if matched and start and end:
+                lines.append(f"{matched} = {start} ~ {end}")
+        return "\n".join(lines) if len(lines) > 1 else ""
 
     @staticmethod
     def _merge_rag_intents_by_field(

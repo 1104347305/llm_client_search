@@ -47,9 +47,21 @@ def _next_month_bounds(today: date) -> tuple[date, date]:
     return date(year, month, 1), date(year, month, last_day)
 
 
+def _next_month_end_bounds(today: date) -> tuple[date, date]:
+    _, month_end = _next_month_bounds(today)
+    return date(month_end.year, month_end.month, 20), month_end
+
+
 def _current_month_bounds(today: date) -> tuple[date, date]:
     last_day = calendar.monthrange(today.year, today.month)[1]
     return date(today.year, today.month, 1), date(today.year, today.month, last_day)
+
+
+def _add_months(target: date, months: int) -> date:
+    year = target.year + (target.month - 1 + months) // 12
+    month = (target.month - 1 + months) % 12 + 1
+    day = min(target.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
 
 
 def resolve_dynamic_date_range(config: Dict, match=None, now: Optional[Union[date, datetime]] = None):
@@ -80,6 +92,10 @@ def resolve_dynamic_date_range(config: Dict, match=None, now: Optional[Union[dat
         start, end = _next_month_bounds(today)
         return _range(start, end)
 
+    if date_range == "next_month_end":
+        start, end = _next_month_end_bounds(today)
+        return _range(start, end)
+
     if date_range == "month_offset":
         offset = int(config.get("offset", 1))
         year = today.year
@@ -101,6 +117,16 @@ def resolve_dynamic_date_range(config: Dict, match=None, now: Optional[Union[dat
             month = 12
             year -= 1
         return _range(date(year, month, 1), today)
+
+    if date_range == "past_n_months_to_today":
+        months = int(config.get("months", 1))
+        months_group = config.get("months_group")
+        if months_group and match:
+            try:
+                months = int(match.group(months_group))
+            except (IndexError, ValueError):
+                pass
+        return _range(_add_months(today, -months), today)
 
     if date_range == "years_ago_today":
         # "刚满X岁" → 出生日期 = 今天 − X 年，精确到天

@@ -1,0 +1,68 @@
+time_knowledge:
+  - id: next_next_week
+    aliases: ["下下周", "下下星期", "下下个星期"]
+    resolver:
+      date_range: "week_offset"
+      offset: 2
+      format: "yyyy-MM-dd HH:mm:ss"
+
+  - id: next_week
+    aliases: ["下周", "下星期", "下个星期"]
+    resolver:
+      date_range: "week_offset"
+      offset: 1
+      format: "yyyy-MM-dd HH:mm:ss"
+
+  - id: last_last_week
+    aliases: ["上上周", "上上星期", "上上个星期"]
+    resolver:
+      date_range: "week_offset"
+      offset: -2
+      format: "yyyy-MM-dd HH:mm:ss"
+
+  - id: last_week
+    aliases: ["上周", "上星期", "上个星期"]
+    resolver:
+      date_range: "week_offset"
+      offset: -1
+      format: "yyyy-MM-dd HH:mm:ss"
+
+  - id: next_month
+    aliases: ["下个月", "下月"]
+    resolver:
+      date_range: "next_month"
+      format: "yyyy-MM-dd HH:mm:ss"
+
+  - id: last_month
+    aliases: ["上个月", "上月"]
+    resolver:
+      date_range: "last_month"
+      format: "yyyy-MM-dd HH:mm:ss"
+
+  - id: future_week
+    aliases: ["未来一周", "接下来一周", "未来7天", "未来七天"]
+    resolver:
+      date_range: "next_n_days"
+      days: 7
+      format: "yyyy-MM-dd HH:mm:ss"
+
+  - id: future_month
+    aliases: ["未来一个月", "接下来一个月", "未来30天", "未来三十天"]
+    resolver:
+      date_range: "next_n_days"
+      days: 30
+      format: "yyyy-MM-dd HH:mm:ss"
+
+  - id: recent_half_year
+    aliases: ["近半年", "最近半年", "过去半年"]
+    resolver:
+      date_range: "past_n_months_to_today"
+      months: 6
+      format: "yyyy-MM-dd HH:mm:ss"
+
+  - id: recent_year
+    aliases: ["近一年", "最近一年", "过去一年"]
+    resolver:
+      date_range: "past_n_months_to_today"
+      months: 12
+      format: "yyyy-MM-dd HH:mm:ss"

@@ -200,6 +200,8 @@ jujiaClientGrade:
   居家客户等级V2: "v2"
   V2: "v2"
   V3: "v3"
+  居养: "居家养老"
+  居养老: "居家养老"
 
 # 安有护权益等级
 zhenxiangRunEquityGrade:
@@ -344,7 +346,7 @@ polNoInfo.claimdatainfo.claimplancodename:
   医无忧: "e无忧"
   如意慧享: "如意惠享"
   智赢延年: "智盈延年"
-  安百: "安心百分百"
+#  安百: "安心百分百"
   智盈陪护: "智盈倍护"
   金越年金二五: "金越年金25"
   智赢倍护: "智盈倍护"
@@ -358,3 +360,4 @@ polNoInfo.claimdatainfo.claimplancodename:
   平安盛世金越司庆版: "金越司庆版"
   预想机月: "御享金越"
   预想天年: "御享天年"
+  少儿幸福平安: "平安幸福少儿"

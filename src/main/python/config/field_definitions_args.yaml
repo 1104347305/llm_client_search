@@ -381,7 +381,7 @@ intents:
     operator: RANGE
     value_type: date
     format: "MM-dd"
-    notes: "只含月日（不含年），格式MM-dd；本月生日取当月1日至月末；下月生日取下月1日至月末；下周生日取下周一至周天；未来一周生日取今天至往后顺延6天；未来一个月生日取今天至往后延顺29天"
+    notes: "只含月日（不含年），格式MM-dd；本月生日取当月1日至月末；下月生日取下个月1日至月末；下周/下星期/下个星期生日必须取下一个自然周周一至周天，不能理解为从今天开始的未来7天；未来一周/未来7天/接下来一周才取今天至往后顺延6天；未来一个月生日取今天至往后延顺29天；"
     examples:
       - query: "3月15日生日的客户"
         output: {field: birthdayMd, operator: RANGE, value: {min: "03-15", max: "03-15"}}
@@ -391,10 +391,16 @@ intents:
         output: {field: birthdayMd, operator: RANGE, value: {min: "04-01", max: "04-30"}}
       - query: "下周有哪些客户过生日（当前2026年3月25号）"
         output: { field: birthdayMd, operator: RANGE, value: { min: "03-30", max: "04-05" } }
+      - query: "下周生日的客户张宇（当前2026年3月25号）"
+        conditions:
+          - { field: birthdayMd, operator: RANGE, value: { min: "03-30", max: "04-05" } }
+          - { field: searchClientName, operator: MATCH, value: "张宇" }
       - query: "未来一周的客户（当前2026年4月1号）"
         output: { field: birthdayMd, operator: RANGE, value:  { min: "04-01", max: "04-07" } }
       - query: "未来一个月的客户（当前2026年3月25号）"
         output: { field: birthdayMd, operator: RANGE, value: { min: "03-25", max: "04-25" } }
+      - query: "四、五月客户"
+        output: { field: birthdayMd, operator: RANGE, value: { min: "04-01", max: "05-31" } }
 
   - id: birthday_md_gte
     retrieval_text: >
@@ -438,10 +444,10 @@ intents:
     examples:
       - query: "客户号C123456的客户"
         output: {field: clientNo, operator: MATCH, value: "C123456"}
-      - query: "客户号C00048344377的客户"
-        output: { field: clientNo, operator: MATCH, value: "C00048344377" }
       - query: "客户号005285403729的客户"
         output: { field: clientNo, operator: MATCH, value: "005285403729" }
+      - query: "大学字母C 数字0101549972"
+        output: { field: clientNo, operator: MATCH, value: "C0101549972" }
 
   # ==================== 客户价值 ====================
 
@@ -2353,14 +2359,15 @@ intents:
     field: polNo
     operator: MATCH
     value_type: extract
-    description: "表示保单号，不表示客户编号，保单号是由P开头+15位数字，如 P966073446746215"
+    description: "表示保单号，不表示客户编号，保单号格式必须是由P开头+15位数字或字母组成，如 P966073446746215"
     examples:
       - query: "保单号为1234567890的客户"
         output: {field: polNo, operator: MATCH, value: "1234567890"}
-      - query: "保单号匹配P100000000000010的客户"
-        output: {field: polNo, operator: MATCH, value: "P100000000000010"}
       - query: "按保单号查P100000000000010的客户"
         output: {field: polNo, operator: MATCH, value: "P100000000000010"}
+    negative_examples:
+      - query: "杨傲雪保单号"
+        reason: "保单号必须是由数字+字母组成的，不能是中文"
 
   # ==================== 年收入 ====================
 

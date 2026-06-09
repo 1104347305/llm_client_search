@@ -1,5 +1,7 @@
 import asyncio
+import calendar
 import sys
+from datetime import date
 from pathlib import Path
 
 from loguru import logger
@@ -183,6 +185,22 @@ def test_l2_matches_policy_datetime_fields():
     values = {(condition.field, condition.operator.value): condition.value for condition in conditions}
     assert values[("polNoInfo.claimdatainfo.claimdate", "RANGE")].min == "2026-06-30 00:00:00"
     assert values[("polNoInfo.claimdatainfo.claimdate", "RANGE")].max == "2026-06-30 00:00:00"
+
+
+def test_l2_matches_claims_in_recent_half_year():
+    conditions, _ = _match("近半年有理赔的客户")
+    values = {(condition.field, condition.operator.value): condition.value for condition in conditions}
+
+    today = date.today()
+    month_index = today.month - 1 - 6
+    year = today.year + month_index // 12
+    month = month_index % 12 + 1
+    day = min(today.day, calendar.monthrange(year, month)[1])
+
+    assert values[("polNoInfo.claimdatainfo.claimdate", "RANGE")].min == (
+        f"{year:04d}-{month:02d}-{day:02d} 00:00:00"
+    )
+    assert values[("polNoInfo.claimdatainfo.claimdate", "RANGE")].max == today.strftime("%Y-%m-%d 00:00:00")
 
 
 def test_l2_matches_policy_pay_date_relative_ranges():

@@ -165,6 +165,7 @@ def _reloadable_config_file_map() -> Dict[str, Dict[str, Any]]:
     add("field_definitions", settings.FIELD_DEFINITIONS_PATH, "full")
     add("enhanced_rules", settings.ENHANCED_RULES_PATH, "full")
     add("value_mappings", settings.VALUE_MAPPINGS_PATH, "full")
+    add("time_knowledge", settings.TIME_KNOWLEDGE_PATH, "full")
     add("intent_summary", settings.INTENT_SUMMARY_PATH, "intent_summary")
     add("field_mapping", settings.FIELD_MAPPING_PATH, "full")
 

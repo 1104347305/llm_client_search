@@ -59,7 +59,7 @@ def test_two_digit_birth_year_maps_to_client_birthday():
 def test_home_care_generic_terms_map_to_grade_range():
     expected = ["v0.5", "v1", "v1.5", "v2", "v2.5", "v3"]
 
-    for query in ["居家客户", "居家养老客户", "居家会员", "居家达标客户", "有居家权益的客户"]:
+    for query in ["居家客户", "居家养老客户", "居家会员", "居家达标客户", "有居家权益的客户", "达标的居家客户"]:
         conditions = _conditions(query)
         assert len(conditions) == 1, query
         assert conditions[0].field == "jujiaClientGrade"

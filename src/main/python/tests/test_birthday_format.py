@@ -1,10 +1,11 @@
 import asyncio
+from datetime import date, timedelta
 
-from core.level2_enhanced_matcher import Level2EnhancedMatcher
+from src.main.python.steps.level2_enhanced_matcher import Level2EnhancedMatcher
 
 
 def test_birth_year_range_uses_datetime_format():
-    matcher = Level2EnhancedMatcher("config/enhanced_rules.yaml")
+    matcher = Level2EnhancedMatcher()
 
     conditions = asyncio.run(matcher.match("1953年出生"))
 
@@ -17,7 +18,7 @@ def test_birth_year_range_uses_datetime_format():
 
 
 def test_exact_birthday_uses_datetime_format():
-    matcher = Level2EnhancedMatcher("config/enhanced_rules.yaml")
+    matcher = Level2EnhancedMatcher()
 
     conditions = asyncio.run(matcher.match("出生于19900101的客户"))
 
@@ -29,7 +30,7 @@ def test_exact_birthday_uses_datetime_format():
 
 
 def test_march_birthday_maps_to_month_range():
-    matcher = Level2EnhancedMatcher("config/enhanced_rules.yaml")
+    matcher = Level2EnhancedMatcher()
 
     conditions = asyncio.run(matcher.match("3月份过生日的客户"))
 
@@ -42,7 +43,7 @@ def test_march_birthday_maps_to_month_range():
 
 
 def test_policy_anniversary_in_july_maps_to_month_range():
-    matcher = Level2EnhancedMatcher("config/enhanced_rules.yaml")
+    matcher = Level2EnhancedMatcher()
 
     conditions = asyncio.run(matcher.match("保单周年日在7月的客户"))
 
@@ -55,7 +56,7 @@ def test_policy_anniversary_in_july_maps_to_month_range():
 
 
 def test_customer_birthday_in_march_maps_to_month_range():
-    matcher = Level2EnhancedMatcher("config/enhanced_rules.yaml")
+    matcher = Level2EnhancedMatcher()
 
     conditions = asyncio.run(matcher.match("客户生日在3月的客户"))
 
@@ -65,3 +66,17 @@ def test_customer_birthday_in_march_maps_to_month_range():
     assert condition.operator.value == "RANGE"
     assert condition.value.min == "03-01"
     assert condition.value.max == "03-31"
+
+
+def test_recent_three_days_birthday_maps_to_upcoming_md_range():
+    matcher = Level2EnhancedMatcher()
+
+    conditions = asyncio.run(matcher.match("最近3天生日的客户"))
+
+    assert len(conditions) == 1
+    condition = conditions[0]
+    today = date.today()
+    assert condition.field == "birthdayMd"
+    assert condition.operator.value == "RANGE"
+    assert condition.value.min == today.strftime("%m-%d")
+    assert condition.value.max == (today + timedelta(days=2)).strftime("%m-%d")

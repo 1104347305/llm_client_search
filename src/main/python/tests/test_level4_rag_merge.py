@@ -132,6 +132,36 @@ def test_level4_rag_message_merges_l2_field_recall(monkeypatch):
     assert "pCategorys" in message
 
 
+def test_level4_rag_message_includes_simple_time_knowledge(monkeypatch):
+    monkeypatch.setattr(settings, "ENABLE_L4_RAG_ES", True)
+    monkeypatch.setattr(settings, "ENABLE_L4_RAG_TRIE", True)
+    monkeypatch.setattr(settings, "ENABLE_L4_RAG_L2", True)
+    monkeypatch.setattr(settings, "L4_RAG_TOP_K", 10)
+
+    class _StubTimeRetriever:
+        def recall(self, query, top_k=5):
+            return [
+                {
+                    "matched": "下下周",
+                    "min": "2026-04-06 00:00:00",
+                    "max": "2026-04-12 00:00:00",
+                }
+            ]
+
+    parser = Level4LLMParser.__new__(Level4LLMParser)
+    parser.field_registry = _StubFieldRegistry()
+    parser.level2_recall = _StubL2Recall()
+    parser.time_retriever = _StubTimeRetriever()
+
+    message, has_intents = asyncio.run(
+        parser._build_rag_message("下下周理赔的客户")
+    )
+
+    assert has_intents is True
+    assert "### 时间知识\n下下周 = 2026-04-06 00:00:00 ~ 2026-04-12 00:00:00" in message
+    assert "占位符" not in message
+
+
 def test_level4_rag_prioritizes_l2_and_trie_before_es(monkeypatch):
     monkeypatch.setattr(settings, "ENABLE_L4_RAG_ES", True)
     monkeypatch.setattr(settings, "ENABLE_L4_RAG_TRIE", True)

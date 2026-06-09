@@ -475,7 +475,7 @@ class QueryRouter:
         l2_candidate_conditions: List[Condition] = []
         if settings.ENABLE_L2:
             l2_conditions, l2_matched_patterns = await self._match_level2(query)
-            l2_candidate_conditions = await self._recall_level2_candidate_conditions(query)
+            # l2_candidate_conditions = await self._recall_level2_candidate_conditions(query)
             state.matched_patterns.extend(l2_matched_patterns)
             logger.info(f"{trace_id}--->Level 2 matched {len(l2_conditions)} conditions")
         else:

@@ -151,6 +151,10 @@ class Settings:
             _get("VALUE_MAPPINGS_PATH", str(CONFIG_DIR / "value_mappings_args.yaml")),
             CONFIG_DIR / "value_mappings_args.yaml",
         )
+        self.TIME_KNOWLEDGE_PATH = _path(
+            _get("TIME_KNOWLEDGE_PATH", str(CONFIG_DIR / "time_knowledge_args.yaml")),
+            CONFIG_DIR / "time_knowledge_args.yaml",
+        )
         self.INTENT_SUMMARY_PATH = _path(
             _get("INTENT_SUMMARY_PATH", str(DATA_DIR / "intent_summary_labels_args.yaml")),
             DATA_DIR / "intent_summary_labels_args.yaml",
