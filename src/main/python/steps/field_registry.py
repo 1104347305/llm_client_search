@@ -17,7 +17,7 @@ import json
 import re
 import time
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 import yaml
 from elasticsearch import Elasticsearch, NotFoundError
@@ -624,21 +624,44 @@ class FieldRegistry:
         if not enum_vals or not query:
             return []
 
-        candidates: List[str] = []
-        seen = set()
+        enum_set = set(enum_vals)
+        hits: List[Tuple[int, int, str]] = []
 
         for enum_val in enum_vals:
-            if enum_val in query and enum_val not in seen:
-                candidates.append(enum_val)
-                seen.add(enum_val)
+            start = query.find(enum_val)
+            while start >= 0:
+                hits.append((start, start + len(enum_val), enum_val))
+                start = query.find(enum_val, start + 1)
 
         field_mappings = getattr(self, "_value_mappings", {}).get(field, {})
         for alias, std in field_mappings.items():
-            if alias in query and std in enum_vals and std not in seen:
-                candidates.append(std)
-                seen.add(std)
+            if std not in enum_set:
+                continue
+            start = query.find(alias)
+            while start >= 0:
+                hits.append((start, start + len(alias), std))
+                start = query.find(alias, start + 1)
 
-        return candidates[:limit]
+        # 优先保留更长的文本命中，避免“盛世金越”同时召回其子串“金越”。
+        selected: List[Tuple[int, int, str]] = []
+        for hit in sorted(hits, key=lambda item: (-(item[1] - item[0]), item[0], -len(item[2]))):
+            start, end, _ = hit
+            if any(not (end <= kept_start or start >= kept_end)
+                   for kept_start, kept_end, _ in selected):
+                continue
+            selected.append(hit)
+
+        candidates: List[str] = []
+        seen = set()
+        for _, _, value in sorted(selected, key=lambda item: item[0]):
+            if value in seen:
+                continue
+            candidates.append(value)
+            seen.add(value)
+            if len(candidates) >= limit:
+                break
+
+        return candidates
 
     def format_prompt_section(
         self, intents: List[Dict[str, Any]], query: str = "", max_chars: int = 0,
